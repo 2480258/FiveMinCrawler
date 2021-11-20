@@ -27,14 +27,10 @@ class FirefoxAcceptHeaderPolicyImpl : AcceptHeaderPolicy{
 
 }
 
-class RequestHeaderProfile(
+data class RequestHeaderProfile(
     val acceptEncoding : Option<String> = Some("gzip, deflate, br"),
     val acceptLanguage : Option<String> = Some("en-US,en;q=0.5"),
     val connection : Option<String> = Some("Keep-Alive"),
-    val dnt : Option<Boolean> = Some(true),
     val te : Option<String> = Some("trailers"),
     val userAgent : Option<String> = none()){}
 
-class PerRequestHeaderProfile : RequestHeaderProfile{
-
-}

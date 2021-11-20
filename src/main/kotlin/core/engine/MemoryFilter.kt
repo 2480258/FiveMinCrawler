@@ -28,8 +28,8 @@ class DiskWriterImpl constructor(private val token : RequestToken, private val t
         return tok.hashCode().toString() + TEMP_EXT
     }
 
-    override fun write(b: ByteArray) {
-        writer.write(b)
+    override fun write(b : ByteArray, off : Int, len : Int) {
+        writer.write(b, off, len)
     }
 
     override fun flushAndExportAndDispose() : MemoryData{
@@ -68,9 +68,9 @@ class MemoryWriterImpl : MemoryWriter{
         get() = writer.size()
     override var isDisposed: Boolean = false
 
-    override fun write(b: ByteArray) {
+    override fun write(b : ByteArray, off : Int, len : Int) {
         length += b.size
-        writer.write(b)
+        writer.write(b, off, len)
     }
 
     override fun flushAndExportAndDispose() : MemoryData {
@@ -112,8 +112,7 @@ interface MemoryFilter : AutoCloseable {
     var isCompleted : Boolean
     var isDisposed : Boolean
 
-    fun write(b : ByteArray)
-
+    fun write(b : ByteArray, off : Int, len : Int)
     fun flushAndExportAndDispose() : MemoryData
 }
 
@@ -140,14 +139,14 @@ class StringFilterImpl constructor(private val filter : MemoryFilter, private va
     override var length: Int = 0
         get() = filter.length
 
-    override fun write(b: ByteArray) {
+    override fun write(b : ByteArray, off : Int, len : Int) {
         if(encoding.isNotEmpty() && length == 0){
             val minCount = Math.min(b.size, MAX_BOM_LENGTH)
             val arr = b.take(minCount).toByteArray()
             encoding = getEncoding(arr).some()
         }
 
-        filter.write(b)
+        filter.write(b, off, len)
     }
 
     override fun flushAndExportAndDispose(): StringMemoryData {
@@ -183,8 +182,8 @@ class HtmlFilterImpl constructor(private val filter : StringFilter, private val 
     override var length: Int = 0
         get() = filter.length
 
-    override fun write(b: ByteArray) {
-        filter.write(b)
+    override fun write(b : ByteArray, off : Int, len : Int) {
+        filter.write(b, off, len)
     }
 
     override fun flushAndExportAndDispose(): HtmlMemoryData {
@@ -218,14 +217,14 @@ class TranslatableFilter(private val expectSize : Option<Int>,
         })
     }
 
-    fun write(buffer : ByteArray){
+    fun write(b : ByteArray, off : Int, len : Int){
         if(writeStream is MemoryWriterImpl && (writeStream.length > TRANSLATION_THRESOLD)){
             val ndata = DiskWriterImpl(handle, tempPath)
             (writeStream as MemoryWriterImpl).migrateMeToAndDisposeThis(ndata)
             writeStream = ndata
         }
 
-        writeStream.write(buffer)
+        writeStream.write(b, off, len)
     }
 
     fun flushAndDispose() : MemoryData{

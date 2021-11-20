@@ -19,6 +19,10 @@ interface Request
     fun copyWith(target : URI? = null, tags : TagRepository? = null)
 }
 
+interface HttpRequest : Request{
+    val headerOption : PerRequestHeaderProfile
+}
+
 enum class RequestType
 {
     LINK, ATTRIBUTE

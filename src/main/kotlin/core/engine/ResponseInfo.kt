@@ -2,8 +2,6 @@ package core.engine
 
 import arrow.core.Option
 import core.request.NetworkHeader
-import okhttp3.RequestBody
-import okhttp3.Response
 import java.lang.Exception
 import java.net.URI
 
@@ -57,11 +55,7 @@ data class PerformedRequesterInfo(val engine: RequesterEngineInfo, val slot: Req
 
 }
 
-data class UnixTimeStamp(val timestamp: Long) {
-
-}
-
-data class ResponseTime(val sent: UnixTimeStamp, val recived: UnixTimeStamp) {
+data class ResponseTime(val sentMS: Long, val receivedMS: Long) {
 
 }
 
@@ -72,18 +66,18 @@ interface ResponseData {
 }
 
 interface ResponseBody {
-    val requestBody : RequestBody
+    val requestBody: RequestBody
 }
 
-interface ResponseReceivedBody : ResponseBody{
-    val code : Int
-    val responseHeader : NetworkHeader
+interface ResponseReceivedBody : ResponseBody {
+    val code: Int
+    val responseHeader: NetworkHeader
 }
 
 interface SuccessBody : ResponseReceivedBody {
     val body: MemoryData
-    val contentType : MediaType
-    val responseTime : ResponseTime
+    val contentType: MediaType
+    val responseTime: ResponseTime
 }
 
 interface AutomaticRedirectResponseBody : ResponseReceivedBody {
@@ -102,9 +96,12 @@ interface RedirectResponseBody : ResponseReceivedBody {
     val redirectDest: URI
 }
 
-interface RequestBody {
-    val currentUri: URI
+data class RequestBody(
+    val originalUri : URI,
+    val currentUri: URI,
     val requestHeader: NetworkHeader
+) {
+
 }
 
-data class MediaType (val type: String, val subType: String)
+data class MediaType(val type: String, val subType: String)
