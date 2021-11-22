@@ -1,9 +1,10 @@
 package core.engine.transaction.finalizeRequest
 
+import arrow.core.Validated
 import core.engine.*
 
 class FinalizeRequestTransactionImpl<Document : Request>(
-    override val result: Result<ResponseData>,
+    override val result: Validated<Throwable, ResponseData>,
     override val tags: TagRepository,
     override val previous: Transaction<Document>
 ) : FinalizeRequestTransaction<Document>{

@@ -39,7 +39,7 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
             .build()
     }
 
-    override suspend fun requestAsync(uri: HttpRequest): Deferred<Validated<Throwable, core.engine.ResponseBody>> {
+    override suspend fun requestAsync(uri: core.engine.Request): Deferred<Validated<Throwable, core.engine.ResponseBody>> {
         val waiter = TaskWaitHandle<Validated<Throwable, core.engine.ResponseBody>>()
 
         return waiter.run {
@@ -49,18 +49,22 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
         }
     }
 
-    private fun <T> requestInternal(uri: HttpRequest, act: (Validated<Throwable, core.engine.ResponseBody>) -> T) {
+    private fun <T> requestInternal(uri: core.engine.Request, act: (Validated<Throwable, core.engine.ResponseBody>) -> T) {
         val request = Request.Builder()
-            .setHeader(uri.headerOption)
-            .build()
 
-        client.newCall(request).enqueue(object : Callback {
+        if(uri is HttpRequest){
+            request.setHeader(uri.headerOption)
+        }
+
+        var ret = request.build()
+
+        client.newCall(ret).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 act(e.invalid())
             }
 
             override fun onResponse(call: Call, response: Response) {
-                act(responseAdapterImpl.create(uri.target, response, Some(request)).valid())
+                act(responseAdapterImpl.createWithReceived(uri, response, ret))
             }
         })
     }

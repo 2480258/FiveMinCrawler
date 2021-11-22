@@ -1,16 +1,10 @@
 package core.request.adapter
 
-import arrow.core.Option
-import arrow.core.Some
+import arrow.core.*
 import arrow.core.computations.either
 import arrow.core.computations.option
-import arrow.core.none
-import arrow.core.toOption
 import core.engine.*
-import core.request.AutomaticRedirectResponseBodyImpl
-import core.request.MemoryFilterFactory
-import core.request.NetworkHeader
-import core.request.SuccessBodyImpl
+import core.request.*
 import okhttp3.MediaType
 import okhttp3.Request
 import okhttp3.RequestBody
@@ -20,50 +14,74 @@ import java.net.URI
 class ResponseAdapterImpl(
     private val performedRequesterInfo: PerformedRequesterInfo,
     private val factory: MemoryFilterFactory
-) {
+) : ResponseAdapter {
 
     private val DEFAULT_BUFFER_SIZE = 32768 //32KB
 
-    fun create(original: HttpRequest, resp: Response, req: Option<Request>): ResponseBody {
-
+    override fun createWithError(
+        original: core.engine.Request,
+        ex : Option<Exception>,
+        req: Request
+    ) : Validated<Throwable, ResponseBody>{
+        return CriticalErrorBodyImpl(createRequestBody(original.target, req), ex).valid()
     }
 
-    private fun createInfo(original: HttpRequest, resp: Response, req: Option<Request>): ResponseBody {
-        req.map {
-            if (resp.request.url.toUri() != original.target && resp.body != null) {
-                return AutomaticRedirectResponseBodyImpl(
-                    createRequestBody(original.target, it),
+    override fun createWithReceived(
+        original: core.engine.Request,
+        resp: Response,
+        req: Request
+    ): Validated<Throwable, ResponseBody> {
+        if (resp.request.url.toUri() != original.target && resp.body != null) {
+            return createWithReceived(original, resp, req).map { x ->
+                AutomaticRedirectResponseBodyImpl(
+                    createRequestBody(original.target, req),
                     resp.code,
                     NetworkHeader(resp.headers.asIterable().toList()),
-                    createInfo(original, resp, req)
+                    x
                 )
             }
-
-            if (resp.body != null && resp.isSuccessful) {
-                createMemoryData(resp.body!!, original).map { x ->
-                    SuccessBodyImpl(
-                        createRequestBody(original.target, it),
-                        resp.code,
-                        NetworkHeader(resp.headers.asIterable().toList()),
-                        x,
-                        MediaType(resp.body!!.contentType()!!.type, resp.body!!.contentType()!!.subtype),
-                        ResponseTime(resp.sentRequestAtMillis, resp.receivedResponseAtMillis)
-                    )
-                }
-
-                return
-            }
-
-
         }
 
+        if (resp.body != null && resp.isSuccessful) {
+            return createMemoryData(
+                resp.body!!,
+                original
+            ).fold({ HttpNoContentWithSuccessfulException(resp.request.url.toString()).invalid() }) { x ->
+                SuccessBodyImpl(
+                    createRequestBody(original.target, req),
+                    resp.code,
+                    NetworkHeader(resp.headers.asIterable().toList()),
+                    x,
+                    MediaType(resp.body!!.contentType()!!.type, resp.body!!.contentType()!!.subtype),
+                    ResponseTime(resp.sentRequestAtMillis, resp.receivedResponseAtMillis)
+                ).valid()
+            }
+        }
+
+        if (resp.body != null && resp.code >= 300 && resp.code <= 399) {
+            return resp.headers["Location"].toOption()
+                .fold({ HttpNoLocationHeaderWithRedirectCodeException(resp.request.url.toString()).invalid() }) { x ->
+                    RedirectResponseBodyImpl(
+                        createRequestBody(original.target, req),
+                        resp.code,
+                        NetworkHeader(resp.headers.asIterable().toList()),
+                        URI(x)
+                    ).valid()
+                }
+        }
+
+        return RecoverableErrorBodyImpl(
+            createRequestBody(original.target, req),
+            resp.code,
+            NetworkHeader(resp.headers.asIterable().toList())
+        ).valid()
     }
 
     private fun createRequestBody(originalUri: URI, req: Request): core.engine.RequestBody {
         return core.engine.RequestBody(originalUri, req.url.toUri(), NetworkHeader(req.headers.toList()))
     }
 
-    private fun createMemoryData(responseBody: okhttp3.ResponseBody, request: HttpRequest): Option<MemoryData> {
+    private fun createMemoryData(responseBody: okhttp3.ResponseBody, request: core.engine.Request): Option<MemoryData> {
         var filter: MemoryFilter? = null
 
         try {
@@ -110,7 +128,7 @@ class ResponseAdapterImpl(
     private fun createMemoryFilter(
         type: Option<MediaType>,
         total: Option<Long>,
-        request: HttpRequest
+        request: core.engine.Request
     ): MemoryFilter {
         return type.zip(total).fold({ factory.createByteFilter(total, request.token) }) {
             if (typeContents(it.first, "html")) {

@@ -85,7 +85,7 @@ interface AutomaticRedirectResponseBody : ResponseReceivedBody {
 }
 
 interface RecoverableErrorBody : ResponseReceivedBody {
-    val reason: String
+
 }
 
 interface CriticalErrorBody : ResponseBody {

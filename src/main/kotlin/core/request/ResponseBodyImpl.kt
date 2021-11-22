@@ -25,8 +25,7 @@ class RedirectResponseBodyImpl(
 class RecoverableErrorBodyImpl(
     override val requestBody: RequestBody,
     override val code: Int,
-    override val responseHeader: NetworkHeader,
-    override val reason: String
+    override val responseHeader: NetworkHeader
 ) : RecoverableErrorBody{
 
 }

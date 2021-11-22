@@ -10,7 +10,7 @@ data class RequestToken private constructor(val tokenNumber: Int)
         var LastUsed : Int = -1
         val lock = ReentrantLock()
 
-        fun Create() : RequestToken
+        fun create() : RequestToken
         {
             return lock.withLock {
                 LastUsed++;

@@ -9,16 +9,9 @@ import okhttp3.Response
 import java.net.URI
 
 class HttpResponseMessage(
-    private val response : Option<Response>,
+    override val responseBody: ResponseBody,
     override val requesterInfo: PerformedRequesterInfo
 ) : ResponseData{
-    override val responseBody: ResponseBody
-
-    init{
-        response.
-    }
-
-
     override fun releaseRequester() {
         return
     }
