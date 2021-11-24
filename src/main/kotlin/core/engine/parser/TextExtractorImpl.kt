@@ -13,30 +13,25 @@ class TextSelectionModeNotFoundException
 }
 
 class TextExtractorImpl : TextExtractor {
-    override fun parse(data: HtmlMemoryData, nav: ParserNavigator, selectionMode: TextSelectionMode): Iterable<String> {
-        return data.parseAsHtmlDocument {
+    override fun parse(data: HtmlMemoryData, nav: ParserNavigator, mode : TextSelectionMode): Iterable<String> {
+        var ret = data.parseAsHtmlDocument {
             it.getElements(nav).map {
-                getMode(it, selectionMode)
+                it
             }
         }.fold({ listOf() }, { x -> x }).map {
             it.toOption()
         }.filterOption()
+
+        return ret.map {
+            selectMode(it, mode)
+        }
     }
 
-    private fun getMode(elem: HtmlElement, selectionMode: TextSelectionMode): Validated<Throwable, String> {
-        return when (selectionMode) {
-            TextSelectionMode.INNER_HTML -> {
-                elem.innerHtml.valid()
-            }
-            TextSelectionMode.TEXT_CONTENT -> {
-                elem.textContent.valid()
-            }
-            TextSelectionMode.OUTER_HTML -> {
-                elem.outerHtml.valid()
-            }
-            else -> {
-                TextSelectionModeNotFoundException().invalid()
-            }
+    private fun selectMode(elem : HtmlElement, mode: TextSelectionMode) : String{
+        return when(mode){
+            TextSelectionMode.TEXT_CONTENT -> elem.textContent
+            TextSelectionMode.OUTER_HTML -> elem.outerHtml
+            TextSelectionMode.INNER_HTML -> elem.innerHtml
         }
     }
 }

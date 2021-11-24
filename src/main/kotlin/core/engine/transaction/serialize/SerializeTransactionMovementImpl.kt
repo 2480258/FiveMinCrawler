@@ -18,15 +18,14 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
         return coroutineScope {
             async {
                 Validated.catch {
-                    var parse = postParser.getPostParseInfo(source, info, state)
-                    var ret = SerializeTransactionImpl<Document>(
-                        source.request,
-                        convertAttributeToTag(parse.attribute, source.tags),
-                        parse.attribute.toList()
-                    )
-
-                    ret
-                }
+                    postParser.getPostParseInfo(source, info, state).map {
+                        SerializeTransactionImpl<Document>(
+                            source.request,
+                            convertAttributeToTag(it.attribute, source.tags),
+                            it.attribute.toList()
+                        )
+                    }.toEither()
+                }.toEither().flatten().toValidated()
             }
         }
 
@@ -54,14 +53,14 @@ interface PostParserContentPage<in Document : Request> {
     ): Deferred<Validated<Throwable, Iterable<DocumentAttribute>>>
 }
 
-interface PostParseInfo {
-    val attribute: Iterable<DocumentAttribute>
+data class PostParseInfo(
+    val attribute: List<DocumentAttribute>) {
 }
 
 interface PostParser<in Document : Request> {
-    fun getPostParseInfo(
+    suspend fun getPostParseInfo(
         request: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): PostParseInfo
+    ): Validated<Throwable, PostParseInfo>
 }

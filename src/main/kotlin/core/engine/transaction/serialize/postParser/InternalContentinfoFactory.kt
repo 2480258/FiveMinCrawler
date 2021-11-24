@@ -1,32 +1,46 @@
 package core.engine.transaction.serialize.postParser
 
-import core.engine.DocumentAttributeFactory
-import core.engine.FinalizeRequestTransaction
-import core.engine.Request
-import core.engine.ParserNavigator
+import arrow.core.Option
+import arrow.core.toOption
+import core.engine.*
+import kotlinx.coroutines.runBlocking
 
-interface InternalContentInfoFactory<in Document : Request>{
-    fun get(trans : FinalizeRequestTransaction<Document>) : Iterable<InternalContentInfo>
+interface InternalContentInfoFactory<in Document : Request> {
+    fun get(trans: FinalizeRequestTransaction<Document>): Option<Iterable<InternalContentInfo>>
 }
 
-data class InternalContentInfo(val attributeName : String, val data : Iterable<String>){
+data class InternalContentInfo(val attributeName: String, val data: List<String>) {
 }
 
 
-enum class TextSelectionMode{
+enum class TextSelectionMode {
     INNER_HTML, OUTER_HTML, TEXT_CONTENT
 }
 
-data class InternalContentParser(val attributeName: String, val nav : ParserNavigator, val selectionMode: TextSelectionMode){
+data class InternalContentParser(
+    val attributeName: String,
+    val nav: ParserNavigator,
+    val selectionMode: TextSelectionMode
+) {
 
 }
 
-class InternalContentinfoFactoryImpl<Document : Request> (private val factories : Iterable<InternalContentParser>,
-private val attributeFactory: DocumentAttributeFactory,
-private val textExtractor : TextExtractor
-): InternalContentInfoFactory<Document>{
-    override fun get(trans: FinalizeRequestTransaction<Document>): Iterable<InternalContentInfo> {
-        TODO("Not yet implemented")
+class InternalContentInfoFactoryImpl<Document : Request>(
+    private val factories: Iterable<InternalContentParser>,
+    private val attributeFactory: DocumentAttributeFactory,
+    private val textExtractor: TextExtractor
+) : InternalContentInfoFactory<Document> {
+    override fun get(trans: FinalizeRequestTransaction<Document>): Option<List<InternalContentInfo>> {
+        return runBlocking {
+            trans.result.map { y ->
+                y.responseBody.ifSucc({ z ->
+                    z.body.ifHtml({ a ->
+                        factories.map { x ->
+                            InternalContentInfo(x.attributeName, textExtractor.parse(a, x.nav, x.selectionMode).toList())
+                        }
+                    }, { listOf() })
+                }, { listOf() })
+            }.toOption() //TODO Log
+        }
     }
-
 }

@@ -10,7 +10,7 @@ class AutomaticRedirectResponseBodyImpl(
     override val code: Int,
     override val responseHeader: NetworkHeader,
     override val afterRedirect: ResponseBody
-) : AutomaticRedirectResponseBody {
+) : HttpAutomaticRedirectResponseBody {
 }
 
 class RedirectResponseBodyImpl(
@@ -41,6 +41,6 @@ class SuccessBodyImpl(
     override val body: MemoryData,
     override val contentType: MediaType,
     override val responseTime: ResponseTime
-) : SuccessBody{
+) : HttpSuccessBody{
 
 }

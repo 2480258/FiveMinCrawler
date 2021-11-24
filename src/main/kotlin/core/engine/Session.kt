@@ -138,7 +138,7 @@ interface SessionDetachRetryable : SessionState {
 }
 
 interface SessionChildGeneratable : SessionState {
-    suspend fun <T> getChildSession(func: suspend (SessionInitState) -> Deferred<Result<T>>): Deferred<Result<T>> {
+    suspend fun <T> getChildSession(func: suspend (SessionInitState) -> Deferred<Validated<Throwable, T>>): Deferred<Validated<Throwable, T>> {
         var detached = Data.SessionRepo.create(info.parent)
         var ret = func(SessionDetachableInitStateImpl(detached, Data))
         return ret

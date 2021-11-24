@@ -14,10 +14,10 @@ fun <T> DocumentAttributeElement.match(ifInte : (DocumentAttributeInternalElemen
 }
 
 interface DocumentAttributeFactory{
-    fun GetInternal(info : DocumentAttributeInfo, data : String)
-    fun GetInternal(info : DocumentAttributeInfo, data : Iterable<String>)
-    fun <Document : Request> GetExternal(info: DocumentAttributeInfo, data : FinalizeRequestTransaction<Document>)
-    fun <Document : Request> GetExternal(info: DocumentAttributeInfo, data: Iterable<FinalizeRequestTransaction<Document>>)
+    fun getInternal(info : DocumentAttributeInfo, data : String) : DocumentAttribute
+    fun getInternal(info : DocumentAttributeInfo, data : Iterable<String>) : DocumentAttribute
+    fun <Document : Request> getExternal(info: DocumentAttributeInfo, data : FinalizeRequestTransaction<Document>) : DocumentAttribute
+    fun <Document : Request> getExternal(info: DocumentAttributeInfo, data: Iterable<FinalizeRequestTransaction<Document>>) : DocumentAttribute
 }
 
 data class DocumentAttributeInfo(val name : String){

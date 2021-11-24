@@ -1,5 +1,6 @@
 package core.engine
 
+import arrow.core.Option
 import java.io.InputStreamReader
 import java.util.stream.Stream
 
@@ -12,15 +13,15 @@ interface  HtmlDocumentFactory{
 interface HtmlParsable {
     fun getElements(nav: ParserNavigator) : Iterable<HtmlElement>
 
-    fun getElement(nav: ParserNavigator) : HtmlElement?
+    fun getElement(nav: ParserNavigator) : Option<HtmlElement>
 }
 
-interface HtmlElement{
+interface HtmlElement : HtmlParsable{
     val outerHtml : String
 
     val innerHtml : String
 
     val textContent : String
 
-    fun getAttribute(name:String) : String
+    fun getAttribute(name:String) : Option<String>
 }

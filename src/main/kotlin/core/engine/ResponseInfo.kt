@@ -69,22 +69,29 @@ interface ResponseBody {
     val requestBody: RequestBody
 }
 
-interface ResponseReceivedBody : ResponseBody {
+interface HttpResponseReceivedBody : ResponseBody {
     val code: Int
     val responseHeader: NetworkHeader
 }
 
-interface SuccessBody : ResponseReceivedBody {
+interface SuccessBody : ResponseBody {
     val body: MemoryData
+}
+
+interface HttpSuccessBody : SuccessBody, HttpResponseReceivedBody{
     val contentType: MediaType
     val responseTime: ResponseTime
 }
 
-interface AutomaticRedirectResponseBody : ResponseReceivedBody {
+interface AutomaticRedirectResponseBody : ResponseBody {
     val afterRedirect: ResponseBody
 }
 
-interface RecoverableErrorBody : ResponseReceivedBody {
+interface HttpAutomaticRedirectResponseBody : AutomaticRedirectResponseBody, HttpResponseReceivedBody {
+
+}
+
+interface RecoverableErrorBody : HttpResponseReceivedBody {
 
 }
 
@@ -92,7 +99,7 @@ interface CriticalErrorBody : ResponseBody {
     val error: Option<Exception>
 }
 
-interface RedirectResponseBody : ResponseReceivedBody {
+interface RedirectResponseBody : HttpResponseReceivedBody {
     val redirectDest: URI
 }
 
