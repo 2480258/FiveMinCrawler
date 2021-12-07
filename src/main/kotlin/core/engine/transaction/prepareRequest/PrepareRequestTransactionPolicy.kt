@@ -13,6 +13,6 @@ class PrepareRequestTransactionPolicy<Document : Request>(
     movementFactory: MovementFactory<Document>
 ) : AbstractPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document>(option, movementFactory) {
     override fun getMovement(factory: MovementFactory<Document>): TransactionMovement<InitialTransaction<Document>, PrepareTransaction<Document>, Document> {
-        return factory.find<InitialTransaction<Document>, PrepareTransaction<Document>>()
+        return factory.findPrepare()
     }
 }

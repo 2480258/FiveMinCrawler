@@ -8,7 +8,7 @@ data class SessionToken private constructor(val tokenNumber: Int) {
         var LastUsed: Int = -1
         val lock = ReentrantLock()
 
-        fun Create(): SessionToken {
+        fun create(): SessionToken {
             return lock.withLock {
                 LastUsed++;
                 return SessionToken(LastUsed)

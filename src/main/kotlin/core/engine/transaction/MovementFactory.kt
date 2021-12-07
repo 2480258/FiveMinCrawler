@@ -5,5 +5,11 @@ import core.engine.StrictTransaction
 import core.engine.Transaction
 
 interface MovementFactory<Document : Request> {
-    fun <SrcTrans : Transaction<Document>, DstTrans : StrictTransaction<SrcTrans, Document>> find() : TransactionMovement<SrcTrans, DstTrans, Document>
+    fun <Document : Request> findRequest(): ExecuteRequestMovement<Document>
+
+    fun <Document : Request> findExport(): ExecuteExportMovement<Document>
+
+    fun <Document : Request> findPrepare(): PrepareRequestMovement<Document>
+
+    fun <Document : Request> findSerialize():ExecuteSerializeMovement<Document>
 }

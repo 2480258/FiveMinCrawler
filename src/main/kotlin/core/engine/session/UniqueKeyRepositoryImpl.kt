@@ -4,40 +4,68 @@ import arrow.core.*
 import core.engine.SessionToken
 import core.engine.UniqueKey
 import core.engine.UniqueKeyRepository
+import core.exclusiveSingleOrNone
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-class UniqueKeyRepositoryImpl constructor(private val set : Either<Unit, ArchivedSessionSet>): UniqueKeyRepository {
+
+
+
+class UniqueKeyRepositoryImpl constructor(private val set : Option<ArchivedSessionSet>): UniqueKeyRepository {
 
     private val dic :  MutableMap<SessionToken, UniqueKeyOwnership> = mutableMapOf()
     private val list : MutableMap<UniqueKeyOwnership, MutableList<UniqueKeyState>> = mutableMapOf()
     private val lock : ReentrantLock = ReentrantLock()
 
 
-    private fun findGlobalExceptSelf(ownership : UniqueKeyOwnership, key : UniqueKey) : Either<Unit, UniqueKeyState>{
-        return set.map { x ->
-            if(x.isConflict(key)){
-                throw UniqueKeyDuplicateException()
+    private fun findGlobalExceptSelf(ownership : UniqueKeyOwnership, key : UniqueKey) : Validated<Throwable, Option<UniqueKeyState>>{
+        if(set.fold({false}, {it.isConflict(key)})){
+            return UniqueKeyDuplicateException().invalid()
+        }
+
+        val lst = list.filter {
+            it.key != ownership
+        }
+
+        var ret =  lst.map {
+            findFromStateList(it.value, key)
+        }
+
+        var res = ret.map {
+            if(it.isInvalid){
+                return@findGlobalExceptSelf it
             }
+            else{
+                it.toOption().flatten()
+            }
+        }.filterOption().exclusiveSingleOrNone()
 
-            list.filter { x -> x.key != ownership }
-                .map { x -> findFromStateList(x.component2(), key) }.single { x -> x.isRight() }
-        }.flatten()
+        return res
     }
 
-    private fun findFromSelf(self : UniqueKeyOwnership, key : UniqueKey) : Either<Unit, UniqueKeyState>{
-        return list[self].rightIfNotNull {  }.map { x -> findFromStateList(x, key) }.flatten()
+    private fun findFromSelf(self : UniqueKeyOwnership, key : UniqueKey) : Validated<Throwable, Option<UniqueKeyState>>{
+        return list[self].toOption().map {
+            it.exclusiveSingleOrNone() {
+                it.key == key
+            }.toEither()
+        }.toEither {
+            Throwable() //TODO: Specify exception
+        }.flatten().toValidated()
     }
 
-    private fun findFromStateList(states : List<UniqueKeyState>, key : UniqueKey) : Either<Unit,UniqueKeyState>{
-        return states.firstOrNull() { it -> it.Key == key}.rightIfNotNull {  }
+    private fun findFromStateList(states : List<UniqueKeyState>, key : UniqueKey) : Validated<Throwable, Option<UniqueKeyState>>{
+        return states.exclusiveSingleOrNone {  it.key == key }
     }
 
     private fun addOrUpdateKey(handle : UniqueKeyOwnership, key : UniqueKey){
         lock.withLock{
             var global = findGlobalExceptSelf(handle, key)
 
-            if(global.isNotEmpty()){
+            var isUnique = global.fold({throw it}, {
+                it.isNotEmpty()
+            })
+
+            if(isUnique){
                 throw UniqueKeyDuplicateException()
             }
 
@@ -47,18 +75,20 @@ class UniqueKeyRepositoryImpl constructor(private val set : Either<Unit, Archive
                 list[handle] = mutableListOf()
             }
 
-            var self = findFromSelf(handle, key)
-                .fold({x -> list[handle]!!.add(UniqueKeyState(key))},
-                    {x -> x.increaseDuplicationCount()})
+            findFromSelf(handle, key)
+                .fold({list[handle]!!.add(UniqueKeyState(key))},
+                    {x -> x.map{
+                        it.increaseDuplicationCount()
+                    }})
         }
     }
 
     private fun getOwnership(token : SessionToken) : UniqueKeyOwnership {
         return lock.withLock{
-            return dic[token].rightIfNotNull { }.fold(
-                {x -> var os = UniqueKeyOwnership.Create()
+            return dic[token].toOption().fold(
+                {var os = UniqueKeyOwnership.Create()
                     dic[token] = os
-                    return os},
+                    os},
                 {x -> x})
         }
     }
@@ -85,12 +115,12 @@ class UniqueKeyRepositoryImpl constructor(private val set : Either<Unit, Archive
             }
 
             return ArchivedSessionSet(lst.map{
-                ArchivedSession(list[dic[it]]!!.map{it.Key})
+                ArchivedSession(list[dic[it]]!!.map{it.key})
             })
         }
     }
 
-    class UniqueKeyState constructor(val Key : UniqueKey){
+    class UniqueKeyState constructor(val key : UniqueKey){
         private val maxDuplication : Int = 3
         private var duplicateCount : Int = 1
 

@@ -1,6 +1,4 @@
-package core.engine.crawlingTask
-
-import core.engine.*
+package core.engine
 
 class CrawlerTaskFactoryImpl<Document : Request>(val policySet: DocumentPolicyStorageFactoryCollector) : CrawlerTaskFactory<Document> {
     override fun <S1 : Transaction<Document>, S2 : StrictTransaction<S1, Document>> get1(type: DocumentType): CrawlerTask1<S1, S2, Document, Document> {

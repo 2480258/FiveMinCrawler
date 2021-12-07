@@ -5,7 +5,7 @@ import core.engine.PrepareTransaction
 import core.engine.Request
 import core.engine.transaction.*
 
-class FinalizeRequestTRansactionPolicy<Document : Request>(
+class FinalizeRequestTransactionPolicy<Document : Request>(
     option: AbstractPolicyOption<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document>,
     movementFactory: MovementFactory<Document>
 ) : AbstractPolicy<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document>(

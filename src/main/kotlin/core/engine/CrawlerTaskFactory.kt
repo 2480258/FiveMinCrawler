@@ -26,3 +26,4 @@ interface CrawlerTaskFactory<Document : Request> {
             get4(type : DocumentType) : CrawlerTask4<S1, S2, S3, S4, S5, Document, Document, Document, Document, Document>
 
 }
+

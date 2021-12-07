@@ -17,6 +17,27 @@ interface Request : Taggable {
     fun copyWith(newTarget: Option<URI>, tags: Option<TagRepository>): Request
 }
 
+class DefaultRequest(
+    override val tags: TagRepository,
+    override val parent: Option<RequestToken>,
+    override val target: URI,
+    override val requestType: RequestType,
+
+) : Request {
+    override val token: RequestToken = RequestToken.create()
+    override val documentType: DocumentType = DocumentType.DEFAULT
+
+    override fun copyWith(newTarget: Option<URI>, newtags: Option<TagRepository>): Request {
+        return DefaultRequest(
+            newtags.fold({ tags }, { it }),
+            parent,
+            newTarget.fold({ target }, { it }),
+            requestType,
+            documentType
+        )
+    }
+}
+
 interface HttpRequest : Request {
     val headerOption: PerRequestHeaderProfile
 }

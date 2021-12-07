@@ -9,7 +9,7 @@ import core.export.ConfigControllerImpl
 import core.request.queue.DequeueOptimizationPolicy
 
 data class VirtualOption(
-    val parseOption: Parseoption,
+    val parseOption: ParseOption,
     val controller: ConfigController,
     val directIO: DirectIO,
     val resumeOption: Option<ResumeOption>,

@@ -8,9 +8,14 @@ import core.engine.transaction.AbstractPolicyOption
 import core.engine.transaction.MovementFactory
 import core.engine.transaction.TransactionMovement
 
-class SerializeTransactionPolicyImpl<Document : Request>(private val option : AbstractPolicyOption<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document>,
-                                                         private val movementFactory: MovementFactory<Document>) :
-    AbstractPolicy<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document>(option, movementFactory) {
+class SerializeTransactionPolicy<Document : Request>(
+    private val option: AbstractPolicyOption<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document>,
+    private val movementFactory: MovementFactory<Document>
+) :
+    AbstractPolicy<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document>(
+        option,
+        movementFactory
+    ) {
     override fun getMovement(factory: MovementFactory<Document>): TransactionMovement<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document> {
         return factory.find()
     }

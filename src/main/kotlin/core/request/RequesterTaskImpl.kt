@@ -10,7 +10,7 @@ import kotlinx.coroutines.Deferred
 
 data class RequestTaskOption(val selector: RequesterSelector, val queue: RequestQueue)
 
-class DefaultRequesterTask(private val option: RequestTaskOption) : RequesterTask {
+class RequesterTaskImpl(private val option: RequestTaskOption) : RequesterTask {
     override suspend fun <Document : Request, Resp : ResponseData> run(request: DocumentRequest<Document>):  Deferred<Validated<Throwable, Resp>> {
         var handle = TaskWaitHandle<Validated<Throwable, Resp>>()
         return handle.run {

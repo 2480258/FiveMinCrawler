@@ -7,9 +7,5 @@ import core.engine.transaction.finalizeRequest.DocumentRequest
 import kotlinx.coroutines.Deferred
 
 interface RequesterTask {
-    suspend fun <Document : Request, Resp : ResponseData> run(request : DocumentRequest<Document>) : Deferred<Validated<Throwable, Resp>>
-}
-
-interface RequesterTaskFactory{
-    fun create() : RequesterTask
+    suspend fun <Document : Request, Resp : ResponseData> run(request: DocumentRequest<Document>): Deferred<Validated<Throwable, Resp>>
 }

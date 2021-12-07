@@ -7,7 +7,7 @@ import kotlinx.coroutines.Deferred
 interface TransactionMovement<
         in SrcTrans : Transaction<Request>,
         out DstTrans : StrictTransaction<SrcTrans, Document>,
-        Document : Request> {
+        out Document : Request> {
     suspend fun move(source : SrcTrans, info : TaskInfo, state : SessionStartedState) : Deferred<Validated<Throwable, DstTrans>>
 }
 

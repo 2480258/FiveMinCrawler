@@ -1,18 +1,13 @@
 package core.engine
 
-import arrow.core.Either
 import arrow.core.Option
-import core.engine.DetachableState
-import core.engine.FinishObserver
-import core.engine.ProgressState
-import core.engine.SessionToken
 
 class SessionInfo
 constructor(private val finish : FinishObserver,
-            val token : SessionToken,
-            val parent : Either<Unit, SessionToken>
+            val parent : Option<SessionToken>
 )
 {
+    val token : SessionToken = SessionToken.create()
     val isDetachable : DetachableState
     get() {return detachable}
     private var detachable = DetachableState.NOTMODIFIED
