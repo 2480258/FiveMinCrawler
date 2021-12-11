@@ -1,8 +1,10 @@
 package core.engine.session
 
 import core.engine.UniqueKey
+import kotlinx.serialization.Serializable
 
 
+@Serializable
 data class ArchivedSessionSet constructor(private val set : Iterable<ArchivedSession>){
     fun isConflict(key : UniqueKey) : Boolean{
         return set.any { it -> it.isConflict(key)}
@@ -10,6 +12,7 @@ data class ArchivedSessionSet constructor(private val set : Iterable<ArchivedSes
 
 }
 
+@Serializable
 data class ArchivedSession constructor(private val set : Iterable<UniqueKey>){
     fun isConflict(key : UniqueKey) : Boolean{
         return set.contains(key)

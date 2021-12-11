@@ -32,8 +32,7 @@ class DefaultRequest(
             newtags.fold({ tags }, { it }),
             parent,
             newTarget.fold({ target }, { it }),
-            requestType,
-            documentType
+            requestType
         )
     }
 }

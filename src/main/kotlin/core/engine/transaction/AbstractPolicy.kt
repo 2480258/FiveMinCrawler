@@ -20,7 +20,7 @@ abstract class AbstractPolicy<
     (
     private val option: AbstractPolicyOption<SrcTrans, DstTrans, Document>,
     private val movementFactory: MovementFactory<Document>
-) {
+) : TransactionPolicy<SrcTrans, DstTrans, Document, Document>{
 
     protected abstract fun getMovement(factory: MovementFactory<Document>): TransactionMovement<SrcTrans, DstTrans, Document>
 

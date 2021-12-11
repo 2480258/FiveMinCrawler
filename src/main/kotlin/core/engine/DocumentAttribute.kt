@@ -20,6 +20,8 @@ interface DocumentAttributeFactory{
     fun <Document : Request> getExternal(info: DocumentAttributeInfo, data: Iterable<FinalizeRequestTransaction<Document>>) : DocumentAttribute
 }
 
+
+
 data class DocumentAttributeInfo(val name : String){
 
 }

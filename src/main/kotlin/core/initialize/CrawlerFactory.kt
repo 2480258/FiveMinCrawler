@@ -21,8 +21,10 @@ import core.request.*
 import core.request.queue.DequeueOptimizationPolicy
 import core.request.queue.RequestQueueImpl
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
 import java.net.URI
 
+@Serializable
 data class ResumeOption(
     val archivedSessionSet: ArchivedSessionSet,
     val continueExportStateInfo: ContinueExportStateInfo
@@ -110,12 +112,12 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     ): DocumentPolicyStorageFactory {
         val movefac = getDefaultMovementFactory(deq)
 
-        val prepare = PrepareRequestTransactionPolicy<Request>(AbstractPolicyOption(subpol.preprocess), movefac)
+        val prepare = PrepareRequestTransactionPolicy(AbstractPolicyOption(subpol.preprocess), movefac)
         val request = FinalizeRequestTransactionPolicy(AbstractPolicyOption(subpol.request), movefac)
         val serialize = SerializeTransactionPolicy(AbstractPolicyOption(subpol.serialize), movefac)
         val export = ExportTransactionPolicy(AbstractPolicyOption(subpol.export), movefac)
 
-        return DocumentPolicyStorageFactoryImpl(listOf(prepare, request, serialize, export))
+        return DocumentPolicyStorageFactory(listOf(prepare, request, serialize, export))
     }
 
     private fun getDefaultMovementFactory(deq: DequeueOptimizationPolicy): MovementFactory<Request> {

@@ -11,6 +11,6 @@ import core.engine.transaction.TransactionMovement
 class ExportTransactionPolicy<Document : Request>(private val option : AbstractPolicyOption<SerializeTransaction<Document>, ExportTransaction<Document>, Document>, factory: MovementFactory<Document>) :
     AbstractPolicy<SerializeTransaction<Document>, ExportTransaction<Document>, Document>(option, factory) {
     override fun getMovement(factory: MovementFactory<Document>): TransactionMovement<SerializeTransaction<Document>, ExportTransaction<Document>, Document> {
-        return factory.find()
+        return factory.findExport()
     }
 }

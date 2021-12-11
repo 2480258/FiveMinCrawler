@@ -1,5 +1,15 @@
 package core.engine
 
+import core.UniqueKeySerializer
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+
+@Serializable(with = UniqueKeySerializer::class)
 abstract class UniqueKey
 {
     protected abstract fun eq(key : UniqueKey) : Boolean

@@ -1,13 +1,16 @@
 package core.engine
 
+import kotlinx.serialization.Serializable
+
 interface ExportState {
     fun export() : ContinueExportStateInfo
 
     fun create(token : ExportHandle) : PreprocessedExport
 }
 
-class ContinueExportStateInfo constructor(private val exportInfoSet : Iterable<ExportInfo>){
-    val exports : Set<ExportInfo>
+@Serializable
+data class ContinueExportStateInfo constructor(private val exportInfoSet : Iterable<ExportInfo>){
+    var exports : Set<ExportInfo> = setOf()
 
     init {
         exports = exportInfoSet.toSet()

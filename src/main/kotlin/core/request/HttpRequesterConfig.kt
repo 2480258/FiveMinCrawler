@@ -1,6 +1,6 @@
 package core.request
 
-data class HttpRequesterConfig(val config: RequesterConfig, val defaultProfile : RequestHeaderProfile, val maintain : RequestMaintainerFactory) {
+data class HttpRequesterConfig(val config: RequesterConfig, val defaultProfile : RequestHeaderProfile) {
 }
 
 data class RequesterExtraImpl(override val dequeueDecision: DequeueDecisionFactory) : RequesterExtra{
