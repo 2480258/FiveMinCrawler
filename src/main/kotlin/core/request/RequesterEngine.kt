@@ -12,10 +12,14 @@ interface RequesterEngine<out Resp : ResponseData> {
 
 class RequesterEngineImpl<out Resp : ResponseData>(
     override val info: RequesterEngineConfig,
-    override val count: Int,
     private val requesterDic: Map<RequesterSlotInfo, RequesterCore<Resp>>
 ) :
     RequesterEngine<Resp> {
+
+    override val count : Int
+    get() {
+        return requesterDic.size
+    }
 
     override fun get(info: RequesterSlotInfo): RequesterCore<Resp> {
         return requesterDic[info]!!

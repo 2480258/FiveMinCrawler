@@ -1,7 +1,6 @@
 package core.engine.transaction.serialize.postParser
 
 import arrow.core.Option
-import arrow.core.toOption
 import core.engine.*
 import kotlinx.coroutines.runBlocking
 
@@ -33,7 +32,7 @@ class InternalContentInfoFactoryImpl<Document : Request>(
     override fun get(trans: FinalizeRequestTransaction<Document>): Option<List<InternalContentInfo>> {
         return runBlocking {
             trans.result.map { y ->
-                y.responseBody.ifSucc({ z ->
+                y.responseBody.ifSuccAsync({ z ->
                     z.body.ifHtml({ a ->
                         factories.map { x ->
                             InternalContentInfo(x.attributeName, textExtractor.parse(a, x.nav, x.selectionMode).toList())

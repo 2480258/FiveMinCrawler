@@ -5,7 +5,18 @@ import core.request.NetworkHeader
 import java.lang.Exception
 import java.net.URI
 
-suspend inline fun <Return, reified ExpectBodyType> ResponseBody.ifType(
+inline fun <Return, reified ExpectBodyType> ResponseBody.ifType(
+    crossinline corr: (ExpectBodyType) -> Return,
+    crossinline el: (ResponseBody) -> Return
+): Return {
+    if (this is ExpectBodyType) {
+        corr(this)
+    }
+
+    return el(this)
+}
+
+suspend inline fun <Return, reified ExpectBodyType> ResponseBody.ifTypeAsync(
     crossinline corr: suspend (ExpectBodyType) -> Return,
     crossinline el: suspend (ResponseBody) -> Return
 ): Return {
@@ -16,39 +27,89 @@ suspend inline fun <Return, reified ExpectBodyType> ResponseBody.ifType(
     return el(this)
 }
 
-suspend fun <Return> ResponseBody.ifSucc(
-    succ: suspend (SuccessBody) -> Return,
-    el: suspend (ResponseBody) -> Return
+
+fun <Return> ResponseBody.ifHttpSucc(
+    succ: (HttpSuccessBody) -> Return,
+    el: (ResponseBody) -> Return
+): Return {
+    return this.ifType(succ, el)
+}
+
+fun <Return> ResponseBody.ifSucc(
+    succ: (SuccessBody) -> Return,
+    el: (ResponseBody) -> Return
 ): Return {
     return this.ifType<Return, SuccessBody>(succ, el)
 }
 
-suspend fun <Return> ResponseBody.ifRedirect(
-    succ: suspend (RedirectResponseBody) -> Return,
-    el: suspend (ResponseBody) -> Return
+fun <Return> ResponseBody.ifRedirect(
+    succ: (RedirectResponseBody) -> Return,
+    el: (ResponseBody) -> Return
 ): Return {
     return this.ifType<Return, RedirectResponseBody>(succ, el)
 }
 
-suspend fun <Return> ResponseBody.ifAutoRedirect(
-    succ: suspend (AutomaticRedirectResponseBody) -> Return,
-    el: suspend (ResponseBody) -> Return
+fun <Return> ResponseBody.ifAutoRedirect(
+    succ: (AutomaticRedirectResponseBody) -> Return,
+    el: (ResponseBody) -> Return
 ): Return {
     return this.ifType<Return, AutomaticRedirectResponseBody>(succ, el)
 }
 
-suspend fun <Return> ResponseBody.ifCriticalErr(
-    succ: suspend (CriticalErrorBody) -> Return,
-    el: suspend (ResponseBody) -> Return
+fun <Return> ResponseBody.ifCriticalErr(
+    succ: (CriticalErrorBody) -> Return,
+    el: (ResponseBody) -> Return
 ): Return {
     return this.ifType<Return, CriticalErrorBody>(succ, el)
 }
 
-suspend fun <Return> ResponseBody.ifRecoverableErr(
+fun <Return> ResponseBody.ifRecoverableErr(
+    succ: (RecoverableErrorBody) -> Return,
+    el: (ResponseBody) -> Return
+): Return {
+    return this.ifType<Return, RecoverableErrorBody>(succ, el)
+}
+
+suspend fun <Return> ResponseBody.ifHttpSuccAsync(
+    succ: suspend (HttpSuccessBody) -> Return,
+    el: suspend (ResponseBody) -> Return
+): Return {
+    return this.ifTypeAsync(succ, el)
+}
+
+suspend fun <Return> ResponseBody.ifSuccAsync(
+    succ: suspend (SuccessBody) -> Return,
+    el: suspend (ResponseBody) -> Return
+): Return {
+    return this.ifTypeAsync<Return, SuccessBody>(succ, el)
+}
+
+suspend fun <Return> ResponseBody.ifRedirectAsync(
+    succ: suspend (RedirectResponseBody) -> Return,
+    el: suspend (ResponseBody) -> Return
+): Return {
+    return this.ifTypeAsync<Return, RedirectResponseBody>(succ, el)
+}
+
+suspend fun <Return> ResponseBody.ifAutoRedirectAsync(
+    succ: suspend (AutomaticRedirectResponseBody) -> Return,
+    el: suspend (ResponseBody) -> Return
+): Return {
+    return this.ifTypeAsync<Return, AutomaticRedirectResponseBody>(succ, el)
+}
+
+suspend fun <Return> ResponseBody.ifCriticalErrAsync(
+    succ: suspend (CriticalErrorBody) -> Return,
+    el: suspend (ResponseBody) -> Return
+): Return {
+    return this.ifTypeAsync<Return, CriticalErrorBody>(succ, el)
+}
+
+suspend fun <Return> ResponseBody.ifRecoverableErrAsync(
     succ: suspend (RecoverableErrorBody) -> Return,
     el: suspend (ResponseBody) -> Return
 ): Return {
-    return this.ifType<Return, RecoverableErrorBody>(succ, el)
+    return this.ifTypeAsync<Return, RecoverableErrorBody>(succ, el)
 }
 
 data class PerformedRequesterInfo(val engine: RequesterEngineInfo, val slot: RequesterSlotInfo) {
@@ -56,7 +117,8 @@ data class PerformedRequesterInfo(val engine: RequesterEngineInfo, val slot: Req
 }
 
 data class ResponseTime(val sentMS: Long, val receivedMS: Long) {
-
+    val duration : Long
+    get() = sentMS + receivedMS
 }
 
 interface ResponseData {

@@ -25,6 +25,8 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.9.2")
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.2.2")
+    implementation("org.jsoup:jsoup:1.14.3")
+
 
     testImplementation(kotlin("test"))
 }

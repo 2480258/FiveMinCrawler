@@ -107,10 +107,10 @@ class ArrayMemoryData constructor(private val data : ByteArray) : MemoryData{
 }
 
 interface MemoryFilter : AutoCloseable {
-    var length: Int
+    val length: Int
 
-    var isCompleted : Boolean
-    var isDisposed : Boolean
+    val isCompleted : Boolean
+    val isDisposed : Boolean
 
     fun write(b : ByteArray, off : Int, len : Int)
     fun flushAndExportAndDispose() : MemoryData
@@ -196,10 +196,10 @@ class HtmlFilterImpl constructor(private val filter : StringFilter, private val 
 
 }
 
-class TranslatableFilter(private val expectSize : Option<Int>,
+class TranslatableFilter(private val expectSize : Option<Long>,
                          private val handle : RequestToken,
                          private val tempPath : DirectoryIOToken
-)
+) : MemoryFilter
 {
     private val MEMORY_BYTE_THRESOLD : Int = 8192
     private val TRANSLATION_THRESOLD : Int = 10000
@@ -217,7 +217,14 @@ class TranslatableFilter(private val expectSize : Option<Int>,
         })
     }
 
-    fun write(b : ByteArray, off : Int, len : Int){
+    override val length: Int
+        get() = writeStream.length
+    override val isCompleted: Boolean
+        get() = writeStream.isCompleted
+    override val isDisposed: Boolean
+        get() = writeStream.isDisposed
+
+    override fun write(b : ByteArray, off : Int, len : Int){
         if(writeStream is MemoryWriterImpl && (writeStream.length > TRANSLATION_THRESOLD)){
             val ndata = DiskWriterImpl(handle, tempPath)
             (writeStream as MemoryWriterImpl).migrateMeToAndDisposeThis(ndata)
@@ -225,6 +232,14 @@ class TranslatableFilter(private val expectSize : Option<Int>,
         }
 
         writeStream.write(b, off, len)
+    }
+
+    override fun flushAndExportAndDispose(): MemoryData {
+        return writeStream.flushAndExportAndDispose()
+    }
+
+    override fun close() {
+        writeStream.close()
     }
 
     fun flushAndDispose() : MemoryData{

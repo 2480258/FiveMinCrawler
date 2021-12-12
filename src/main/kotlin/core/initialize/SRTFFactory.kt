@@ -1,6 +1,9 @@
 package core.initialize
 
-class SRTFOption(val scheduler : SRTFScheduler, val prepare : SRTFPrepageSubPolicy, val ){
+import core.request.srtf.SRTFPrepareSubPolicy
+import core.request.srtf.SRTFScheduler
+
+class SRTFOption(val scheduler : SRTFScheduler, val prepare : SRTFPrepareSubPolicy, val ){
 
 }
 

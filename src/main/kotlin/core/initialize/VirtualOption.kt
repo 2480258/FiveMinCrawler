@@ -6,7 +6,9 @@ import core.engine.ConfigController
 import core.engine.DirectIO
 import core.engine.DirectIOImpl
 import core.export.ConfigControllerImpl
+import core.initialize.json.JsonParserOptionFactory
 import core.request.queue.DequeueOptimizationPolicy
+import java.io.File
 
 data class VirtualOption(
     val parseOption: ParseOption,
@@ -29,11 +31,15 @@ class StartTaskOption(
         val crawlerFactory = CrawlerFactory()
     }
 
-    private fun build() : VirtualOption{
+    private fun build() : VirtualOption {
+
+        var file = File(paramPath)
+
         var mef = MEFFactory(pluginDirectory)
+
         var srtf = SRTFFactory().create()
         var config = ConfigControllerImpl()
         var io = DirectIOImpl(config)
-        var fac = JsonParserOptionFactory(F)
+        var fac = JsonParserOptionFactory(file.readText(), mef.)
     }
 }

@@ -18,7 +18,7 @@ class LinkExtractImpl : LinkExtractor {
         sel: Option<LinkSelector>
     ): Validated<Throwable, Iterable<LinkExtractedInfo>> {
         return runBlocking {
-            resp.responseBody.ifSucc({
+            resp.responseBody.ifSuccAsync({
                 it.body.ifHtml({
                     it.parseAsHtmlDocument {
                         linkExtract(it, resp.responseBody.requestBody.currentUri, sel, ReferrerExtractorStream(resp))

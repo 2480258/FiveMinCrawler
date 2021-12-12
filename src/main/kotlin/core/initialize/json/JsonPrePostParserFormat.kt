@@ -5,15 +5,20 @@ import arrow.core.Option
 import arrow.core.none
 import arrow.core.toOption
 import core.engine.*
+import core.engine.parser.TextExtractorImpl
+import core.engine.transaction.TagBuilder
 import core.engine.transaction.TagSelector
 import core.engine.transaction.UriRegexPageCondition
+import core.engine.transaction.prepareRequest.preParser.PreParserImpl
+import core.engine.transaction.prepareRequest.preParser.PreParserPage
+import core.engine.transaction.prepareRequest.preParser.PreParserPageImpl
 import core.engine.transaction.serialize.postParser.*
 import java.util.*
 
 class JsonPrePostParserFormat(
     val bookName: String,
     val globalCondition: JsonPageConditionFormat,
-    val pages: JsonParserPageFormat,
+    val pages: List<JsonParserPageFormat>,
     val attributeRequester: JsonParseRequesterFormat
 ) {
 }
@@ -28,9 +33,15 @@ class JsonParserPageFormat(
     val tag: List<JsonParserPageTagFormat> = listOf(),
     val targetRequesterEngine: JsonParseRequesterFormat
 ) {
-    val attributeFactory = DocumentAttributeFactoryImpl
+    val attributeFactory = DocumentAttributeFactoryImpl()
 
-    private fun buildExt() : RequestContentInfoFactory<Request>{
+    val extractor: TextExtractor
+
+    init {
+        extractor = TextExtractorImpl()
+    }
+
+    private fun buildExt(): RequestContentInfoFactory<Request> {
         var ext = externalAttributes.map {
             it.buildAsExt()
         }
@@ -38,7 +49,7 @@ class JsonParserPageFormat(
         return RequestContentInfoFactoryImpl<Request>(ext)
     }
 
-    private fun buildLink() : RequestContentInfoFactory<Request> {
+    private fun buildLink(): RequestContentInfoFactory<Request> {
         var lst = linkAttributes.map {
             it.buildAsLink()
         }
@@ -46,30 +57,46 @@ class JsonParserPageFormat(
         return RequestContentInfoFactoryImpl<Request>(lst)
     }
 
-    private fun buildInte() : InternalContentInfoFactory<Request>{
-        var lst = internalAttributes.map{
+    private fun buildInte(): InternalContentInfoFactory<Request> {
+        var lst = internalAttributes.map {
             it.build()
         }
 
-        return InternalContentInfoFactoryImpl<Request>(lst, attri)
+        return InternalContentInfoFactoryImpl<Request>(lst, attributeFactory, extractor)
+    }
+
+    fun buildPostPage(): PostParserContentPageImpl<Request> {
+        return PostParserContentPageImpl(PageName(pageName), buildLink(), buildExt(), buildInte(), attributeFactory)
+    }
+
+    fun buildPrePage(): PreParserPage {
+        return PreParserPageImpl(
+            PageName(pageName),
+            condition.build(),
+            targetContainer.build(),
+            targetRequesterEngine.build(),
+            TagBuilder(tag.map {
+                it.build()
+            }.toOption())
+        )
     }
 }
 
-class JsonParseRequesterFormat(val targetRequester : String) {
-    fun build() : RequestOption{
+class JsonParseRequesterFormat(val targetRequester: String) {
+    fun build(): RequestOption {
         return RequestOption(RequesterPreference(RequesterEngineInfo(targetRequester), none()))
     }
 }
 
-class JsonParserPageTagFormat (
-    val name : String,
-    val tagRegex : String,
-    val isAlias : Boolean
-){
-    fun build() : TagSelector{
+class JsonParserPageTagFormat(
+    val name: String,
+    val tagRegex: String,
+    val isAlias: Boolean
+) {
+    fun build(): TagSelector {
         var flag = EnumSet.of(TagFlag.CONVERT_TO_ATTRIBUTE)
 
-        if(isAlias){
+        if (isAlias) {
             flag.add(TagFlag.ALIAS)
         }
 
@@ -77,8 +104,8 @@ class JsonParserPageTagFormat (
     }
 }
 
-class JsonParserContainerFormat(val workingSetMode : String) {
-    fun build() : ContainerOption{
+class JsonParserContainerFormat(val workingSetMode: String) {
+    fun build(): ContainerOption {
         return ContainerOption(WorkingSetMode.valueOf(workingSetMode))
     }
 }
@@ -86,8 +113,7 @@ class JsonParserContainerFormat(val workingSetMode : String) {
 class JsonParserLinkAttributeFormat(
     val attributeName: String,
     val uriRegex: String? = null,
-    val xpath: String? = null,
-    val cssSelector: String? = null,
+    val queryStr: String,
     val destPage: String? = null
 ) {
 
@@ -98,51 +124,28 @@ class JsonParserLinkAttributeFormat(
     }
 
     private fun getNav(): ParserNavigator {
-        if ((xpath != null) && (cssSelector != null)) {
-            throw IllegalArgumentException()
-        }
-
-        if (xpath != null) {
-            return ParserNavigator(Either.Right(xpath))
-
-        }
-
-        if (cssSelector != null) {
-            return ParserNavigator(Either.Left(cssSelector))
-        }
-
-        throw IllegalArgumentException()
+        return ParserNavigator(queryStr)
     }
 
     fun buildAsExt(): ExtAttrRequestFactory {
         return ExtAttrRequestFactory(attributeName, LinkSelector(getNav(), getRegex()))
     }
 
-    fun buildAsLink() : LinkRequestFactory {
-        return LinkRequestFactory(attributeName, LinkSelector(getNav(), getRegex()), destPage.toOption().map { PageName(it) })
+    fun buildAsLink(): LinkRequestFactory {
+        return LinkRequestFactory(
+            attributeName,
+            LinkSelector(getNav(), getRegex()),
+            destPage.toOption().map { PageName(it) })
     }
 }
 
 class JsonParserInternalAttributeFormat(
     val attributeName: String,
-    val cssSelector: String? = null,
-    val xpath: String? = null,
+    val queryStr: String,
     var parseMode: String
 ) {
     private fun getNav(): ParserNavigator {
-        if ((xpath != null) && (cssSelector != null)) {
-            throw IllegalArgumentException()
-        }
-
-        if (xpath != null) {
-            return ParserNavigator(Either.Right(xpath))
-        }
-
-        if (cssSelector != null) {
-            return ParserNavigator(Either.Left(cssSelector))
-        }
-
-        throw IllegalArgumentException()
+        return ParserNavigator(queryStr)
     }
 
     fun build(): InternalContentParser {

@@ -3,8 +3,8 @@ package core.request
 data class HttpRequesterConfig(val config: RequesterConfig, val defaultProfile : RequestHeaderProfile) {
 }
 
-data class RequesterExtraImpl(override val dequeueDecision: DequeueDecisionFactory) : RequesterExtra{
-
+class RequesterExtraImpl : RequesterExtra{
+    override val dequeueDecision: DequeueDecisionFactory = DefaultRequesterDequeueDecision()
 }
 
 class DefaultRequesterDequeueDecision : DequeueDecisionFactory{
