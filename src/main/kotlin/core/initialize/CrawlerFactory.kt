@@ -35,7 +35,16 @@ data class SubPolicyCollection(
     val request: Iterable<TransactionSubPolicy<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request>>,
     val serialize: Iterable<TransactionSubPolicy<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request>>,
     val export: Iterable<TransactionSubPolicy<SerializeTransaction<Request>, ExportTransaction<Request>, Request>>
-)
+) {
+    fun merge(collection: SubPolicyCollection): SubPolicyCollection {
+        return SubPolicyCollection(
+            preprocess.plus(collection.preprocess),
+            request.plus(collection.request),
+            serialize.plus(collection.serialize),
+            export.plus((collection.export))
+        )
+    }
+}
 
 data class ParseOption(
     val preParser: PreParser,

@@ -1,6 +1,7 @@
 package core.engine.session
 
 import arrow.core.Either
+import arrow.core.toOption
 import core.engine.FinishObserver
 import core.engine.SessionInfo
 import core.engine.SessionRepository
@@ -18,7 +19,7 @@ class SessionRepositoryImpl constructor() : SessionRepository, FinishObserver {
 
 
     override fun create(parent: Either<Unit, SessionToken>): SessionInfo {
-        return SessionInfo(this, SessionToken.create(), parent)
+        return SessionInfo(this, SessionToken.create().toOption())
     }
 
     override fun getDetachables(): Iterable<SessionToken> {
