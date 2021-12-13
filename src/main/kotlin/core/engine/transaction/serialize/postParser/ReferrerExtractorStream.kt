@@ -9,7 +9,7 @@ class ReferrerExtractorStream(private val resp : ResponseData) {
     val referrerNavigator: ParserNavigator
 
     init {
-        referrerNavigator = ParserNavigator(Either.Left("meta[name = 'referrer']"))
+        referrerNavigator = ParserNavigator("meta[name = 'referrer']")
     }
 
     fun extract(link: HtmlElement): String {

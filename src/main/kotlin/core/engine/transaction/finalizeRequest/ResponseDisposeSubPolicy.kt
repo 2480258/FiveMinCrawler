@@ -1,5 +1,7 @@
 package core.engine.transaction.finalizeRequest
 
+import arrow.core.Validated
+import arrow.core.valid
 import core.engine.*
 import core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.*
@@ -11,14 +13,17 @@ class ResponseDisposeSubPolicy<Document : Request> :
         dest: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Result<FinalizeRequestTransaction<Document>>> {
+    ): Deferred<Validated<Throwable, FinalizeRequestTransaction<Document>>> {
 
         return coroutineScope {
             async {
-                dest.result.onSuccess {
-                    it.releaseRequester()
+                Validated.catch {
+                    dest.result.map {
+                        it.releaseRequester()
+                    }
+
+                    dest
                 }
-                Result.success(dest)
             }
         }
     }

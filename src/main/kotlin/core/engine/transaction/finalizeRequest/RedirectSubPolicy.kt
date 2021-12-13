@@ -1,5 +1,9 @@
 package core.engine.transaction.finalizeRequest
 
+import arrow.core.Validated
+import arrow.core.flatten
+import arrow.core.toOption
+import arrow.core.valid
 import core.engine.*
 import core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.*
@@ -7,23 +11,23 @@ import java.net.URI
 
 class RedirectSubPolicy<Document : Request> :
     TransactionSubPolicy<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document> {
-    suspend override fun process(
+    override suspend fun process(
         source: PrepareTransaction<Document>,
         dest: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Result<FinalizeRequestTransaction<Document>>> {
+    ): Deferred<Validated<Throwable, FinalizeRequestTransaction<Document>>> {
         return coroutineScope {
-            withContext(Dispatchers.Default) {
-                dest.result.fold<Deferred<Result<FinalizeRequestTransaction<Document>>>, ResponseData>({ x ->
-                    x.responseBody.ifRedirect<Deferred<Result<FinalizeRequestTransaction<Document>>>>({ y ->
-                        var redirectLoc = y.redirectDest
+            async {
+                dest.result.map { x ->
+                    x.responseBody.ifRedirectAsync({ y ->
+                        var loc = y.redirectDest
 
-                        if (!redirectLoc.isAbsolute) {
-                            redirectLoc = URI(x.currentUri.authority + redirectLoc)
+                        if (!loc.isAbsolute) {
+                            loc = URI(x.responseBody.requestBody.currentUri.authority + loc)
                         }
 
-                        var doc = source.request.copyWith(redirectLoc)
+                        var doc = source.request.copyWith(loc.toOption())
 
                         withContext(Dispatchers.Default) {
                             state.getChildSession {
@@ -33,12 +37,13 @@ class RedirectSubPolicy<Document : Request> :
                                         .start(source, info, it).await()
                                 }
                             }
-                        }
-
-                    }, { async { Result.success(dest) } })
-                }, {
-                    async { Result.success(dest) }
-                })
+                        }.await().toEither()
+                    }, {
+                        withContext(Dispatchers.Default) {
+                            dest.valid()
+                        }.toEither()
+                    })
+                }.toEither().flatten().toValidated()
             }
         }
     }

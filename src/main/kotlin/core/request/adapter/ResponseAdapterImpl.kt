@@ -1,15 +1,14 @@
 package core.request.adapter
 
 import arrow.core.*
-import arrow.core.computations.either
-import arrow.core.computations.option
 import core.engine.*
 import core.request.*
 import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Request
-import okhttp3.RequestBody
 import okhttp3.Response
 import java.net.URI
+import java.nio.charset.Charset
 
 class ResponseAdapterImpl(
     private val performedRequesterInfo: PerformedRequesterInfo,
@@ -24,6 +23,12 @@ class ResponseAdapterImpl(
         req: Request
     ) : Validated<Throwable, ResponseBody>{
         return CriticalErrorBodyImpl(createRequestBody(original.target, req), ex).valid()
+    }
+
+    private fun parseCharset(resp: Response) : Option<Charset> {
+        return resp.headers["Content-Type"].toOption().map {
+            it.toMediaTypeOrNull()?.charset().toOption()
+        }.flatten()
     }
 
     override fun createWithReceived(
@@ -42,10 +47,13 @@ class ResponseAdapterImpl(
             }
         }
 
+
+
         if (resp.body != null && resp.isSuccessful) {
             return createMemoryData(
                 resp.body!!,
-                original
+                original,
+                parseCharset(resp)
             ).fold({ HttpNoContentWithSuccessfulException(resp.request.url.toString()).invalid() }) { x ->
                 SuccessBodyImpl(
                     createRequestBody(original.target, req),
@@ -81,7 +89,7 @@ class ResponseAdapterImpl(
         return core.engine.RequestBody(originalUri, req.url.toUri(), NetworkHeader(req.headers.toList()))
     }
 
-    private fun createMemoryData(responseBody: okhttp3.ResponseBody, request: core.engine.Request): Option<MemoryData> {
+    private fun createMemoryData(responseBody: okhttp3.ResponseBody, request: core.engine.Request, enc: Option<Charset>): Option<MemoryData> {
         var filter: MemoryFilter? = null
 
         try {
@@ -92,7 +100,7 @@ class ResponseAdapterImpl(
                 none()
             }
 
-            filter = createMemoryFilter(type, total, request)
+            filter = createMemoryFilter(type, total, enc, request)
 
             handleStream(responseBody, filter)
 
@@ -128,17 +136,18 @@ class ResponseAdapterImpl(
     private fun createMemoryFilter(
         type: Option<MediaType>,
         total: Option<Long>,
+        enc: Option<Charset>,
         request: core.engine.Request
     ): MemoryFilter {
         return type.zip(total).fold({ factory.createByteFilter(total, request.token) }) {
             if (typeContents(it.first, "html")) {
-                factory.createHtmlFilter(it.second.toOption(), request.token)
+                factory.createHtmlFilter(it.second.toOption(), request.token, enc)
             } else if (typeContents(it.first, "text") || typeContents(it.first, "json") || typeContents(
                     it.first,
                     "javascript"
                 )
             ) {
-                factory.createStringFilter(it.second.toOption(), request.token)
+                factory.createStringFilter(it.second.toOption(), request.token, enc)
             } else {
                 factory.createByteFilter(it.second.toOption(), request.token)
             }

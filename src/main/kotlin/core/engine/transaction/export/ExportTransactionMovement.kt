@@ -1,5 +1,7 @@
 package core.engine.transaction.export
 
+import arrow.core.Validated
+import arrow.core.invalid
 import core.engine.*
 import core.engine.transaction.ExecuteExportMovement
 import kotlinx.coroutines.Deferred
@@ -12,15 +14,17 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
         source: SerializeTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Result<ExportTransaction<Document>>> {
+    ): Deferred<Validated<Throwable, ExportTransaction<Document>>> {
         return coroutineScope {
             async {
                 try {
                     var ret = parser.parse(source)
 
-                    Result.success(ExportTransactionImpl(source.request, source.tags, saveResult(ret)))
+                    Validated.catch {
+                        ExportTransactionImpl(source.request, source.tags, saveResult(ret))
+                    }
                 } catch (e: Exception) {
-                    Result.failure(e)
+                    e.invalid()
                 }
             }
         }

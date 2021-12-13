@@ -1,6 +1,7 @@
 package core.engine.session
 
 import arrow.core.Either
+import arrow.core.Option
 import arrow.core.toOption
 import core.engine.FinishObserver
 import core.engine.SessionInfo
@@ -18,7 +19,7 @@ class SessionRepositoryImpl constructor() : SessionRepository, FinishObserver {
     private var currentRemain : Int = 0
 
 
-    override fun create(parent: Either<Unit, SessionToken>): SessionInfo {
+    override fun create(parent: Option<SessionToken>): SessionInfo {
         return SessionInfo(this, SessionToken.create().toOption())
     }
 

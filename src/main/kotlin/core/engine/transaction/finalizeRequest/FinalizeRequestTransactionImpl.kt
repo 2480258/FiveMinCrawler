@@ -5,8 +5,7 @@ import core.engine.*
 
 class FinalizeRequestTransactionImpl<Document : Request>(
     override val result: Validated<Throwable, ResponseData>,
-    override val tags: TagRepository,
-    override val previous: Transaction<Document>
+    override val tags: TagRepository, override val previous: PrepareTransaction<Document>
 ) : FinalizeRequestTransaction<Document>{
 
     override val request: Document

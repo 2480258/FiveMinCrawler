@@ -49,16 +49,16 @@ class PostParserContentPageImpl<Document : Request>(
         }
     }
 
-    private fun processIntAttribute(req: FinalizeRequestTransaction<Document>): Option<Iterable<DocumentAttribute>> {
+    private suspend fun processIntAttribute(req: FinalizeRequestTransaction<Document>): Option<Iterable<DocumentAttribute>> {
         return inteInfoFactory.get(req).map {
             it.map { x ->
                 inteInfoFactory.get(req).map { y ->
                     if (!x.data.any()) {
                         none()
                     } else if (x.data.count() == 1) {
-                        Some(attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data[0]))
+                        attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data[0]).toOption() //TODO Log
                     } else {
-                        Some(attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data))
+                        attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data).toOption()
                     }
                 }.flatten()
             }.filterOption()
@@ -102,9 +102,9 @@ class PostParserContentPageImpl<Document : Request>(
                 if (!finished.any()) {
                     none()
                 } else if (finished.count() == 1) {
-                    Some(attributeFactory.getExternal(info, finished[0]))
+                    attributeFactory.getExternal(info, finished[0]).toOption()
                 } else {
-                    Some(attributeFactory.getExternal(info, finished))
+                    attributeFactory.getExternal(info, finished).toOption() //TODO Log
                 }
             }
         }

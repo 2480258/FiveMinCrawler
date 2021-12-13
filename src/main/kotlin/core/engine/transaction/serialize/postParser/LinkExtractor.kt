@@ -10,8 +10,8 @@ interface LinkExtractor {
 }
 
 class LinkExtractImpl : LinkExtractor {
-    private val allNavigator: ParserNavigator = ParserNavigator(Either.Left("*"))
-    private val linkNavigator: ParserNavigator = ParserNavigator(Either.Left("[href], [src]"))
+    private val allNavigator: ParserNavigator = ParserNavigator("*")
+    private val linkNavigator: ParserNavigator = ParserNavigator("[href], [src]")
 
     override fun extract(
         resp: ResponseData,

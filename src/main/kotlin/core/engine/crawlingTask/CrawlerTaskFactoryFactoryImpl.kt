@@ -6,6 +6,6 @@ import core.engine.Request
 
 class CrawlerTaskFactoryFactoryImpl(private val storage : DocumentPolicyStorageFactoryCollector) : CrawlerTaskFactoryFactory{
     override fun <Document : Request> getFactory(): CrawlerTaskFactory<Document> {
-        return CrawlerTaskFactoryImpl<Document>(storage)
+        return CrawlerTaskFactory(storage)
     }
 }

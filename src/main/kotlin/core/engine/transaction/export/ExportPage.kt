@@ -1,5 +1,7 @@
 package core.engine.transaction.export
 
+import arrow.core.Validated
+import arrow.core.filterOption
 import arrow.core.toOption
 import core.engine.*
 
@@ -13,7 +15,9 @@ class ExportPageImpl(override val pageName: String, private val targetAttributeN
 
 
     override fun <Document : Request> export(trans: SerializeTransaction<Document>): Iterable<ExportHandle> {
-        return adapter.parse(trans.request, parseInfo(trans))
+        return  adapter.parse(trans.request, parseInfo(trans)).map {
+            it.toOption() //TODO Log
+        }.filterOption()
     }
 
     private fun <Document : Request> parseInfo(trans : SerializeTransaction<Document>) : Iterable<ExportAttributeInfo>{

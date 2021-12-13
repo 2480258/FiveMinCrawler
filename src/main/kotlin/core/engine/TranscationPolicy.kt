@@ -10,8 +10,5 @@ interface TransactionPolicy<in InTrans : Transaction<D1>,
                             out D1 : Request,
                             out D2 : Request>
 {
-    val inType : KType
-    val outType : KType
-
     suspend fun progressAsync(trans : InTrans, info : TaskInfo, state : SessionStartedState) : Deferred<Validated<Throwable, OutTrans>>
 }

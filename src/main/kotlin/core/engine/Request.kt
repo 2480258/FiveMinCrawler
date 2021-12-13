@@ -1,6 +1,7 @@
 package core.engine
 
 import arrow.core.Option
+import arrow.core.none
 import java.net.URI
 
 interface Taggable {
@@ -14,7 +15,7 @@ interface Request : Taggable {
     val requestType: RequestType
     val documentType: DocumentType
 
-    fun copyWith(newTarget: Option<URI>, tags: Option<TagRepository>): Request
+    fun copyWith(newTarget: Option<URI> = none(), tags: Option<TagRepository> = none()): Request
 }
 
 class DefaultRequest(

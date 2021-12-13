@@ -126,7 +126,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
         val serialize = SerializeTransactionPolicy(AbstractPolicyOption(subpol.serialize), movefac)
         val export = ExportTransactionPolicy(AbstractPolicyOption(subpol.export), movefac)
 
-        return DocumentPolicyStorageFactory(listOf(prepare, request, serialize, export))
+        return DocumentPolicyStorageFactory(prepare, request, serialize, export)
     }
 
     private fun getDefaultMovementFactory(deq: DequeueOptimizationPolicy): MovementFactory<Request> {

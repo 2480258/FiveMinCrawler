@@ -69,11 +69,11 @@ interface SessionRetryable : SessionState {
     }
 
 
-    suspend fun <T> retryAsync(func: suspend (SessionInitState) -> Deferred<Result<T>>): Deferred<Result<T>> {
+    suspend fun <T> retryAsync(func: suspend (SessionInitState) -> Deferred<Validated<Throwable, T>>): Deferred<Validated<Throwable, T>> {
         if (Data.RetryCount >= MaxRetryCount) {
             return coroutineScope {
                 async {
-                    Result.failure(TaskCanceledException())
+                    TaskCanceledException().invalid()
                 }
             }
         }
@@ -90,7 +90,7 @@ interface SessionRetryable : SessionState {
 
 interface SessionDetachable : SessionState {
     suspend fun detach(func: suspend (SessionInitState) -> Option<Throwable>): Deferred<Option<Throwable>> {
-        var detached = Data.SessionRepo.create(Either.Right(info.token))
+        var detached = Data.SessionRepo.create(info.token.toOption())
         Data.KeyRepo.transferOwnership(info.token, detached.token)
 
         coroutineScope {

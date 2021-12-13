@@ -24,7 +24,7 @@ abstract class AbstractPolicy<
 
     protected abstract fun getMovement(factory: MovementFactory<Document>): TransactionMovement<SrcTrans, DstTrans, Document>
 
-    suspend fun progress(
+    override suspend fun progressAsync(
         source: SrcTrans,
         info: TaskInfo,
         state: SessionStartedState

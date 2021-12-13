@@ -1,6 +1,7 @@
 package core.engine
 
 import arrow.core.Option
+import arrow.core.none
 import core.engine.*
 
 interface InitialTransaction<out Document : Request> : Transaction<Document> {

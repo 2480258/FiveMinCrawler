@@ -1,6 +1,8 @@
 package core.engine.transaction.export
 
+import arrow.core.Validated
 import arrow.core.toOption
+import arrow.core.valid
 import core.engine.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -8,7 +10,7 @@ import kotlinx.serialization.json.Json
 import java.util.*
 
 class JsonExportAdapter(private val fileNameExp : TagExpression, private val exportHandleFactory: ExportHandleFactory) : ExportAdapter {
-    override fun parse(request: Request, info: Iterable<ExportAttributeInfo>): Iterable<ExportHandle> {
+    override fun parse(request: Request, info: Iterable<ExportAttributeInfo>): Iterable<Validated<Throwable, ExportHandle>> {
         var ret = info.map{ x ->
             x.element.match({ y ->
                 Triple(x.tagRepo, x.info, y.body)
@@ -34,7 +36,7 @@ class JsonExportAdapter(private val fileNameExp : TagExpression, private val exp
         }
 
         return result.map{
-            exportHandleFactory.create(it.first, it.second)
+            exportHandleFactory.create(it.first, it.second).valid() //TODO Fix
         }
     }
 

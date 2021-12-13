@@ -13,6 +13,6 @@ class FinalizeRequestTransactionPolicy<Document : Request>(
     movementFactory
 ) {
     override fun getMovement(factory: MovementFactory<Document>): TransactionMovement<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document> {
-        return factory.findPrepare<Document>()
+        return factory.findRequest()
     }
 }
