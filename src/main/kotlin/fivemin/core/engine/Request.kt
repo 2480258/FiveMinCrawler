@@ -16,6 +16,10 @@ interface Request : Taggable {
     val documentType: DocumentType
 
     fun copyWith(newTarget: Option<URI> = none(), tags: Option<TagRepository> = none()): Request
+
+    fun getDebugInfo() : String{
+        return "[" + token.tokenNumber + "]: " + target.path + target.query
+    }
 }
 
 class DefaultRequest(

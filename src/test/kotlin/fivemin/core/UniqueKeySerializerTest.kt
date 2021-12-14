@@ -1,4 +1,4 @@
-package core
+package fivemin.core
 
 import fivemin.core.engine.transaction.StringUniqueKey
 import kotlinx.serialization.encoding.Encoder
