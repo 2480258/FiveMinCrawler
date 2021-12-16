@@ -30,7 +30,7 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
         }
     }
 
-    private fun saveResult(handles: Iterable<ExportHandle>): Iterable<Result<ExportResultToken>> {
+    private fun saveResult(handles: Iterable<ExportHandle>): Iterable<Validated<Throwable, ExportResultToken>> {
         return handles.map { x ->
             state.create(x)
         }.map {

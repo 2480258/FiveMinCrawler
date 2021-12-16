@@ -1,6 +1,7 @@
 package fivemin.core.engine.transaction.export
 
 import arrow.core.Validated
+import arrow.core.invalid
 import fivemin.core.engine.ExportData
 import fivemin.core.engine.ExportResultToken
 import fivemin.core.engine.FileIOToken
@@ -9,11 +10,11 @@ import java.io.InputStream
 class StreamExportData(private val data : InputStream) : ExportData {
     override var isSaved: Boolean = false
 
-    override fun save(token: FileIOToken) : Result<ExportResultToken>{
-        try{
+    override fun save(token: FileIOToken) : Validated<Throwable, ExportResultToken>{
+        return Validated.catch {
             data.use { data ->
                 if(isSaved || token.exists()){
-                    throw IllegalArgumentException()
+                    IllegalArgumentException().invalid()
                 }
 
                 token.openFileWriteStream {
@@ -22,10 +23,7 @@ class StreamExportData(private val data : InputStream) : ExportData {
                 }
             }
 
-            return Result.success(ExportResultToken(token))
-        }
-        catch (e : Exception){
-            return Result.failure(e)
+            ExportResultToken(token)
         }
     }
 }

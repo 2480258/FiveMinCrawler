@@ -17,19 +17,18 @@ class LinkExtractImpl : LinkExtractor {
         resp: ResponseData,
         sel: Option<LinkSelector>
     ): Validated<Throwable, Iterable<LinkExtractedInfo>> {
-        return runBlocking {
-            resp.responseBody.ifSuccAsync({
-                it.body.ifHtml({
-                    it.parseAsHtmlDocument {
-                        linkExtract(it, resp.responseBody.requestBody.currentUri, sel, ReferrerExtractorStream(resp))
-                    }
-                }, {
-                    listOf<LinkExtractedInfo>().valid()
-                })
+        return resp.responseBody.ifSucc({
+            it.body.ifHtml({
+                it.parseAsHtmlDocument {
+                    linkExtract(it, resp.responseBody.requestBody.currentUri, sel, ReferrerExtractorStream(resp))
+                }
             }, {
                 listOf<LinkExtractedInfo>().valid()
             })
-        }
+        }, {
+            listOf<LinkExtractedInfo>().valid()
+        })
+
     }
 
     private fun queryWarp(doc: HtmlParsable, selector: Option<LinkSelector>): Iterable<HtmlElement> {
@@ -78,7 +77,17 @@ class LinkExtractImpl : LinkExtractor {
             convert(host, it, "src", referrer)
         }.filterOption()
 
-        return recur.plus(href).plus(src).distinct()
+        var ret = recur.plus(href).plus(src).distinctBy {
+            it.absoluteURI
+        }.filter { x ->
+            selector.fold({true}) {
+                it.regex.fold({true}) {
+                    it.containsMatchIn(x.absoluteURI.toString())
+                }
+            }
+        }
+
+        return ret
     }
 
     private fun convert(

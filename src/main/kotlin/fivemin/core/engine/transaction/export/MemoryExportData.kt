@@ -1,17 +1,20 @@
 package fivemin.core.engine.transaction.export
 
+import arrow.core.Validated
+import arrow.core.invalid
+import arrow.core.valid
 import fivemin.core.engine.ExportData
 import fivemin.core.engine.ExportResultToken
 import fivemin.core.engine.FileIOToken
 
-class MemoryExportData(private val data : ByteArray) : ExportData {
+class MemoryExportData(private val data: ByteArray) : ExportData {
     override var isSaved: Boolean = false
 
-    override fun save(token: FileIOToken) : Result<ExportResultToken>{
+    override fun save(token: FileIOToken): Validated<Throwable, ExportResultToken> {
 
-        return try{
-            if(isSaved){
-                throw IllegalArgumentException()
+        return Validated.catch {
+            if (isSaved) {
+                IllegalArgumentException().invalid()
             }
 
             token.openFileWriteStream {
@@ -19,9 +22,7 @@ class MemoryExportData(private val data : ByteArray) : ExportData {
                 isSaved = true
             }
 
-            Result.success(ExportResultToken(token))
-        } catch (e : Exception){
-            Result.failure(e)
+            ExportResultToken(token)
         }
     }
 }

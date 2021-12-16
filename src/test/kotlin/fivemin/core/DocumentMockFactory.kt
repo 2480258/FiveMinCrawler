@@ -5,6 +5,8 @@ import arrow.core.toOption
 import arrow.core.valid
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
+import fivemin.core.parser.HtmlDocumentFactoryImpl
+import fivemin.core.parser.HtmlParseableImpl
 import fivemin.core.request.*
 import io.mockk.InternalPlatformDsl.toArray
 import io.mockk.MockK
@@ -19,42 +21,6 @@ import java.net.URI
 
 class AttributeMockFactory {
     companion object {
-        fun getRequest(
-            uri: URI,
-            type: RequestType,
-            parent: RequestToken? = null,
-            tags: TagRepository? = null
-        ): Request {
-            val ret = mockk<Request>()
-
-            val token = RequestToken.create()
-
-            every {
-                ret.target
-            } returns (uri)
-
-            every {
-                ret.parent
-            } returns (parent.toOption())
-
-            every {
-                ret.token
-            } returns (token)
-
-            every {
-                ret.tags
-            } returns (tags ?: TagRepositoryImpl())
-
-            every {
-                ret.requestType
-            } returns (type)
-
-            every {
-                ret.documentType
-            } returns (DocumentType.DEFAULT)
-
-            return ret
-        }
 
         fun getSingleStringAttr(
             name: String,
@@ -350,7 +316,7 @@ class DocumentMockFactory {
         ): ResponseData {
             val cont = content.orEmpty()
             val resultMock = mockk<ResponseData>()
-            val data = mockk<StringMemoryData>()
+            val data = mockk<HtmlMemoryData>()
 
             val by = Charsets.UTF_8.encode(cont).array().inputStream()
 
@@ -374,15 +340,28 @@ class DocumentMockFactory {
                 this.firstArg<(InputStreamReader) -> Any>()(InputStreamReader(by)).valid()
             }
 
+            val f = HtmlDocumentFactoryImpl()
+
+            every {
+                data.parseAsHtmlDocument<Any>(any())
+            } answers  {
+                this.firstArg<(HtmlParsable) -> Any>()(f.create(cont)).valid()
+            }
+
             val reqq = mockk<RequestBody>()
 
             every {
                 reqq.currentUri
             } returns (this.request.request.request.target)
 
-            val succ = mockk<SuccessBody>()0
+            val succ = mockk<SuccessBody>()
+            every {
                 succ.requestBody
             } returns (reqq)
+
+            every {
+                succ.body
+            } returns (data)
 
             every {
                 resultMock.responseBody
@@ -393,6 +372,43 @@ class DocumentMockFactory {
             } returns (this.info.info)
 
             return resultMock
+        }
+
+        fun getRequest(
+            uri: URI,
+            type: RequestType,
+            parent: RequestToken? = null,
+            tags: TagRepository? = null
+        ): Request {
+            val ret = mockk<Request>()
+
+            val token = RequestToken.create()
+
+            every {
+                ret.target
+            } returns (uri)
+
+            every {
+                ret.parent
+            } returns (parent.toOption())
+
+            every {
+                ret.token
+            } returns (token)
+
+            every {
+                ret.tags
+            } returns (tags ?: TagRepositoryImpl())
+
+            every {
+                ret.requestType
+            } returns (type)
+
+            every {
+                ret.documentType
+            } returns (DocumentType.DEFAULT)
+
+            return ret
         }
     }
 }

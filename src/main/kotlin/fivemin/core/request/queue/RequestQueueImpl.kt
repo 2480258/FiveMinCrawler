@@ -5,25 +5,38 @@ import fivemin.core.engine.Request
 import fivemin.core.request.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
+import java.text.SimpleDateFormat
+import java.time.LocalDateTime
 import java.util.*
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 
-class RequestQueueImpl (private val policy : DequeueOptimizationPolicy, private val maxRequestThread : Int = 3, private val maxDelayCount : Int = 5) :
+class RequestQueueImpl(
+    private val policy: DequeueOptimizationPolicy,
+    private val maxRequestThread: Int = 3,
+    private val maxDelayCount: Int = 5
+) :
     RequestQueue {
-    data class EnqueuedRequest<Document : Request> (val request : PreprocessedRequest<Document>, val delayCount : Int, val info : EnqueueRequestInfo)
+    data class EnqueuedRequest<Document : Request>(
+        val request: PreprocessedRequest<Document>,
+        val delayCount: Int,
+        val info: EnqueueRequestInfo
+    )
 
-    private val enqueued : Semaphore = Semaphore(1)
-    private val sync : Any = Any()
+    private val enqueued: Semaphore = Semaphore(1)
+    private val sync: Any = Any()
 
-    private val workers : Iterable<Thread>
+    private val workers: Iterable<Thread>
 
-    private val queue : LinkedList<EnqueuedRequest<Request>>
+    private val queue: LinkedList<EnqueuedRequest<Request>>
 
     init {
         workers = (0 until maxRequestThread).map {
             Thread {
-                work() }
+                runBlocking {
+                    work()
+                }
+            }
         }
 
         workers.forEach {
@@ -33,64 +46,59 @@ class RequestQueueImpl (private val policy : DequeueOptimizationPolicy, private 
         queue = LinkedList()
     }
 
-    private fun enqueueInternal(doc : PreprocessedRequest<Request>, delayCount: Int, info: EnqueueRequestInfo){
-        synchronized(sync){
+    private fun enqueueInternal(doc: PreprocessedRequest<Request>, delayCount: Int, info: EnqueueRequestInfo) {
+        synchronized(sync) {
             queue.addLast(EnqueuedRequest(doc, delayCount, info))
 
-            if(enqueued.availablePermits == 0){
+            if (enqueued.availablePermits == 0) {
                 enqueued.release()
             }
         }
     }
 
     @OptIn(ExperimentalTime::class)
-    private suspend fun enqueueWithDelayedTask(req : EnqueuedRequest<Request>, delayCount: Duration = Duration.microseconds(3000)){
-        coroutineScope {
-            launch {
-                delay(delayCount)
-                enqueueInternal(req.request, req.delayCount + 1, req.info)
-            }
+    private suspend fun enqueueWithDelayedTask(
+        req: EnqueuedRequest<Request>,
+        delayCount: Duration = Duration.microseconds(3000)
+    ) {
+        runBlocking {
+            delay(3000)
+            enqueueInternal(req.request, req.delayCount + 1, req.info)
         }
     }
 
-    override fun enqueue(doc : PreprocessedRequest<Request>, info: EnqueueRequestInfo){
+    override fun enqueue(doc: PreprocessedRequest<Request>, info: EnqueueRequestInfo) {
         enqueueInternal(doc, 0, info)
     }
 
-    private fun work(){
-        while(true){
-            enqueued.tryAcquire()
+    private suspend fun work() {
+        while (true) {
             runBlocking {
+                enqueued.acquire()
                 dequeue()
             }
         }
     }
 
-    private suspend fun dequeue(){
-        var item : Option<EnqueuedRequest<Request>>
+    private suspend fun dequeue() {
+        var item: Option<EnqueuedRequest<Request>>
 
-        synchronized(sync){
+        synchronized(sync) {
             item = removeFirstFromQueue()
-
-            item.map {
-                if(enqueued.availablePermits == 0){
-                    enqueued.release()
-                }
-            }
         }
 
         item.map {
-            when(it.request.info.dequeue.get()){
+            when (it.request.info.dequeue.get()) {
                 DequeueDecision.ALLOW -> {
                     it.info.callBack(DequeuedRequest(it.request, DequeuedRequestInfo()).valid())
                 }
-                DequeueDecision.DELAY -> {
+                DequeueDecision.DENY -> {
                     it.info.callBack(RequestDeniedException("Request denied by DequeueDecision ").invalid())
                 }
-                DequeueDecision.DENY -> {
-                    if(it.delayCount >= maxDelayCount){
-                        it.info.callBack(RequestDeniedException("Request has denied more than maxRequest").invalid())
-                    } else{
+                DequeueDecision.DELAY -> {
+                    if (it.delayCount >= maxDelayCount) {
+                        it.info.callBack(RequestDeniedException("Request has delayed more than maxRequest").invalid())
+                    } else {
                         enqueueWithDelayedTask(it)
                     }
                 }
@@ -98,17 +106,17 @@ class RequestQueueImpl (private val policy : DequeueOptimizationPolicy, private 
         }
     }
 
-    private fun removeFirstFromQueue() : Option<EnqueuedRequest<Request>> {
-        if(queue.isEmpty()){
+    private fun removeFirstFromQueue(): Option<EnqueuedRequest<Request>> {
+        if (queue.isEmpty()) {
             return none()
         }
 
-        if(queue.count() == 1){
+        if (queue.count() == 1) {
             return Some(queue.removeFirst())
         }
 
         var it =  //Because score changes overtime....
-            queue.map{
+            queue.map {
                 Pair(it, policy.getScore(it.request))
             }.sortedBy { x -> x.second }
 
@@ -118,4 +126,4 @@ class RequestQueueImpl (private val policy : DequeueOptimizationPolicy, private 
 
 }
 
-class RequestDeniedException(str : String) : Exception(str)
+class RequestDeniedException(str: String) : Exception(str)

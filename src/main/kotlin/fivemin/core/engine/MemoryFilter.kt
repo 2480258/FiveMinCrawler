@@ -55,12 +55,10 @@ class DiskWriterImpl constructor(private val token : RequestToken, private val t
 }
 
 class MemoryWriterImpl : MemoryWriter{
-    private val writer : ByteArrayOutputStream
+    private val writer : ByteArrayOutputStream = ByteArrayOutputStream()
     fun migrateMeToAndDisposeThis(dest: DiskWriterImpl) {
-        try{
+        use {
             writer.writeTo(dest.writer)
-        }finally {
-            close()
         }
     }
 
@@ -91,9 +89,6 @@ class MemoryWriterImpl : MemoryWriter{
 
     override var isCompleted: Boolean = false
 
-    init{
-        writer = ByteArrayOutputStream()
-    }
 }
 
 class ArrayMemoryData constructor(private val data : ByteArray) : MemoryData{
@@ -240,10 +235,6 @@ class TranslatableFilter(private val expectSize : Option<Long>,
 
     override fun close() {
         writeStream.close()
-    }
-
-    fun flushAndDispose() : MemoryData{
-        return writeStream.flushAndExportAndDispose()
     }
 
     fun dispose(){

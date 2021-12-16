@@ -10,7 +10,9 @@ inline fun <Return, reified ExpectBodyType> ResponseBody.ifType(
     crossinline el: (ResponseBody) -> Return
 ): Return {
     if (this is ExpectBodyType) {
-        corr(this)
+        var ret = corr(this)
+
+        return ret
     }
 
     return el(this)

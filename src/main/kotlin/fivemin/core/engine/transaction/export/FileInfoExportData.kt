@@ -1,5 +1,7 @@
 package fivemin.core.engine.transaction.export
 
+import arrow.core.Validated
+import arrow.core.valid
 import fivemin.core.engine.ExportData
 import fivemin.core.engine.ExportResultToken
 import fivemin.core.engine.FileIOToken
@@ -13,18 +15,16 @@ class FileInfoExportData (val token : FileIOToken) : ExportData{
         }
     }
 
-    override fun save(fullpath: FileIOToken) : Result<ExportResultToken>{
+    override fun save(fullpath: FileIOToken) : Validated<Throwable, ExportResultToken> {
         if(isSaved){
             throw IllegalArgumentException()
         }
 
-        return try{
+        return Validated.catch {
             fullpath.moveFileToPath(token)
             isSaved = true
 
-            Result.success(ExportResultToken(fullpath))
-        } catch(e : Exception){
-            Result.failure(e)
+            ExportResultToken(fullpath)
         }
     }
 }
