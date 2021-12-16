@@ -1,10 +1,7 @@
 package fivemin.core.request.adapter
 
-import arrow.core.Some
-import arrow.core.Validated
+import arrow.core.*
 import arrow.core.computations.option
-import arrow.core.invalid
-import arrow.core.valid
 import fivemin.core.engine.HttpRequest
 import fivemin.core.engine.PerRequestHeaderProfile
 import fivemin.core.engine.RequestBody
@@ -15,6 +12,7 @@ import fivemin.core.request.TaskWaitHandle
 import fivemin.core.request.cookie.CustomCookieJar
 import kotlinx.coroutines.Deferred
 import okhttp3.*
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.IOException
 import java.net.URI
 import java.security.SecureRandom
@@ -52,6 +50,9 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
     private fun <T> requestInternal(uri: fivemin.core.engine.Request, act: (Validated<Throwable, fivemin.core.engine.ResponseBody>) -> T) {
         val request = Request.Builder()
 
+        request.url(uri.target.toURL())
+        request.get()
+
         if(uri is HttpRequest){
             request.setHeader(uri.headerOption)
         }
@@ -60,8 +61,8 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
 
         client.newCall(ret).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                act(e.invalid())
-            }
+                act(responseAdapterImpl.createWithError(uri, e.toOption(), ret))
+            } //TODO Change Timeout error to Recoverable
 
             override fun onResponse(call: Call, response: Response) {
                 act(responseAdapterImpl.createWithReceived(uri, response, ret))

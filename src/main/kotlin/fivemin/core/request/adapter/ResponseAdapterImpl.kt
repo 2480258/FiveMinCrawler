@@ -3,6 +3,7 @@ package fivemin.core.request.adapter
 import arrow.core.*
 import fivemin.core.engine.*
 import fivemin.core.request.*
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Request
@@ -36,7 +37,13 @@ class ResponseAdapterImpl(
         resp: Response,
         req: Request
     ): Validated<Throwable, ResponseBody> {
-        if (resp.request.url.toUri() != original.target && resp.body != null) {
+        val httpTarget = original.target.toHttpUrlOrNull()
+        if(httpTarget == null) {
+            IllegalArgumentException().invalid()
+        }
+
+
+        if (resp.request.url != httpTarget && resp.body != null) {
             return createWithReceived(original, resp, req).map { x ->
                 AutomaticRedirectResponseBodyImpl(
                     createRequestBody(original.target, req),

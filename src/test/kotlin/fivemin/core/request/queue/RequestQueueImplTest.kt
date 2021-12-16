@@ -41,6 +41,58 @@ class RequestQueueImplTest {
     }
 
     @Test
+    fun dequeueDeniedTest() {
+        val deq = RequestQueueImpl(d!!, 1)
+        val ev = CountDownLatch(1)
+
+        val q = mockk<DequeueDecisionFactory>()
+        every {
+            q.get()
+        } returns (DequeueDecision.DENY)
+
+        var req =
+            getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("").upgradeAsRequestReq().upgrade(q)
+
+
+        deq.enqueue(req, EnqueueRequestInfo {
+            it.fold({
+                ev.countDown()
+            }) {
+                fail()
+            }
+        })
+
+        ev.await()
+
+    }
+
+    @Test
+    fun dequeueSuccTest() {
+        val deq = RequestQueueImpl(d!!, 1)
+        val ev = CountDownLatch(1)
+
+        val q = mockk<DequeueDecisionFactory>()
+        every {
+            q.get()
+        } returns (DequeueDecision.ALLOW)
+
+        var req =
+            getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("").upgradeAsRequestReq().upgrade(q)
+
+
+        deq.enqueue(req, EnqueueRequestInfo {
+            it.fold({
+                fail()
+            }) {
+                ev.countDown()
+            }
+        })
+
+        ev.await()
+    }
+
+
+    @Test
     fun dequeueDelayTest() {
         val deq = RequestQueueImpl(d!!, 1)
         val ev = CountDownLatch(1)

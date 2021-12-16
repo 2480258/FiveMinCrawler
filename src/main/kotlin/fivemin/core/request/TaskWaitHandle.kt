@@ -12,6 +12,8 @@ class TaskWaitHandle<T>{
     suspend fun run(act: () -> Unit) : Deferred<T> {
         return coroutineScope {
             async{
+                semaphore.acquire()
+
                 try{
                     act()
                 } finally {
