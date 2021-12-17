@@ -12,11 +12,12 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.io.InputStreamReader
+import java.nio.charset.Charset
 
 
 class HtmlDocumentFactoryImpl() : HtmlDocumentFactory {
     override fun create(html: String): HtmlParsable {
-        return HtmlParseableImpl(Jsoup.parse(html))
+        return HtmlParseableImpl(Jsoup.parse(html, ""))
     }
 
     override fun create(html: InputStreamReader): HtmlParsable {

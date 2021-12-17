@@ -113,9 +113,17 @@ interface MemoryFilter : AutoCloseable {
 
 interface StringFilter : MemoryFilter{
     override fun flushAndExportAndDispose(): StringMemoryData
+    val encoding : Charset
 }
 
-class StringFilterImpl constructor(private val filter : MemoryFilter, private var encoding : Option<Charset>) : StringFilter{
+class StringFilterImpl constructor(private val filter : MemoryFilter, private var _encoding : Option<Charset>) : StringFilter{
+
+    override val encoding : Charset
+    get() {
+        return _encoding.fold({Charsets.UTF_8}, {
+            it
+        })
+    }
 
     val bomCharsets : Map<Charset, ByteArray> = mapOf(
         Charsets.UTF_8 to byteArrayOf(0xEF.toByte(),0xBB.toByte(),0xBF.toByte()),
@@ -135,17 +143,17 @@ class StringFilterImpl constructor(private val filter : MemoryFilter, private va
         get() = filter.length
 
     override fun write(b : ByteArray, off : Int, len : Int) {
-        if(encoding.isNotEmpty() && length == 0){
+        if(_encoding.isNotEmpty() && length == 0){
             val minCount = Math.min(b.size, MAX_BOM_LENGTH)
             val arr = b.take(minCount).toByteArray()
-            encoding = getEncoding(arr).some()
+            _encoding = getEncoding(arr).some()
         }
 
         filter.write(b, off, len)
     }
 
     override fun flushAndExportAndDispose(): StringMemoryData {
-        val enc = encoding.fold({ Charsets.UTF_8}, {x -> x})
+        val enc = _encoding.fold({ Charsets.UTF_8}, { x -> x})
         return StringMemoryDataImpl(filter.flushAndExportAndDispose(), enc)
     }
 
@@ -154,7 +162,7 @@ class StringFilterImpl constructor(private val filter : MemoryFilter, private va
     }
 
     private fun getEncoding(firstByte : ByteArray) : Charset{
-        return encoding.getOrElse {
+        return _encoding.getOrElse {
             bomCharsets.filterValues {
                 firstByte.take(it.size).toByteArray().contentEquals(it)
             }.entries.singleOrNone().fold({

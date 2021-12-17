@@ -19,6 +19,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
 import java.net.URI
@@ -42,6 +43,30 @@ class RequesterAdapterImplTest {
         )
     }
 
+    @Test
+    fun errRedirectRequestTest() {
+
+        var req = HttpRequestImpl(
+            none(), URI("https://localhost:44376/Home/RedirectSource"), RequestType.LINK, PerRequestHeaderProfile(
+                RequestHeaderProfile(), none(), URI("https://localhost:12345"), URI("https://localhost:44376/Home/RedirectSource")
+            ), TagRepositoryImpl()
+        )
+
+        runBlocking {
+            var ret = adapter.requestAsync(req)
+            var cret = ret.await()
+
+
+            cret.map {
+                it.ifRedirect({ x ->
+                    assertEquals(x.code, 302)
+                    assertEquals(x.redirectDest.toString(), "/Home/RedirectDest")
+                }, {
+                    fail()
+                })
+            }
+        }
+    }
 
     @Test
     fun errTimeoutRequestTest() {
@@ -58,14 +83,15 @@ class RequesterAdapterImplTest {
 
 
             cret.map {
-                it.ifRecoverableErr({
-                    assertEquals(it.code, 404)
+                it.ifCriticalErr({
+                    assertEquals(it.error.isNotEmpty(), true)
                 }, {
                     fail()
                 })
             }
         }
     }
+
     @Test
     fun err404RequestTest() {
 
