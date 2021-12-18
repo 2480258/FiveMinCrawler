@@ -23,7 +23,7 @@ suspend inline fun <Return, reified ExpectBodyType> ResponseBody.ifTypeAsync(
     crossinline el: suspend (ResponseBody) -> Return
 ): Return {
     if (this is ExpectBodyType) {
-        corr(this)
+        return corr(this)
     }
 
     return el(this)
@@ -140,11 +140,11 @@ interface HttpResponseReceivedBody : ResponseBody {
 
 interface SuccessBody : ResponseBody {
     val body: MemoryData
+    val responseTime: ResponseTime
 }
 
 interface HttpSuccessBody : SuccessBody, HttpResponseReceivedBody{
     val contentType: MediaType
-    val responseTime: ResponseTime
 }
 
 interface AutomaticRedirectResponseBody : ResponseBody {

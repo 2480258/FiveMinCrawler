@@ -25,7 +25,6 @@ import javax.net.ssl.X509TrustManager
 class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapterImpl: ResponseAdapterImpl) :
     RequesterAdapter {
     val client: OkHttpClient
-
     init {
         var builder = OkHttpClient.Builder()
 
@@ -62,7 +61,7 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
         client.newCall(ret).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 act(responseAdapterImpl.createWithError(uri, e.toOption(), ret))
-            } //TODO Change Timeout error to Recoverable
+            }
 
             override fun onResponse(call: Call, response: Response) {
                 act(responseAdapterImpl.createWithReceived(uri, response, ret))

@@ -8,6 +8,7 @@ import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Request
 import okhttp3.Response
+import java.io.InputStream
 import java.net.URI
 import java.nio.charset.Charset
 
@@ -17,16 +18,17 @@ class ResponseAdapterImpl(
 ) : ResponseAdapter {
 
     private val DEFAULT_BUFFER_SIZE = 32768 //32KB
+    private val decompressor = DecompressorImpl()
 
     override fun createWithError(
         original: fivemin.core.engine.Request,
-        ex : Option<Exception>,
+        ex: Option<Exception>,
         req: Request
-    ) : Validated<Throwable, ResponseBody>{
+    ): Validated<Throwable, ResponseBody> {
         return CriticalErrorBodyImpl(createRequestBody(original.target, req), ex).valid()
     }
 
-    private fun parseCharset(resp: Response) : Option<Charset> {
+    private fun parseCharset(resp: Response): Option<Charset> {
         return resp.headers["Content-Type"].toOption().map {
             it.toMediaTypeOrNull()?.charset().toOption()
         }.flatten()
@@ -38,7 +40,7 @@ class ResponseAdapterImpl(
         req: Request
     ): Validated<Throwable, ResponseBody> {
         val httpTarget = original.target.toHttpUrlOrNull()
-        if(httpTarget == null) {
+        if (httpTarget == null) {
             IllegalArgumentException().invalid()
         }
 
@@ -60,7 +62,8 @@ class ResponseAdapterImpl(
             return createMemoryData(
                 resp.body!!,
                 original,
-                parseCharset(resp)
+                parseCharset(resp),
+                resp.headers["Content-Encoding"].toOption()
             ).fold({ HttpNoContentWithSuccessfulException(resp.request.url.toString()).invalid() }) { x ->
                 SuccessBodyImpl(
                     createRequestBody(original.target, req),
@@ -96,7 +99,12 @@ class ResponseAdapterImpl(
         return fivemin.core.engine.RequestBody(originalUri, req.url.toUri(), NetworkHeader(req.headers.toList()))
     }
 
-    private fun createMemoryData(responseBody: okhttp3.ResponseBody, request: fivemin.core.engine.Request, enc: Option<Charset>): Option<MemoryData> {
+    private fun createMemoryData(
+        responseBody: okhttp3.ResponseBody,
+        request: fivemin.core.engine.Request,
+        enc: Option<Charset>,
+        decomp: Option<String>
+    ): Option<MemoryData> {
         var filter: MemoryFilter? = null
 
         try {
@@ -109,7 +117,7 @@ class ResponseAdapterImpl(
 
             filter = createMemoryFilter(type, total, enc, request)
 
-            handleStream(responseBody, filter)
+            handleStream(responseBody, filter, decomp)
 
             return Some(filter.flushAndExportAndDispose())
         } catch (e: Exception) {
@@ -120,8 +128,13 @@ class ResponseAdapterImpl(
     }
 
 
-    private fun handleStream(responseBody: okhttp3.ResponseBody, filter: MemoryFilter) {
-        var stream = responseBody.byteStream()
+    private fun handleStream(responseBody: okhttp3.ResponseBody, filter: MemoryFilter, decomp: Option<String>) {
+        var originalStream = responseBody.byteStream()
+
+        var stream = decomp.fold({ originalStream }) {
+            decompressor.decompress(it, originalStream)
+        }
+
         var buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 
         var isMoreToRead = true

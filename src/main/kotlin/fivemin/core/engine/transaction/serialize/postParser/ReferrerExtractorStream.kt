@@ -4,21 +4,20 @@ import arrow.core.*
 import fivemin.core.engine.*
 import kotlinx.coroutines.runBlocking
 
-class ReferrerExtractorStream(private val resp : ResponseData) {
+class ReferrerExtractorStream(private val resp: ResponseData) {
     val HEADER_REFERRER_TAGS = "Referrer-Policy"
     val referrerNavigator: ParserNavigator
 
     init {
-        referrerNavigator = ParserNavigator("meta[name = 'referrer']")
+        referrerNavigator = ParserNavigator("meta[name = referrer]")
     }
 
     fun extract(link: HtmlElement): String {
         var r = link.getAttribute("referrerpolicy").fold({
             link.getAttribute("rel").map {
-                if(it == "noreferrer"){
+                if (it == "noreferrer") {
                     Some("no-referrer")
-                }
-                else{
+                } else {
                     none()
                 }
             }.flatten()
@@ -26,7 +25,7 @@ class ReferrerExtractorStream(private val resp : ResponseData) {
             Some(it)
         })
 
-        return parseHeader().rightIfNull { parseGlobal() }.rightIfNull { "strict-origin-when-cross-origin" }.merge()!!
+        return r.getOrElse { parseGlobal().getOrElse { parseHeader().getOrElse { "strict-origin-when-cross-origin" } } }
     }
 
     private fun parseHeader(): Option<String> {
@@ -34,7 +33,7 @@ class ReferrerExtractorStream(private val resp : ResponseData) {
 
         if (body is HttpResponseReceivedBody) {
             return body.responseHeader.header.singleOrNull {
-                it.first == HEADER_REFERRER_TAGS
+                it.first.lowercase() == HEADER_REFERRER_TAGS.lowercase()
             }?.second.toOption()
         }
 

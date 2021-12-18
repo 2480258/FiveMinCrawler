@@ -1,10 +1,8 @@
 package fivemin.core.engine.transaction.serialize.postParser
 
-import arrow.core.flatten
-import arrow.core.invalid
-import arrow.core.none
-import arrow.core.toOption
+import arrow.core.*
 import fivemin.core.DocumentMockFactory
+import fivemin.core.DocumentMockFactory.Companion.getRequest
 import fivemin.core.DocumentMockFactory.Companion.getSuccResponse
 import fivemin.core.DocumentMockFactory.Companion.upgrade
 import fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
@@ -44,9 +42,8 @@ class ReferrerExtractorStreamTest {
         )
     }
 
-
     @Test
-    fun testExtract() {
+    fun referrerLinkMetaTest() {
         runBlocking {
             var req = HttpRequestImpl(
                 none(), URI("https://localhost:44376/home/referrertest"), RequestType.LINK, PerRequestHeaderProfile(
@@ -87,7 +84,102 @@ class ReferrerExtractorStreamTest {
             }.toOption().flatten()
 
             c.fold({ fail() }, {
-                assertEquals(c, "no-referrer-when-downgrade")
+                assertEquals(it, "no-referrer-when-downgrade")
+            })
+        }
+    }
+
+
+    @Test
+    fun referrerGlobalMetaTest() {
+        runBlocking {
+            var req = HttpRequestImpl(
+                none(), URI("https://localhost:44376/"), RequestType.LINK, PerRequestHeaderProfile(
+                    RequestHeaderProfile(),
+                    none(),
+                    URI("https://localhost:12345"),
+                    URI("https://localhost:44376/home/referrertest")
+                ), TagRepositoryImpl()
+            )
+            var ret = adapter.requestAsync(req).await()
+
+            var c = ret.map {
+                var msg =
+                    HttpResponseMessage(it, PerformedRequesterInfo(RequesterEngineInfo("a"), RequesterSlotInfo(0)))
+                val ref = ReferrerExtractorStream(msg)
+
+                var ret = it.ifSucc({
+                    var ret = it.body.ifHtml({
+                        var ret = it.parseAsHtmlDocument {
+                            ref.extract(it.getElements(ParserNavigator("a")).first())
+                        }
+
+                        ret
+                    }, {
+                        fail()
+
+                        IllegalArgumentException().invalid()
+                    })
+
+                    ret
+                }, {
+                    fail()
+
+                    IllegalArgumentException().invalid()
+                }).toOption()
+
+                ret
+            }.toOption().flatten()
+
+            c.fold({ fail() }, {
+                assertEquals(it, "origin")
+            })
+        }
+    }
+
+    @Test
+    fun referrerHeaderTest() {
+        runBlocking {
+            var req = HttpRequestImpl(
+                none(), URI("https://localhost:44376/home/referrertest"), RequestType.LINK, PerRequestHeaderProfile(
+                    RequestHeaderProfile(),
+                    none(),
+                    URI("https://localhost:12345"),
+                    URI("https://localhost:44376/home/referrertest")
+                ), TagRepositoryImpl()
+            )
+            var ret = adapter.requestAsync(req).await()
+
+            var c = ret.map {
+                var msg =
+                    HttpResponseMessage(it, PerformedRequesterInfo(RequesterEngineInfo("a"), RequesterSlotInfo(0)))
+                val ref = ReferrerExtractorStream(msg)
+
+                var ret = it.ifSucc({
+                    var ret = it.body.ifHtml({
+                        var ret = it.parseAsHtmlDocument {
+                            ref.extract(it.getElements(ParserNavigator("a")).first())
+                        }
+
+                        ret
+                    }, {
+                        fail()
+
+                        IllegalArgumentException().invalid()
+                    })
+
+                    ret
+                }, {
+                    fail()
+
+                    IllegalArgumentException().invalid()
+                }).toOption()
+
+                ret
+            }.toOption().flatten()
+
+            c.fold({ fail() }, {
+                assertEquals(it, "no-referrer")
             })
         }
     }

@@ -29,7 +29,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
     implementation("io.github.microutils:kotlin-logging:1.12.5")
     implementation("org.slf4j:slf4j-simple:1.7.29")
-
+    implementation("org.brotli:dec:0.1.2")
 
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.12.1")

@@ -14,9 +14,14 @@ class SRTFScheduler : DequeueOptimizationPolicy {
 
     private val documentBlockSet = SRTFDocumentBlockSet()
 
-    private val blockCount: Int
+    val blockCount: Int
         get() {
             return documentBlockSet.count
+        }
+
+    val watchListCount: Int
+        get() {
+            return watchList.count()
         }
 
     private val pageBlockSet = SRTFPageBlockSet()
@@ -73,7 +78,7 @@ class SRTFScheduler : DequeueOptimizationPolicy {
     }
 
     private fun getUriExtension(u: URI): String {
-        val q = u.query;
+        val q = (u.query ?: "")
 
         if (!q.contains('.')) {
             return "";
@@ -96,15 +101,18 @@ class SRTFScheduler : DequeueOptimizationPolicy {
                 parent,
                 pageBlock
             ) //handle is unique so if duplicated then preprocess called twice or retry.
-            var parentBlock = documentBlockSet.getBlockBy(parent.getOrElse { handle }).pageName
 
             if (parent.isEmpty() && !watchList.contains(handle)) {
                 watchList.put(handle, WorkingSetWatchList())
             }
 
-            if (isUnique) {
-                parentBlock.addSample(pageBlock)
-                watchList[documentBlockSet.getBlockBy(parent.getOrElse { handle }).bottomMost]?.add(pageBlock)
+            trans.request.parent.map {
+                var parentBlock = documentBlockSet.getBlockBy(it).pageName
+
+                if (isUnique) {
+                    parentBlock.addSample(pageBlock)
+                    watchList[documentBlockSet.getBlockBy(parent.getOrElse { handle }).bottomMost]!!.add(pageBlock)
+                }
             }
         }
     }
@@ -117,8 +125,8 @@ class SRTFScheduler : DequeueOptimizationPolicy {
             var ret = pageBlockSet.get(convertTo(req.previous))
 
             req.result.map {
-                it.responseBody.ifHttpSucc({
-                    ret.addTimeSample(it.responseTime.duration as Double)
+                it.responseBody.ifSucc({
+                    ret.addTimeSample(it.responseTime.duration.toDouble())
                 }, {})
             }
 

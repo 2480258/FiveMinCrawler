@@ -5,6 +5,7 @@ import arrow.core.toOption
 import arrow.core.valid
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
+import fivemin.core.engine.transaction.finalizeRequest.DocumentRequestInfo
 import fivemin.core.parser.HtmlDocumentFactoryImpl
 import fivemin.core.parser.HtmlParseableImpl
 import fivemin.core.request.*
@@ -116,12 +117,16 @@ class DocumentMockFactory {
             return ret
         }
 
-        fun PrepareTransaction<Request>.upgradeAsRequestReq(): DocumentRequest<Request> {
+        fun PrepareTransaction<Request>.upgradeAsRequestReq(detachableState: DetachableState? = null): DocumentRequest<Request> {
             val ret = mockk<DocumentRequest<Request>>()
 
             every {
                 ret.request
             } returns (this)
+
+            every {
+                ret.info
+            } returns(DocumentRequestInfo(detachableState ?: DetachableState.WANT))
 
             return ret
         }
@@ -358,6 +363,10 @@ class DocumentMockFactory {
             every {
                 succ.requestBody
             } returns (reqq)
+
+            every {
+                succ.responseTime
+            } returns(ResponseTime(5, 0))
 
             every {
                 succ.body
