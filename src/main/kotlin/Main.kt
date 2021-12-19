@@ -3,7 +3,7 @@ import fivemin.core.initialize.StartTaskOption
 import kotlinx.cli.*
 import java.io.File
 
-class Main {
+class MainKt {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {

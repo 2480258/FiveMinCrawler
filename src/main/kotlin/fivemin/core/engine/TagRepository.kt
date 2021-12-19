@@ -8,10 +8,14 @@ interface TagRepository : Iterable<Tag> {
     fun contains(key: String): Boolean
 }
 
-class TagRepositoryImpl(private val src: Option<Iterable<Tag>> = none(), private val connect: Option<TagRepository> = none()) :
+class TagRepositoryImpl(
+    private val src: Option<Iterable<Tag>> = none(),
+    private val connect: Option<TagRepository> = none()
+) :
     TagRepository {
 
     private val set: Set<Tag>
+
     init {
         set = src.fold({ emptySet() }, { safe_src ->
             if (safe_src.count { x -> x.isUnique } > 1) {
@@ -34,14 +38,36 @@ class TagRepositoryImpl(private val src: Option<Iterable<Tag>> = none(), private
 
 
     override fun get(key: String): Tag {
-        return set.first { x -> x.name == key }
+        if (set.any {
+                it.name == key
+            }) {
+            return set.single {
+                it.name == key
+            }
+        }
+
+        connect.map {
+            if (it.contains(key)) {
+                return@get it.get(key)
+            }
+        }
+
+        throw IllegalArgumentException()
     }
 
     override fun contains(key: String): Boolean {
-        return set.any { x -> x.name == key }
+        return set.any { x -> x.name == key } || connect.fold({ false }, {
+            it.contains(key)
+        })
     }
 
     override fun iterator(): Iterator<Tag> {
-        return set.iterator()
+        return connect.fold({ listOf() }) {
+            it.filter {
+                !set.map {
+                    it.name
+                }.contains(it.name)
+            }
+        }.plus(set).iterator()
     }
 }
