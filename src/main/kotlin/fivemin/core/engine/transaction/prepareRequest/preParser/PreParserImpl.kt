@@ -18,7 +18,7 @@ class PreParserImpl(
         return if(ret && init.request.requestType == RequestType.LINK){
             return pages.map{
                 it.makeTransaction(init)
-            }.filterOption().singleOrNone()
+            }.filterOption().singleOrNone() //TODO Log If double
         } else if(ret){
             Some(PrepareRequestTransactionImpl(init, init.tags, attributeRequestOption))
         }

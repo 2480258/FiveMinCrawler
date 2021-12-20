@@ -6,9 +6,13 @@ import fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import mu.KotlinLogging
 
 class RetrySubPolicy<Document : Request> :
     TransactionSubPolicy<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document> {
+
+    private val logger = KotlinLogging.logger {}
+
     override suspend fun process(
         source: PrepareTransaction<Document>,
         dest: FinalizeRequestTransaction<Document>,
@@ -23,6 +27,9 @@ class RetrySubPolicy<Document : Request> :
                 }, {
 
                     var recoverable = it.responseBody.ifRecoverableErrAsync({
+                        logger.info {
+                            source.request.getDebugInfo() + " < trying to retry because " + it.code
+                        }
                         request(source, info, state).await()
                     }, {
                         dest.valid()

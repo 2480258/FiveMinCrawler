@@ -35,15 +35,15 @@ class DocumentTypePolicyStorage<Document : Request>(
                 return prepare as TransactionPolicy<SrcTrans, DstTrans, Document, Document>
             }
 
-            if (r.contains("preprocess")) {
+            if (r.contains("prepare")) {
                 return request as TransactionPolicy<SrcTrans, DstTrans, Document, Document>
             }
 
-            if (r.contains("serializ")) {
+            if (r.contains("finalize")) {
                 return serialize as TransactionPolicy<SrcTrans, DstTrans, Document, Document>
             }
 
-            if (r.contains("export")) {
+            if (r.contains("serialize")) {
                 return export as TransactionPolicy<SrcTrans, DstTrans, Document, Document>
             }
         }

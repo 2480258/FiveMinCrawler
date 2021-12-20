@@ -146,7 +146,7 @@ class FileName constructor(private val filename: String) {
 
 data class FileIOToken constructor(private val InitPath: DirectoryIOToken, private val name: FileName) {
     private val directoryPart: DirectoryIOToken
-    private val fileName: FileName
+    val fileName: FileName
 
     private val result: File
 

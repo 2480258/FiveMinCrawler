@@ -26,7 +26,7 @@ class ExportPageImpl(override val pageName: String, private val targetAttributeN
         }
 
         return ret.flatMap { x ->
-            (0..x.second.count()).map { y ->
+            (0 until x.second.count()).map { y ->
                 ExportAttributeInfo(ExportAttributeLocator(x.first, y.toOption()), x.second.entries.elementAt(y).key, x.second.entries.elementAt(y).value)
             }
         }
@@ -43,7 +43,7 @@ class ExportPageImpl(override val pageName: String, private val targetAttributeN
             it.info.name == targetAttributeName
         }
 
-        return (0..ret.item.count()).associate {
+        return (0 until ret.item.count()).associate {
             Pair(ret.item.elementAt(it), buildSpecialTags(trans, targetAttributeName, it))
         }
     }

@@ -2,6 +2,7 @@ package fivemin.core.engine.transaction.finalizeRequest
 
 import arrow.core.Validated
 import arrow.core.valid
+import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.ExecuteRequestMovement
 import kotlinx.coroutines.Deferred
@@ -9,6 +10,11 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
 class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter : RequestWaiter) : ExecuteRequestMovement<Document> {
+
+    companion object {
+        private val logger = LoggerController.getLogger("FinalizeRequestTransactionMovement")
+    }
+
     override suspend fun move(
         source: PrepareTransaction<Document>,
         info: TaskInfo,
@@ -19,6 +25,8 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter :
 
         return coroutineScope {
             async {
+                logger.debug(source.request.getDebugInfo() + " < finalizing request transaction")
+
                 val r = ret.await()
                 FinalizeRequestTransactionImpl<Document>(r, source.tags, source).valid()
             }

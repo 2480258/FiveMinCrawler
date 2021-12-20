@@ -15,7 +15,8 @@ import fivemin.core.engine.transaction.prepareRequest.preParser.PreParserPageImp
 import fivemin.core.engine.transaction.serialize.postParser.*
 import java.util.*
 
-class JsonPrePostParserFormat(
+@kotlinx.serialization.Serializable
+data class JsonPrePostParserFormat(
     val bookName: String,
     val globalCondition: JsonPageConditionFormat,
     val pages: List<JsonParserPageFormat>,
@@ -23,6 +24,7 @@ class JsonPrePostParserFormat(
 ) {
 }
 
+@kotlinx.serialization.Serializable
 class JsonParserPageFormat(
     val pageName: String,
     val condition: JsonPageConditionFormat,
@@ -33,12 +35,13 @@ class JsonParserPageFormat(
     val tag: List<JsonParserPageTagFormat> = listOf(),
     val targetRequesterEngine: JsonParseRequesterFormat
 ) {
-    val attributeFactory = DocumentAttributeFactoryImpl()
+    @Transient
+    val attributeFactory : DocumentAttributeFactory= DocumentAttributeFactoryImpl()
 
-    val extractor: TextExtractor
+    @Transient
+    val extractor: TextExtractor= TextExtractorImpl()
 
     init {
-        extractor = TextExtractorImpl()
     }
 
     private fun buildExt(): RequestContentInfoFactory<Request> {
@@ -82,13 +85,15 @@ class JsonParserPageFormat(
     }
 }
 
-class JsonParseRequesterFormat(val targetRequester: String) {
+@kotlinx.serialization.Serializable
+data class JsonParseRequesterFormat(val targetRequester: String) {
     fun build(): RequestOption {
         return RequestOption(RequesterPreference(RequesterEngineInfo(targetRequester), none()))
     }
 }
 
-class JsonParserPageTagFormat(
+@kotlinx.serialization.Serializable
+data class JsonParserPageTagFormat(
     val name: String,
     val tagRegex: String,
     val isAlias: Boolean
@@ -104,13 +109,15 @@ class JsonParserPageTagFormat(
     }
 }
 
-class JsonParserContainerFormat(val workingSetMode: String) {
+@kotlinx.serialization.Serializable
+data class JsonParserContainerFormat(val workingSetMode: String) {
     fun build(): ContainerOption {
         return ContainerOption(WorkingSetMode.valueOf(workingSetMode))
     }
 }
 
-class JsonParserLinkAttributeFormat(
+@kotlinx.serialization.Serializable
+data class JsonParserLinkAttributeFormat(
     val attributeName: String,
     val uriRegex: String? = null,
     val queryStr: String,
@@ -139,7 +146,8 @@ class JsonParserLinkAttributeFormat(
     }
 }
 
-class JsonParserInternalAttributeFormat(
+@kotlinx.serialization.Serializable
+data class JsonParserInternalAttributeFormat(
     val attributeName: String,
     val queryStr: String,
     var parseMode: String
@@ -153,7 +161,8 @@ class JsonParserInternalAttributeFormat(
     }
 }
 
-class JsonPageConditionFormat(
+@kotlinx.serialization.Serializable
+data class JsonPageConditionFormat(
     val uriRegex: String
 ) {
     fun build(): UriRegexPageCondition {

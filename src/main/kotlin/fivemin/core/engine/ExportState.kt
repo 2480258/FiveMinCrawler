@@ -13,13 +13,8 @@ interface ExportState {
 }
 
 @Serializable
-data class ContinueExportStateInfo constructor(private val exportInfoSet : Iterable<ExportInfo>){
-    var exports : Set<ExportInfo> = setOf()
-
-    init {
-        exports = exportInfoSet.toSet()
-    }
-
+data class ContinueExportStateInfo constructor(private val exportInfoSet : List<ExportInfo>){
+    val exports = exportInfoSet
 }
 
 class PreprocessedExportInfo constructor(val token : FileIOToken){

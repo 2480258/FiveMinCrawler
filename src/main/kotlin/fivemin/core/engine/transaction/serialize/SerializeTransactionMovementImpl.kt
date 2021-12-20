@@ -1,6 +1,7 @@
 package fivemin.core.engine.transaction.serialize
 
 import arrow.core.*
+import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.ExecuteSerializeMovement
 import kotlinx.coroutines.Deferred
@@ -10,11 +11,17 @@ import java.util.*
 
 class SerializeTransactionMovementImpl<Document : Request>(private val postParser: PostParser<Document>) :
     ExecuteSerializeMovement<Document> {
+    companion object {
+        private val logger = LoggerController.getLogger("SerializeTransactionMovementImpl")
+    }
+
     override suspend fun move(
         source: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
     ): Deferred<Validated<Throwable, SerializeTransaction<Document>>> {
+        logger.info(source.request.getDebugInfo() + " < serializing transaction")
+
         return coroutineScope {
             async {
                 Validated.catch {

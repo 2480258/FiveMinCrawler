@@ -4,6 +4,7 @@ import arrow.core.Option
 import arrow.core.Validated
 import arrow.core.invalid
 import arrow.core.valid
+import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.Deferred
@@ -11,9 +12,17 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
+import mu.KotlinLogging
+
+class TaskDetachedException : Exception() {}
 
 class DetachableSubPolicy<Document : Request> :
     TransactionSubPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document> {
+
+    companion object {
+        private val logger = LoggerController.getLogger("DetachableSubPolicy")
+    }
+
     override suspend fun process(
         source: InitialTransaction<Document>,
         dest: PrepareTransaction<Document>,
@@ -21,11 +30,8 @@ class DetachableSubPolicy<Document : Request> :
         state: SessionStartedState
     ): Deferred<Validated<Throwable, PrepareTransaction<Document>>> {
         return coroutineScope {
-            async{
-                var ret :  Validated<Throwable, PrepareTransaction<Document>> = dest.valid()
-
-
-                if (dest.ifDocument({
+            async {
+                val ret = if (dest.ifDocument({
                         it.containerOption.workingSetMode == WorkingSetMode.Enabled
                     }, { false })) {
                     var task = info.createTask<Document>()
@@ -35,19 +41,19 @@ class DetachableSubPolicy<Document : Request> :
 
                     var disp = state.ifDetachable {
                         it.detach {
+                            logger.info(source.request.getDebugInfo() + " < trying to detach")
+
                             task.start(source, info, it).await().swap().toOption()
                         }
                     }
 
-                    ret = coroutineScope {
-                        select<Validated<Throwable, PrepareTransaction<Document>>>{
-                            disp.fold({dest.valid()}, {
-                                it.onAwait.invoke<Option<Throwable>> {
-                                    it.fold({dest.valid()}, {it.invalid()})
-                                }
-                            })
-                        }
+                    if(disp.isNotEmpty()) {
+                        TaskDetachedException().invalid()
+                    } else {
+                        dest.valid()
                     }
+                } else {
+                    dest.valid()
                 }
 
                 ret

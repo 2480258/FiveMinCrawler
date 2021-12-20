@@ -14,11 +14,11 @@ class ExportStateImpl(private val directIO: DirectIO, private val continueExport
 
 
     init{
-        set = continueExportStateInfo.fold({mutableSetOf<ExportInfo>()},{x -> x.exports.toMutableSet()})
+        set = continueExportStateInfo.fold({ mutableSetOf<ExportInfo>() },{ x -> x.exports.toMutableSet()})
     }
 
     override fun export(): ContinueExportStateInfo {
-        return ContinueExportStateInfo(set)
+        return ContinueExportStateInfo(set.toList())
     }
 
     override fun create(token: ExportHandle): PreprocessedExport {

@@ -159,17 +159,20 @@ class ResponseAdapterImpl(
         enc: Option<Charset>,
         request: fivemin.core.engine.Request
     ): MemoryFilter {
-        return type.zip(total).fold({ factory.createByteFilter(total, request.token) }) {
-            if (typeContents(it.first, "html")) {
-                factory.createHtmlFilter(it.second.toOption(), request.token, enc)
-            } else if (typeContents(it.first, "text") || typeContents(it.first, "json") || typeContents(
-                    it.first,
+        return type.fold(
+            {
+                factory.createByteFilter(total, request.token)
+            }) {
+            if (typeContents(it, "html")) {
+                factory.createHtmlFilter(total, request.token, enc)
+            } else if (typeContents(it, "text") || typeContents(it, "json") || typeContents(
+                    it,
                     "javascript"
                 )
             ) {
-                factory.createStringFilter(it.second.toOption(), request.token, enc)
+                factory.createStringFilter(total, request.token, enc)
             } else {
-                factory.createByteFilter(it.second.toOption(), request.token)
+                factory.createByteFilter(total, request.token)
             }
         }
     }

@@ -3,7 +3,7 @@ package fivemin.core.initialize.json
 import fivemin.core.engine.DirectIO
 import fivemin.core.engine.transaction.export.*
 
-
+@kotlinx.serialization.Serializable
 data class JsonExportParserFormat (
     val bookName : String,
     val pages : List<JsonExportPageFormat>
@@ -15,7 +15,7 @@ data class JsonExportParserFormat (
     }
 }
 
-
+@kotlinx.serialization.Serializable
 data class JsonExportPageFormat (
     val pageName : String,
     val targetAttributeName : List<String>,
@@ -26,6 +26,7 @@ data class JsonExportPageFormat (
     }
 }
 
+@kotlinx.serialization.Serializable
 data class JsonExportAdapterFormat(
     val mode : String,
     val fileNameTagExp : String

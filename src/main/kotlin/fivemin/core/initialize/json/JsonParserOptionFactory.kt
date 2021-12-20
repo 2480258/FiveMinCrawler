@@ -11,6 +11,7 @@ import fivemin.core.initialize.RequesterFactory
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
+@kotlinx.serialization.Serializable
 data class JsonOptionFormat (
     val requestFormat : JsonRequesterCompFormat,
     val parseFormat : JsonPrePostParserFormat,

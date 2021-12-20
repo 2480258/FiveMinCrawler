@@ -14,6 +14,7 @@ import fivemin.core.request.cookie.CookieResolveTargetFactory
 import fivemin.core.request.cookie.CookieSyncGradiant
 import fivemin.core.request.cookie.CustomCookieJar
 
+@kotlinx.serialization.Serializable
 data class JsonRequesterCompFormat(
     val engines: List<JsonRequesterEngineFormat>,
     val cookiePolicies: List<JsonRequesterCookieSyncFormat>
@@ -36,6 +37,7 @@ data class JsonRequesterCompFormat(
     }
 }
 
+@kotlinx.serialization.Serializable
 class JsonRequesterCookieSyncFormat(
     val syncDest: JsonRequesterIndex,
     val syncSrc: JsonRequesterIndex
@@ -60,6 +62,7 @@ class JsonRequesterCookieSyncFormat(
     }
 }
 
+@kotlinx.serialization.Serializable
 class JsonRequesterIndex(
     val engine: String,
     val index: Int?
@@ -69,11 +72,11 @@ class JsonRequesterIndex(
     }
 }
 
-
+@kotlinx.serialization.Serializable
 class JsonRequesterEngineFormat(
     val requesterEngineName: String,
     val type: String,
-    val requesters: Iterable<JsonRequesterFormat>
+    val requesters: List<JsonRequesterFormat>
 ) {
     fun build(factories: Iterable<RequesterFactory>, io: DirectIO, factory: CookieResolveTargetFactory) : RequesterEngine<ResponseData>{
         var dic = (0 until requesters.count()).associate {
@@ -109,7 +112,7 @@ class JsonRequesterEngineFormat(
     }
 }
 
-
+@kotlinx.serialization.Serializable
 class JsonRequesterFormat(
     val userAgent: String,
     val key: String = "Default"

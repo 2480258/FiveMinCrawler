@@ -1,6 +1,7 @@
 package fivemin.core.engine.transaction.export
 
 import fivemin.core.engine.*
+import fivemin.core.export.ExportInfoImpl
 import java.io.OutputStream
 
 class ExportHandleFactoryImpl(private val io : DirectIO, private val bookName : String) : ExportHandleFactory {
@@ -11,7 +12,8 @@ class ExportHandleFactoryImpl(private val io : DirectIO, private val bookName : 
     }
 
     override fun create(additionalPath: String, ret: OutputStream): ExportHandle {
-        TODO("Not yet implemented")
+        val info = ExportInfoImpl(mainPath.withAdditionalPathFile(additionalPath))
+        val data : StreamExportData(ret)
     }
 
     override fun create(additionalPath: String, ret: String): ExportHandle {

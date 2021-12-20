@@ -1,7 +1,9 @@
 package fivemin.core.engine.transaction.export
 
 import arrow.core.Validated
+import arrow.core.flatMap
 import arrow.core.invalid
+import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.ExecuteExportMovement
 import kotlinx.coroutines.Deferred
@@ -10,7 +12,12 @@ import kotlinx.coroutines.coroutineScope
 
 class ExportTransactionMovement<Document : Request>(private val parser: ExportParser, private val state: ExportState) :
     ExecuteExportMovement<Document> {
-    override suspend fun move(
+
+    companion object {
+        private val logger = LoggerController.getLogger("ExportTransactionMovement")
+    }
+
+    override suspend fun move( //TODO ExportTransaction Exception Logging
         source: SerializeTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
@@ -18,6 +25,7 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
         return coroutineScope {
             async {
                 try {
+                    logger.info(source.request.getDebugInfo() + " < exporting transaction")
                     var ret = parser.parse(source)
 
                     Validated.catch {
@@ -34,7 +42,16 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
         return handles.map { x ->
             state.create(x)
         }.map {
-            it.save()
+            var ret = it.save()
+
+            ret.mapLeft { x ->
+                logger.info(it.info.token.fileName.name.name + " < not exported due to: " + x.message)
+            }
+
+            ret.map { x ->
+                logger.info(it.info.token.fileName.name.name + " < exported")
+            }
+            ret
         }
     }
 }

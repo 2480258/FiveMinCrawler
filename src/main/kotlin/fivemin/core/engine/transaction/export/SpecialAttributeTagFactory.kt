@@ -34,13 +34,15 @@ class SpecialAttributeTagFactory {
             var strcount : Int = 0
 
             if(cnt != 0){
-                strcount = kotlin.math.log10(cnt as Double) as Int + 1
+                strcount = kotlin.math.log10(cnt.toDouble()).toInt() + 1
             }
             else{
                 strcount = 1
             }
 
-            var ret = ("%0$strcount").format(locator.attributeIndex)
+            var ccount = strcount + 1
+
+            var ret = ("%0$ccount" + "d").format(locator.attributeIndex)
 
             return Tag(EnumSet.of(TagFlag.NONE), "inc", ret)
         }

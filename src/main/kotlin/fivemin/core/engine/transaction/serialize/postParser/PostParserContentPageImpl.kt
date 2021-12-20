@@ -52,7 +52,6 @@ class PostParserContentPageImpl<Document : Request>(
     private suspend fun processIntAttribute(req: FinalizeRequestTransaction<Document>): Option<Iterable<DocumentAttribute>> {
         return inteInfoFactory.get(req).map {
             it.map { x ->
-                inteInfoFactory.get(req).map { y ->
                     if (!x.data.any()) {
                         none()
                     } else if (x.data.count() == 1) {
@@ -60,7 +59,6 @@ class PostParserContentPageImpl<Document : Request>(
                     } else {
                         attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data).toOption()
                     }
-                }.flatten()
             }.filterOption()
         }
     }
