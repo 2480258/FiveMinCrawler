@@ -3,6 +3,9 @@ package fivemin.core.engine
 import arrow.core.Validated
 import arrow.core.Valid
 import arrow.core.foldRight
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -84,12 +87,12 @@ class DirectoryIOToken constructor(private val additionalPath: String) {
     }
 
 }
-
-class FileName constructor(private val filename: String) {
+@Serializable
+data class FileName constructor(private val filename: String) {
     val name: File
+    get() = File(checkFileName(filename))
 
     init {
-        name = File(checkFileName(filename))
 
         if (name.nameWithoutExtension.isEmpty() || isPath(filename)) {
             throw IllegalArgumentException()
@@ -142,7 +145,6 @@ class FileName constructor(private val filename: String) {
         }
     }
 }
-
 
 data class FileIOToken constructor(private val InitPath: DirectoryIOToken, private val name: FileName) {
     private val directoryPart: DirectoryIOToken

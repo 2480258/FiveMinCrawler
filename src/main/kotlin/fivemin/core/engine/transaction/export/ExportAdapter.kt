@@ -4,6 +4,7 @@ import arrow.core.Validated
 import fivemin.core.engine.ExportHandle
 import fivemin.core.engine.FileIOToken
 import fivemin.core.engine.Request
+import java.io.InputStream
 import java.io.OutputStream
 
 interface ExportAdapter {
@@ -11,7 +12,7 @@ interface ExportAdapter {
 }
 
 interface ExportHandleFactory{
-    fun create(additionalPath : String, ret : OutputStream) : ExportHandle
+    fun create(additionalPath : String, ret : InputStream) : ExportHandle
 
     fun create(additionalPath: String, ret : String) : ExportHandle
 

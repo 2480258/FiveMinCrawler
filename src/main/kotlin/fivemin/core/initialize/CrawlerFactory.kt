@@ -26,8 +26,7 @@ import java.net.URI
 
 @Serializable
 data class ResumeOption(
-    val archivedSessionSet: ArchivedSessionSet,
-    val continueExportStateInfo: ContinueExportStateInfo
+    val archivedSessionSet: ArchivedSessionSet
 )
 
 data class SubPolicyCollection(
@@ -57,7 +56,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     private val provider = KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider())
     private val controller: ConfigController = virtualOption.controller
     private val directIO = virtualOption.directIO
-    private val exportState = ExportStateImpl(directIO, virtualOption.resumeOption.map { it.continueExportStateInfo })
+    private val exportState = ExportStateImpl(directIO, none())
     private val sessionRepository = SessionRepositoryImpl()
     private val uniqueKeyRepository = UniqueKeyRepositoryImpl(virtualOption.resumeOption.map { it.archivedSessionSet })
 
@@ -96,7 +95,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
 
     public fun waitForFinish(): ResumeOption {
         sessionRepository.waitFinish()
-        return ResumeOption(uniqueKeyRepository.export(sessionRepository.getDetachables()), exportState.export())
+        return ResumeOption(uniqueKeyRepository.export(sessionRepository.getDetachables()))
     }
 
     private fun createFactory(

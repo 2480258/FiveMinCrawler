@@ -16,7 +16,7 @@ class BinaryExportAdapter (private val fileName : TagExpression, private val fac
                                            Valid(factory.create(fileName.build(x.tagRepo), z.file))
                 }, { z ->
 
-                    z.openWriteStreamUnsafe().map{
+                    z.openStreamAsByteAndDispose {
                         factory.create(fileName.build(x.tagRepo), it)
                     }
                 })
