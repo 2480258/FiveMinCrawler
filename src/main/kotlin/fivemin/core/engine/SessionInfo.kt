@@ -31,17 +31,7 @@ constructor(private val finish : FinishObserver,
             finish.onFinish(token)
         }
     }
-
-    fun error()
-    {
-        if(progress != ProgressState.STARTED) {
-            throw IllegalStateException()
-        }
-
-        progress = ProgressState.ERROR
-        finish.onFinish(token)
-    }
-
+    
     fun setDetachable()
     {
         if(progress != ProgressState.STARTED){

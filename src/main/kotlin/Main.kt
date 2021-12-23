@@ -31,6 +31,7 @@ class MainKt {
 
             val pluginPath by parser.option(ArgType.String, shortName = "g", description = "(Optional) plugin path")
             val resumeFrom by parser.option(ArgType.String, shortName = "r", description = "(Optional) resume file path")
+            val rootPath by parser.option(ArgType.String, shortName = "o", description = "(Optional) path to write")
             val argsText by parser.option(ArgType.String, shortName = "a", description = "(Debug) resume file path")
 
             parser.parse(args)
@@ -38,7 +39,7 @@ class MainKt {
             if(argsText != null) {
                 start(File(argsText).readText().split(' ').toTypedArray())
             } else {
-                val opt = StartTaskOption(uri!!, paramPath!!, pluginPath.toOption(), resumeFrom.toOption())
+                val opt = StartTaskOption(uri!!, paramPath!!, pluginPath.toOption(), resumeFrom.toOption(), rootPath.toOption())
 
                 opt.run()
             }

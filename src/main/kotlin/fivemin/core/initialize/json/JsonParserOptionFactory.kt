@@ -1,6 +1,7 @@
 package fivemin.core.initialize.json
 
 import fivemin.core.engine.ConfigController
+import fivemin.core.engine.DirectIO
 import fivemin.core.engine.DirectIOImpl
 import fivemin.core.engine.transaction.prepareRequest.preParser.PreParserImpl
 import fivemin.core.engine.transaction.serialize.postParser.PostParserImpl
@@ -22,7 +23,8 @@ data class JsonOptionFormat (
 
 class JsonParserOptionFactory(
     val jsonString: String,
-    val factory : List<RequesterFactory>
+    val factory : List<RequesterFactory>,
+    val io : DirectIO
 ) {
     val format : JsonOptionFormat
     val option : ParseOption
@@ -33,7 +35,6 @@ class JsonParserOptionFactory(
 
     private fun getOption(factories : Iterable<RequesterFactory>) : ParseOption {
         val config = ConfigControllerImpl()
-        val io = DirectIOImpl(config)
 
         return ParseOption(
             PreParserImpl(format.parseFormat.globalCondition.build(), format.parseFormat.pages.map {

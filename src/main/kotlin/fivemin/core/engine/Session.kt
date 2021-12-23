@@ -2,6 +2,7 @@ package fivemin.core.engine
 
 import fivemin.core.Logger
 import arrow.core.*
+import arrow.core.computations.either
 import fivemin.core.LoggerController
 import kotlinx.coroutines.*
 
@@ -31,7 +32,7 @@ data class SessionData constructor(
 }
 
 enum class ProgressState {
-    STARTED, FINISHED, ERROR
+    STARTED, FINISHED
 }
 
 enum class DetachableState {
@@ -45,13 +46,13 @@ interface SessionState {
 }
 
 interface SessionAddableAlias : SessionState {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("SessionDetachable")
     }
-
+    
     fun addAlias(key: UniqueKey) {
-        logger.debug(info.token.tokenNumber.toString() + " < Adding alias ["+ key.toString() + "]")
+        logger.debug(info.token.tokenNumber.toString() + " < Adding alias [" + key.toString() + "]")
         Data.KeyRepo.addAlias(info.token, key)
     }
 }
@@ -60,11 +61,11 @@ interface SessionMarkDetachable : SessionState {
     fun setDetachable() {
         info.setDetachable()
     }
-
+    
     fun setNonDetachable() {
         info.setNonDetachable()
     }
-
+    
     val isDetachable: DetachableState
         get() {
             return info.isDetachable
@@ -74,12 +75,12 @@ interface SessionMarkDetachable : SessionState {
 interface SessionRetryable : SessionState {
     companion object {
         private val logger = LoggerController.getLogger("SessionRetryable")
-
-
+        
+        
         val MaxRetryCount: Int = 3
     }
-
-
+    
+    
     suspend fun <T> retryAsync(func: suspend (SessionInitState) -> Deferred<Validated<Throwable, T>>): Deferred<Validated<Throwable, T>> {
         if (Data.RetryCount >= MaxRetryCount) {
             return coroutineScope {
@@ -88,35 +89,35 @@ interface SessionRetryable : SessionState {
                 }
             }
         }
-
+        
         logger.info(this.info.token.tokenNumber.toString() + " < Retrying")
         var st = this as? SessionDetachable
         var state = st.rightIfNotNull { }
             .fold({ SessionDetachableInitStateImpl(info, Data) }, { SessionInitStateImpl(info, Data) })
-
+        
         var r = func(state)
-
+        
         return r
     }
 }
 
 interface SessionDetachable : SessionState {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("SessionDetachable")
     }
-
+    
     suspend fun detach(func: suspend (SessionInitState) -> Option<Throwable>): Deferred<Option<Throwable>> {
         var detached = Data.SessionRepo.create(info.token.toOption())
         Data.KeyRepo.transferOwnership(info.token, detached.token)
-
+        
         coroutineScope {
             launch {
                 logger.info(info.token.tokenNumber.toString() + " < Detached")
                 func(SessionInitStateImpl(detached, Data))
             }
         }
-
+        
         return coroutineScope {
             async {
                 TaskCanceledException().toOption()
@@ -126,40 +127,36 @@ interface SessionDetachable : SessionState {
 }
 
 interface SessionStartable : SessionState {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("SessionStartable")
     }
-
+    
     suspend fun <T> start(
         key: UniqueKey,
         func: suspend (SessionStartedState) -> Deferred<Validated<Throwable, T>>
     ): Deferred<Validated<Throwable, T>> {
         logger.debug(key.toString() + " < Creating SessionStartable")
-
-        Data.KeyRepo.addAlias(info.token, key)
-
-        var st = this is SessionDetachable
-
-        var state = if (this is SessionDetachable) {
-            SessionDetachableStartedStateImpl(info, Data)
-        } else {
-            SessionStartedStateImpl(info, Data)
+        
+        return coroutineScope {
+            async {
+                Either.catch {
+                    Data.KeyRepo.addAlias(info.token, key)
+                }.map {
+                    var state = if (this as? SessionDetachable != null) {
+                        SessionDetachableStartedStateImpl(info, Data)
+                    } else {
+                        SessionStartedStateImpl(info, Data)
+                    }
+                    
+                    var f = func(state).await()
+                    info.finish()
+                    
+                    f
+                }
+            }
         }
-
-        var r = func(state)
-        var ret = r.await()
-
-        ret.fold({
-            info.finish()
-        }, {
-            info.error()
-        }) //TODO This is different from source
-
-        return r
     }
-
-
 }
 
 interface SessionDetachRetryable : SessionState {
@@ -167,15 +164,14 @@ interface SessionDetachRetryable : SessionState {
 }
 
 interface SessionChildGeneratable : SessionState {
-
-
     companion object {
         private val logger = LoggerController.getLogger("SessionChildGeneratable")
     }
+    
     suspend fun <T> getChildSession(func: suspend (SessionInitState) -> Deferred<Validated<Throwable, T>>): Deferred<Validated<Throwable, T>> {
-
+        
         logger.info(info.token.tokenNumber.toString() + " < Creating child session")
-
+        
         var detached = Data.SessionRepo.create(info.parent)
         var ret = func(SessionDetachableInitStateImpl(detached, Data))
         return ret
@@ -200,17 +196,17 @@ interface SessionDetachableStartedState : SessionStartedState, SessionDetachable
 
 data class SessionInitStateImpl constructor(override val info: SessionInfo, override val Data: SessionData) :
     SessionInitState {
-
+    
 }
 
 data class SessionStartedStateImpl constructor(override val info: SessionInfo, override val Data: SessionData) :
     SessionStartedState {
-
+    
 }
 
 data class SessionDetachableInitStateImpl constructor(override val info: SessionInfo, override val Data: SessionData) :
     SessionDetachableInitState {
-
+    
 }
 
 data class SessionDetachableStartedStateImpl constructor(

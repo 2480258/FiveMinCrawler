@@ -160,9 +160,9 @@ class DocumentMockFactory {
             engine: String? = null,
             slot: Int? = null
         ): PrepareDocumentTransaction<Request> {
-            if (this.request.requestType == RequestType.ATTRIBUTE) {
-                throw IllegalArgumentException()
-            }
+            //if (this.request.requestType != RequestType.LINK) {
+             //   throw IllegalArgumentException()
+            //}
 
             val ret = mockk<PrepareDocumentTransaction<Request>>()
 
@@ -238,7 +238,7 @@ class DocumentMockFactory {
         }
 
 
-        fun SerializeTransaction<Request>.upgrade(handles: List<Validated<Throwable, ExportResultToken>>?): ExportTransaction<Request> {
+        fun SerializeTransaction<Request>.upgrade(handles: List<Validated<Throwable, ExportResultToken>>? = null): ExportTransaction<Request> {
             val ret = mockk<ExportTransaction<Request>>()
 
             var fHandles = handles
@@ -383,6 +383,49 @@ class DocumentMockFactory {
             return resultMock
         }
 
+        fun getHttpRequest(
+            uri: URI,
+            type: RequestType,
+            parent: RequestToken? = null,
+            tags: TagRepository? = null
+        ): HttpRequest {
+            val ret = mockk<HttpRequest>()
+
+            val token = RequestToken.create()
+
+            every {
+                ret.target
+            } returns (uri)
+
+            every {
+                ret.parent
+            } returns (parent.toOption())
+
+            every {
+                ret.token
+            } returns (token)
+
+            every {
+                ret.tags
+            } returns (tags ?: TagRepositoryImpl())
+
+            every {
+                ret.requestType
+            } returns (type)
+
+            every {
+                ret.documentType
+            } returns (DocumentType.DEFAULT)
+
+
+            every {
+                ret.getDebugInfo()
+            } returns("[" + token.tokenNumber + "]: " + ret.target.path + (ret.target.query ?: ""))
+
+
+            return ret
+        }
+
         fun getRequest(
             uri: URI,
             type: RequestType,
@@ -416,6 +459,11 @@ class DocumentMockFactory {
             every {
                 ret.documentType
             } returns (DocumentType.DEFAULT)
+
+
+            every {
+                ret.getDebugInfo()
+            } returns("[" + token.tokenNumber + "]: " + ret.target.path + (ret.target.query ?: ""))
 
             return ret
         }

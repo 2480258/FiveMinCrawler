@@ -19,56 +19,43 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
     private fun findGlobalExceptSelf(
         ownership: UniqueKeyOwnership,
         key: UniqueKey
-    ): Validated<Throwable, Option<UniqueKeyState>> {
+    ): Option<UniqueKeyState> {
         if (set.fold({ false }, {
                 it.isConflict(key)
-        })) {
-            return UniqueKeyDuplicateException().invalid()
+            })) {
+            throw UniqueKeyDuplicateException()
         }
 
         val lst = list.filter {
             it.key != ownership
         }
 
-        var ret = lst.map {
+        val ret = lst.map {
             findFromStateList(it.value, key)
         }
 
-        var res = ret.map {
-            if (it.isInvalid) {
-                return@findGlobalExceptSelf it
-            } else {
-                it.toOption().flatten()
-            }
-        }.filterOption().exclusiveSingleOrNone()
-
-        return res
+        return ret.filterOption().exclusiveSingleOrNone()
     }
 
-    private fun findFromSelf(self: UniqueKeyOwnership, key: UniqueKey): Validated<Throwable, Option<UniqueKeyState>> {
+    private fun findFromSelf(self: UniqueKeyOwnership, key: UniqueKey): Option<UniqueKeyState> {
         return list[self].toOption().map {
             it.exclusiveSingleOrNone() {
                 it.key == key
-            }.toEither()
-        }.toEither {
-            Throwable() //TODO: Specify exception
-        }.flatten().toValidated()
+            }
+        }.flatten()
     }
 
     private fun findFromStateList(
         states: List<UniqueKeyState>,
         key: UniqueKey
-    ): Validated<Throwable, Option<UniqueKeyState>> {
+    ): Option<UniqueKeyState> {
         return states.exclusiveSingleOrNone { it.key == key }
     }
 
     private fun addOrUpdateKey(handle: UniqueKeyOwnership, key: UniqueKey) {
         lock.withLock {
             var global = findGlobalExceptSelf(handle, key)
-
-            var isUnique = global.fold({ throw it }, {
-                it.isNotEmpty()
-            })
+            var isUnique = global.isNotEmpty()
 
             if (isUnique) {
                 throw UniqueKeyDuplicateException()
@@ -80,16 +67,9 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
                 list[handle] = mutableListOf()
             }
 
-            findFromSelf(handle, key)
-                .fold(
-                    {
-                        throw UniqueKeyDuplicateException()
-                    },
-                    { x ->
-                        x.fold({ list[handle]!!.add(UniqueKeyState(key)) }) {
-                            it.increaseDuplicationCount()
-                        }
-                    })
+            findFromSelf(handle, key).fold(
+                { list[handle]!!.add(UniqueKeyState(key)) },
+                { it.increaseDuplicationCount() })
         }
     }
 

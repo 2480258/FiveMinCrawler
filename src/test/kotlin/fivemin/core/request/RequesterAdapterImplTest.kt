@@ -38,7 +38,7 @@ class RequesterAdapterImplTest {
             CustomCookieJar(),
             ResponseAdapterImpl(
                 PerformedRequesterInfo(RequesterEngineInfo("A"), RequesterSlotInfo(0)),
-                MemoryFilterFactoryImpl(DirectIOImpl(ConfigControllerImpl()), HtmlDocumentFactoryImpl())
+                MemoryFilterFactoryImpl(DirectIOImpl(ConfigControllerImpl(), none()), HtmlDocumentFactoryImpl())
             )
         )
     }

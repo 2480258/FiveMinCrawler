@@ -24,7 +24,8 @@ class StartTaskOption(
     val mainUriTarget: String,
     val paramPath: String,
     val pluginDirectory: Option<String> = none(),
-    val resumeAt: Option<String> = none()
+    val resumeAt: Option<String> = none(),
+    val rootPath : Option<String> = none()
 ) {
 
     private val resume: ResumeDataFactory = ResumeDataFactory()
@@ -54,8 +55,8 @@ class StartTaskOption(
 
         var srtf = SRTFFactory().create()
         var config = ConfigControllerImpl()
-        var io = DirectIOImpl(config)
-        var fac = JsonParserOptionFactory(file.readText(), listOf()) //TODO MEF
+        var io = DirectIOImpl(config, rootPath)
+        var fac = JsonParserOptionFactory(file.readText(), listOf(), io) //TODO MEF
 
 
         return VirtualOption(fac.option, config, io, getResumeOption(), srtf.policies, srtf.scheduler)
