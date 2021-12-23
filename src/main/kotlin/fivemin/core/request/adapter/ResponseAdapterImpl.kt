@@ -24,8 +24,8 @@ class ResponseAdapterImpl(
         original: fivemin.core.engine.Request,
         ex: Option<Exception>,
         req: Request
-    ): Validated<Throwable, ResponseBody> {
-        return CriticalErrorBodyImpl(createRequestBody(original.target, req), ex).valid()
+    ): Either<Throwable, ResponseBody> {
+        return CriticalErrorBodyImpl(createRequestBody(original.target, req), ex).right()
     }
 
     private fun parseCharset(resp: Response): Option<Charset> {
@@ -38,10 +38,10 @@ class ResponseAdapterImpl(
         original: fivemin.core.engine.Request,
         resp: Response,
         req: Request
-    ): Validated<Throwable, ResponseBody> {
+    ): Either<Throwable, ResponseBody> {
         val httpTarget = original.target.toHttpUrlOrNull()
         if (httpTarget == null) {
-            IllegalArgumentException().invalid()
+            IllegalArgumentException().left()
         }
 
 
@@ -64,7 +64,7 @@ class ResponseAdapterImpl(
                 original,
                 parseCharset(resp),
                 resp.headers["Content-Encoding"].toOption()
-            ).fold({ HttpNoContentWithSuccessfulException(resp.request.url.toString()).invalid() }) { x ->
+            ).fold({ HttpNoContentWithSuccessfulException(resp.request.url.toString()).left() }) { x ->
                 SuccessBodyImpl(
                     createRequestBody(original.target, req),
                     resp.code,
@@ -72,19 +72,19 @@ class ResponseAdapterImpl(
                     x,
                     MediaType(resp.body!!.contentType()!!.type, resp.body!!.contentType()!!.subtype),
                     ResponseTime(resp.sentRequestAtMillis, resp.receivedResponseAtMillis)
-                ).valid()
+                ).right()
             }
         }
 
         if (resp.body != null && resp.code >= 300 && resp.code <= 399) {
             return resp.headers["Location"].toOption()
-                .fold({ HttpNoLocationHeaderWithRedirectCodeException(resp.request.url.toString()).invalid() }) { x ->
+                .fold({ HttpNoLocationHeaderWithRedirectCodeException(resp.request.url.toString()).left() }) { x ->
                     RedirectResponseBodyImpl(
                         createRequestBody(original.target, req),
                         resp.code,
                         NetworkHeader(resp.headers.asIterable().toList()),
                         URI(x)
-                    ).valid()
+                    ).right()
                 }
         }
 
@@ -92,7 +92,7 @@ class ResponseAdapterImpl(
             createRequestBody(original.target, req),
             resp.code,
             NetworkHeader(resp.headers.asIterable().toList())
-        ).valid()
+        ).right()
     }
 
     private fun createRequestBody(originalUri: URI, req: Request): fivemin.core.engine.RequestBody {

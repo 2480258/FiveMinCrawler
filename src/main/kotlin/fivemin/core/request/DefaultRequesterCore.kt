@@ -1,6 +1,6 @@
 package fivemin.core.request
 
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.engine.PerformedRequesterInfo
 import fivemin.core.engine.ResponseBody
 import kotlinx.coroutines.Deferred
@@ -20,7 +20,7 @@ class DefaultRequesterCore(
         procedure = HttpRequestProcedure(info, config, adapter)
     }
 
-    override suspend fun request(request: DequeuedRequest): Deferred<Validated<Throwable, HttpResponseMessage>> {
+    override suspend fun request(request: DequeuedRequest): Deferred<Either<Throwable, HttpResponseMessage>> {
         return coroutineScope {
             async{
                 val ret = procedure.request(request.request.request.request.request)

@@ -1,10 +1,10 @@
 package fivemin.core.engine.transaction.finalizeRequest
 
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.engine.*
 
 class FinalizeRequestTransactionImpl<Document : Request>(
-    override val result: Validated<Throwable, ResponseData>,
+    override val result: Either<Throwable, ResponseData>,
     override val tags: TagRepository, override val previous: PrepareTransaction<Document>
 ) : FinalizeRequestTransaction<Document>{
 

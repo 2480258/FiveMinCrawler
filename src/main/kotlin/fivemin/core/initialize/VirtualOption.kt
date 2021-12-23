@@ -64,7 +64,7 @@ class StartTaskOption(
 
     private fun getResumeOption(): Option<ResumeOption> {
         return resumeAt.map {
-            resume.get(it).toOption() // TODO
+            resume.get(it).orNull().toOption() // TODO
         }.flatten()
     }
 }

@@ -1,7 +1,7 @@
 package fivemin.core.request
 
 import arrow.core.Option
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.engine.*
 import fivemin.core.request.adapter.RequesterAdapterImpl
 import fivemin.core.request.cookie.*
@@ -20,7 +20,7 @@ class HttpRequestProcedure(info: PerformedRequesterInfo, config: HttpRequesterCo
         target = config.config.targetFactory.create(info, cookieRepository)
     }
 
-    suspend fun request(request: Request): Deferred<Validated<Throwable, ResponseBody>> {
+    suspend fun request(request: Request): Deferred<Either<Throwable, ResponseBody>> {
         return coroutineScope {
             target.sync {
                 adapter.requestAsync(request)

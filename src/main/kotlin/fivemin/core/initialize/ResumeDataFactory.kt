@@ -1,6 +1,6 @@
 package fivemin.core.initialize
 
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.engine.FileIOToken
 import java.io.File
 import kotlinx.serialization.decodeFromByteArray
@@ -11,8 +11,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class ResumeDataFactory {
-    fun get(path : String) : Validated<Throwable, ResumeOption> {
-        return Validated.catch {
+    fun get(path : String) : Either<Throwable, ResumeOption> {
+        return Either.catch {
 
             val f = File(path)
 

@@ -19,20 +19,20 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
         source: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, SerializeTransaction<Document>>> {
+    ): Deferred<Either<Throwable, SerializeTransaction<Document>>> {
         logger.info(source.request.getDebugInfo() + " < serializing transaction")
 
         return coroutineScope {
             async {
-                Validated.catch {
+                Either.catch {
                     postParser.getPostParseInfo(source, info, state).map {
                         SerializeTransactionImpl<Document>(
                             source.request,
                             convertAttributeToTag(it.attribute, source.tags),
                             it.attribute.toList()
                         )
-                    }.toEither()
-                }.toEither().flatten().toValidated()
+                    }
+                }.flatten()
             }
         }
 
@@ -57,7 +57,7 @@ interface PostParserContentPage<in Document : Request> {
         request: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, Iterable<DocumentAttribute>>>
+    ): Deferred<Either<Throwable, Iterable<DocumentAttribute>>>
 }
 
 data class PostParseInfo(
@@ -69,5 +69,5 @@ interface PostParser<in Document : Request> {
         request: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Validated<Throwable, PostParseInfo>
+    ): Either<Throwable, PostParseInfo>
 }

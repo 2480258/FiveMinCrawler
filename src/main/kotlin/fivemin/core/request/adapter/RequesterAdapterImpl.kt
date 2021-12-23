@@ -36,8 +36,8 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
             .build()
     }
 
-    override suspend fun requestAsync(uri: fivemin.core.engine.Request): Deferred<Validated<Throwable, fivemin.core.engine.ResponseBody>> {
-        val waiter = TaskWaitHandle<Validated<Throwable, fivemin.core.engine.ResponseBody>>()
+    override suspend fun requestAsync(uri: fivemin.core.engine.Request): Deferred<Either<Throwable, fivemin.core.engine.ResponseBody>> {
+        val waiter = TaskWaitHandle<Either<Throwable, fivemin.core.engine.ResponseBody>>()
 
         return waiter.run {
             requestInternal(uri) {
@@ -46,7 +46,7 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
         }
     }
 
-    private fun <T> requestInternal(uri: fivemin.core.engine.Request, act: (Validated<Throwable, fivemin.core.engine.ResponseBody>) -> T) {
+    private fun <T> requestInternal(uri: fivemin.core.engine.Request, act: (Either<Throwable, fivemin.core.engine.ResponseBody>) -> T) {
         val request = Request.Builder()
 
         request.url(uri.target.toURL())

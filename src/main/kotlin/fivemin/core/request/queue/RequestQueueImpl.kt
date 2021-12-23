@@ -90,14 +90,14 @@ class RequestQueueImpl(
         item.map {
             when (it.request.info.dequeue.get()) {
                 DequeueDecision.ALLOW -> {
-                    it.info.callBack(DequeuedRequest(it.request, DequeuedRequestInfo()).valid())
+                    it.info.callBack(DequeuedRequest(it.request, DequeuedRequestInfo()).right())
                 }
                 DequeueDecision.DENY -> {
-                    it.info.callBack(RequestDeniedException("Request denied by DequeueDecision ").invalid())
+                    it.info.callBack(RequestDeniedException("Request denied by DequeueDecision ").left())
                 }
                 DequeueDecision.DELAY -> {
                     if (it.delayCount >= maxDelayCount) {
-                        it.info.callBack(RequestDeniedException("Request has delayed more than maxRequest").invalid())
+                        it.info.callBack(RequestDeniedException("Request has delayed more than maxRequest").left())
                     } else {
                         enqueueWithDelayedTask(it)
                     }

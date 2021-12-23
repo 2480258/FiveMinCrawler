@@ -1,6 +1,6 @@
 package fivemin.core.engine
 
-import arrow.core.Validated
+import arrow.core.Either
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -8,38 +8,38 @@ import java.io.OutputStream
 import java.nio.charset.Charset
 
 interface MemoryData {
-    fun <T> openStreamAsByteAndDispose(func : (InputStream) -> T) : Validated<Throwable, T>
+    fun <T> openStreamAsByteAndDispose(func : (InputStream) -> T) : Either<Throwable, T>
 
-    fun openWriteStreamUnsafe() : Validated<Throwable, OutputStream>
+    fun openWriteStreamUnsafe() : Either<Throwable, OutputStream>
 }
 
 interface StringMemoryData : MemoryData{
-    fun <T> openStreamAsStringAndDispose(func : (InputStreamReader) -> T) : Validated<Throwable, T>
+    fun <T> openStreamAsStringAndDispose(func : (InputStreamReader) -> T) : Either<Throwable, T>
 }
 
 class StringMemoryDataImpl constructor(private val data : MemoryData, private val enc : Charset) : StringMemoryData{
-    override fun <T> openStreamAsStringAndDispose(func: (InputStreamReader) -> T): Validated<Throwable, T> {
+    override fun <T> openStreamAsStringAndDispose(func: (InputStreamReader) -> T): Either<Throwable, T> {
         return data.openStreamAsByteAndDispose { x ->
             func(InputStreamReader(x, enc))
         }
     }
 
-    override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Validated<Throwable, T> {
+    override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Either<Throwable, T> {
         return data.openStreamAsByteAndDispose(func)
     }
 
-    override fun openWriteStreamUnsafe(): Validated<Throwable, OutputStream> {
+    override fun openWriteStreamUnsafe(): Either<Throwable, OutputStream> {
         return data.openWriteStreamUnsafe()
     }
 
 }
 
 interface HtmlMemoryData : StringMemoryData{
-    fun <T> parseAsHtmlDocument(func : (HtmlParsable) -> T) : Validated<Throwable, T>
+    fun <T> parseAsHtmlDocument(func : (HtmlParsable) -> T) : Either<Throwable, T>
 }
 
 class HtmlMemoryDataImpl constructor(private val data : StringMemoryData, private val fac : HtmlDocumentFactory) : HtmlMemoryData{
-    val doc : Lazy<Validated<Throwable, HtmlParsable>>
+    val doc : Lazy<Either<Throwable, HtmlParsable>>
 
     init {
         doc = lazy {
@@ -49,19 +49,19 @@ class HtmlMemoryDataImpl constructor(private val data : StringMemoryData, privat
 
     }
 
-    override fun <T> parseAsHtmlDocument(func: (HtmlParsable) -> T): Validated<Throwable, T> {
+    override fun <T> parseAsHtmlDocument(func: (HtmlParsable) -> T): Either<Throwable, T> {
         return doc.value.map {x -> func(x) }
     }
 
-    override fun <T> openStreamAsStringAndDispose(func: (InputStreamReader) -> T): Validated<Throwable, T> {
+    override fun <T> openStreamAsStringAndDispose(func: (InputStreamReader) -> T): Either<Throwable, T> {
         return data.openStreamAsStringAndDispose(func)
     }
 
-    override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Validated<Throwable, T> {
+    override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Either<Throwable, T> {
         return data.openStreamAsByteAndDispose(func)
     }
 
-    override fun openWriteStreamUnsafe(): Validated<Throwable, OutputStream> {
+    override fun openWriteStreamUnsafe(): Either<Throwable, OutputStream> {
         return data.openWriteStreamUnsafe()
     }
 
@@ -72,11 +72,11 @@ interface FileMemoryData : MemoryData{
 }
 
 class FileMemoryDataImpl constructor(override val file : FileIOToken) : FileMemoryData{
-    override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Validated<Throwable, T> {
+    override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Either<Throwable, T> {
         return file.openFileReadStream(func)
     }
 
-    override fun openWriteStreamUnsafe(): Validated<Throwable, FileOutputStream> {
+    override fun openWriteStreamUnsafe(): Either<Throwable, FileOutputStream> {
         return file.unsafeOpenFileStream()
     }
 }

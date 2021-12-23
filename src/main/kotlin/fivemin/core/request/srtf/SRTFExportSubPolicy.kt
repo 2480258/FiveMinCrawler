@@ -1,6 +1,6 @@
 package fivemin.core.request.srtf
 
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.Deferred
@@ -13,10 +13,10 @@ class SRTFExportSubPolicy(private val sc : SRTFScheduler) : TransactionSubPolicy
         dest: ExportTransaction<Request>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, ExportTransaction<Request>>> {
+    ): Deferred<Either<Throwable, ExportTransaction<Request>>> {
         return coroutineScope {
             async {
-                Validated.catch {
+                Either.catch {
                     sc.atExportStage(dest.request.token)
 
                     dest

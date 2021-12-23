@@ -1,6 +1,6 @@
 package fivemin.core.engine.transaction.export
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.valid
 import fivemin.core.engine.ExportData
 import fivemin.core.engine.ExportResultToken
@@ -15,12 +15,12 @@ class FileInfoExportData (val token : FileIOToken) : ExportData{
         }
     }
 
-    override fun save(fullpath: FileIOToken) : Validated<Throwable, ExportResultToken> {
+    override fun save(fullpath: FileIOToken) : Either<Throwable, ExportResultToken> {
         if(isSaved){
             throw IllegalArgumentException()
         }
 
-        return Validated.catch {
+        return Either.catch {
             fullpath.moveFileToPath(token)
             isSaved = true
 

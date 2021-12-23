@@ -18,7 +18,7 @@ class RetrySubPolicy<Document : Request> :
         dest: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, FinalizeRequestTransaction<Document>>> {
+    ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
         return coroutineScope {
             async {
                 dest.result.fold({
@@ -32,7 +32,7 @@ class RetrySubPolicy<Document : Request> :
                         }
                         request(source, info, state).await()
                     }, {
-                        dest.valid()
+                        dest.right()
                     })
 
                     recoverable
@@ -46,7 +46,7 @@ class RetrySubPolicy<Document : Request> :
         source: PrepareTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, FinalizeRequestTransaction<Document>>> {
+    ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
         return state.retryAsync {
             info.createTask<Document>()
                 .get1<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>>(source.request.documentType)

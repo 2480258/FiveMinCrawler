@@ -1,6 +1,6 @@
 package fivemin.core.engine.transaction.serialize.postParser
 
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.engine.FinalizeRequestTransaction
 import fivemin.core.engine.Request
 import fivemin.core.engine.SessionStartedState
@@ -13,8 +13,8 @@ class PostParserImpl (private val pages : List<PostParserContentPage<Request>>):
         request: FinalizeRequestTransaction<Request>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Validated<Throwable, PostParseInfo> {
-        return Validated.catch {
+    ): Either<Throwable, PostParseInfo> {
+        return Either.catch {
             var ret = pages.map {
                 it.extract(request, info, state)
             }.single()

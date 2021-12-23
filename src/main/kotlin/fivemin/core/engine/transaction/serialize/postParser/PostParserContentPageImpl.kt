@@ -1,6 +1,7 @@
 package fivemin.core.engine.transaction.serialize.postParser
 
 import arrow.core.*
+import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.InitialTransactionImpl
 import kotlinx.coroutines.Deferred
@@ -15,6 +16,12 @@ class PostParserContentPageImpl<Document : Request>(
     private val inteInfoFactory: InternalContentInfoFactory<Document>,
     private val attributeFactory: DocumentAttributeFactory
 ) : PostParserContentPage<Document> {
+    
+    companion object {
+        private val logger = LoggerController.getLogger("PostParserContentPageImpl")
+    }
+    
+    
     override suspend fun extract(
         req: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
@@ -53,11 +60,12 @@ class PostParserContentPageImpl<Document : Request>(
         return inteInfoFactory.get(req).map {
             it.map { x ->
                     if (!x.data.any()) {
+                        logger.warn(req.request.getDebugInfo() + " < " + x.attributeName + " < has no content; ignoring")
                         none()
                     } else if (x.data.count() == 1) {
-                        attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data[0]).toOption() //TODO Log
+                        attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data[0]).orNull().toOption() //TODO Log
                     } else {
-                        attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data).toOption()
+                        attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data).orNull().toOption()
                     }
             }.filterOption()
         }
@@ -82,27 +90,39 @@ class PostParserContentPageImpl<Document : Request>(
                 }
             }
 
-            finalizeAttribute(x, ret)
-        }
+            
+            if(ret.any()) {
+                finalizeAttribute(x, ret).toOption()
+            } else {
+                logger.warn(req.request.getDebugInfo() + " < " + x.name + " < has no content; ignoring")
+                none()
+            }
+        }.filterOption()
     }
 
     private suspend fun finalizeAttribute(
         x: RequestLinkInfo,
-        ret: Iterable<Deferred<Validated<Throwable, FinalizeRequestTransaction<HttpRequest>>>>
+        ret: Iterable<Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>>>
     ): Deferred<Option<DocumentAttribute>> {
         return coroutineScope {
             async {
                 var finished = ret.toList().awaitAll().map {
-                    it.toOption() //TODO Log
+                    var downloaded = it //TODO Log
+    
+                    downloaded.swap().map {
+                        logger.warn(it.localizedMessage)
+                    }
+                    
+                    downloaded.orNull().toOption()
                 }.filterOption()
                 val info = DocumentAttributeInfo(x.name)
 
                 if (!finished.any()) {
                     none()
                 } else if (finished.count() == 1) {
-                    attributeFactory.getExternal(info, finished[0]).toOption()
+                    attributeFactory.getExternal(info, finished[0]).orNull().toOption()
                 } else {
-                    attributeFactory.getExternal(info, finished).toOption() //TODO Log
+                    attributeFactory.getExternal(info, finished).orNull().toOption()
                 }
             }
         }
@@ -113,10 +133,10 @@ class PostParserContentPageImpl<Document : Request>(
         request: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Iterable<Deferred<Validated<Throwable, ExportTransaction<HttpRequest>>>> {
+    ): Iterable<Deferred<Either<Throwable, ExportTransaction<HttpRequest>>>> {
         var links = linkInfoFactory.get(request)
-        return links.linkInfo.flatMap { x ->
-            x.requests.map { y ->
+        return links.linkInfo.map { x ->
+            var ret = x.requests.map { y ->
                 var task = info.createTask<HttpRequest>().get4<
                         InitialTransaction<HttpRequest>,
                         PrepareTransaction<HttpRequest>,
@@ -128,7 +148,13 @@ class PostParserContentPageImpl<Document : Request>(
                     task.start(InitialTransactionImpl(x.option, TagRepositoryImpl(), y), info, it)
                 }
             }
-        }
+            
+            if(ret.any()) {
+                ret.toOption()
+            } else {
+                logger.warn(request.request.getDebugInfo() + " < " + x.name + " < has no content; ignoring")
+                none()
+            }
+        }.filterOption().flatten()
     }
-
 }

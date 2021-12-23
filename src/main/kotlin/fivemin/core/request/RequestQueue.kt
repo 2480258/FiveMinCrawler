@@ -1,10 +1,10 @@
 package fivemin.core.request
 
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.engine.Request
 
 interface RequestQueue {
     fun enqueue(doc: PreprocessedRequest<Request>, info: EnqueueRequestInfo)
 }
 
-data class EnqueueRequestInfo(val callBack : suspend (Validated<Throwable, DequeuedRequest>) -> Unit)
+data class EnqueueRequestInfo(val callBack : suspend (Either<Throwable, DequeuedRequest>) -> Unit)

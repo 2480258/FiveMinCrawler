@@ -1,6 +1,6 @@
 package fivemin.core.engine
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.flatten
 import arrow.core.invalid
 import arrow.core.valid
@@ -22,13 +22,13 @@ class PreprocessedExportInfo constructor(val token : FileIOToken){
 }
 
 class PreprocessedExport constructor(val info: PreprocessedExportInfo, val data : ExportData){
-    fun save() : Validated<Throwable, ExportResultToken> {
-        return Validated.catch {
+    fun save() : Either<Throwable, ExportResultToken> {
+        return Either.catch {
             if(data.isSaved) {
-                IllegalStateException().invalid()
+                IllegalStateException().left()
             }
 
-            data.save(info.token).toEither()
-        }.toEither().flatten().toValidated()
+            data.save(info.token)
+        }.flatten()
     }
 }

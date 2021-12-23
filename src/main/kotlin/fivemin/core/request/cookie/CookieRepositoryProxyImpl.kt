@@ -1,21 +1,21 @@
 package fivemin.core.request.cookie
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.flatten
 import fivemin.core.engine.PerformedRequesterInfo
 import java.net.HttpCookie
 
 class CookieRepositoryProxyImpl(private val solver : CookieRepositoryReferenceSolver, private val dest : PerformedRequesterInfo) :
     CookieRepository {
-    var cache : Validated<Throwable, CookieRepository>? = null
+    var cache : Either<Throwable, CookieRepository>? = null
 
-    override fun getAllCookies(): Validated<Throwable, Iterable<HttpCookie>> {
-        return getRepo().toEither().map{
-            it.getAllCookies().toEither()
-        }.flatten().toValidated()
+    override fun getAllCookies(): Either<Throwable, Iterable<HttpCookie>> {
+        return getRepo().map{
+            it.getAllCookies()
+        }.flatten()
     }
 
-    private fun getRepo() : Validated<Throwable, CookieRepository> {
+    private fun getRepo() : Either<Throwable, CookieRepository> {
         if(cache == null){
             cache = solver.getReference(dest)
         }

@@ -1,6 +1,6 @@
 package fivemin.core
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.toOption
 import arrow.core.valid
 import fivemin.core.engine.*
@@ -149,7 +149,7 @@ class DocumentMockFactory {
 
             every {
                 ret.result
-            } returns ((resp ?: this.upgradeAsRequestReq().upgrade().getSuccResponse()).valid())
+            } returns ((resp ?: this.upgradeAsRequestReq().upgrade().getSuccResponse()).right())
 
             return ret
         }
@@ -214,7 +214,7 @@ class DocumentMockFactory {
 
             every {
                 ret.result
-            } returns ((resp ?: this.upgradeAsRequestReq().upgrade().getSuccResponse()).valid())
+            } returns ((resp ?: this.upgradeAsRequestReq().upgrade().getSuccResponse()).right())
 
             return ret
         }
@@ -238,7 +238,7 @@ class DocumentMockFactory {
         }
 
 
-        fun SerializeTransaction<Request>.upgrade(handles: List<Validated<Throwable, ExportResultToken>>? = null): ExportTransaction<Request> {
+        fun SerializeTransaction<Request>.upgrade(handles: List<Either<Throwable, ExportResultToken>>? = null): ExportTransaction<Request> {
             val ret = mockk<ExportTransaction<Request>>()
 
             var fHandles = handles
@@ -332,7 +332,7 @@ class DocumentMockFactory {
                     Any()
                 }
             } answers {
-                this.firstArg<(InputStream) -> Any>()(by).valid()
+                this.firstArg<(InputStream) -> Any>()(by).right()
             }
 
             every {
@@ -342,7 +342,7 @@ class DocumentMockFactory {
                     Any()
                 }
             } answers {
-                this.firstArg<(InputStreamReader) -> Any>()(InputStreamReader(by)).valid()
+                this.firstArg<(InputStreamReader) -> Any>()(InputStreamReader(by)).right()
             }
 
             val f = HtmlDocumentFactoryImpl()
@@ -350,7 +350,7 @@ class DocumentMockFactory {
             every {
                 data.parseAsHtmlDocument<Any>(any())
             } answers  {
-                this.firstArg<(HtmlParsable) -> Any>()(f.create(cont)).valid()
+                this.firstArg<(HtmlParsable) -> Any>()(f.create(cont)).right()
             }
 
             val reqq = mockk<RequestBody>()

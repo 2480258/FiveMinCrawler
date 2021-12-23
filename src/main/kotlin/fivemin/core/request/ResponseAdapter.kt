@@ -1,7 +1,7 @@
 package fivemin.core.request
 
 import arrow.core.Option
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.engine.HttpRequest
 import fivemin.core.engine.ResponseBody
 import okhttp3.Request
@@ -12,11 +12,11 @@ interface ResponseAdapter {
         original: fivemin.core.engine.Request,
         ex: Option<Exception>,
         req: Request
-    ): Validated<Throwable, ResponseBody>
+    ): Either<Throwable, ResponseBody>
 
     fun createWithReceived(
         original: fivemin.core.engine.Request,
         resp: Response,
         req: Request
-    ): Validated<Throwable, ResponseBody>
+    ): Either<Throwable, ResponseBody>
 }

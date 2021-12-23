@@ -1,6 +1,6 @@
 package fivemin.core.request.cookie
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.valid
 import java.net.HttpCookie
 import java.net.URI
@@ -9,8 +9,8 @@ class CookieRepositoryImpl (private val container : CustomCookieJar): CookieRepo
 
     private val lock : Any = Any()
 
-    override fun getAllCookies(): Validated<Throwable, Iterable<HttpCookie>> {
-        return container.cookieStore.cookies.valid()
+    override fun getAllCookies(): Either<Throwable, Iterable<HttpCookie>> {
+        return container.cookieStore.cookies.right()
     }
 
     override fun reset() {

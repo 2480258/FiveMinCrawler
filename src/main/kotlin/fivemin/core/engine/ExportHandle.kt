@@ -1,12 +1,12 @@
 package fivemin.core.engine
 
-import arrow.core.Validated
+import arrow.core.Either
 
 interface ExportData
 {
     var isSaved : Boolean
 
-    fun save(token : FileIOToken) : Validated<Throwable, ExportResultToken>
+    fun save(token : FileIOToken) : Either<Throwable, ExportResultToken>
 }
 
 data class ExportResultToken(val fullPath : FileIOToken){

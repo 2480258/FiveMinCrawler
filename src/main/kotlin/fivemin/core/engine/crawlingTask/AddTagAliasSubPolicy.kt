@@ -1,6 +1,6 @@
 package fivemin.core.engine.crawlingTask
 
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.TransactionSubPolicy
@@ -19,10 +19,10 @@ class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTr
         dest: DstTrans,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, DstTrans>> {
+    ): Deferred<Either<Throwable, DstTrans>> {
         return coroutineScope {
             async {
-                Validated.catch {
+                Either.catch {
                     var ret = info.uniqueKeyProvider.tagKey.create(dest.tags)
 
                     ret.forEach {

@@ -1,10 +1,10 @@
 package fivemin.core.request.cookie
 
-import arrow.core.Validated
+import arrow.core.Either
 import java.net.HttpCookie
 
 interface CookieRepository {
-    fun getAllCookies() : Validated<Throwable, Iterable<HttpCookie>>
+    fun getAllCookies() : Either<Throwable, Iterable<HttpCookie>>
 
     fun reset()
 

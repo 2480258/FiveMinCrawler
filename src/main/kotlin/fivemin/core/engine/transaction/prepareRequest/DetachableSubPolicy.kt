@@ -1,7 +1,7 @@
 package fivemin.core.engine.transaction.prepareRequest
 
 import arrow.core.Option
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.invalid
 import arrow.core.valid
 import fivemin.core.LoggerController
@@ -28,7 +28,7 @@ class DetachableSubPolicy<Document : Request> :
         dest: PrepareTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, PrepareTransaction<Document>>> {
+    ): Deferred<Either<Throwable, PrepareTransaction<Document>>> {
         return coroutineScope {
             async {
                 val ret = if (dest.ifDocument({
@@ -48,12 +48,12 @@ class DetachableSubPolicy<Document : Request> :
                     }
 
                     if(disp.isNotEmpty()) {
-                        TaskDetachedException().invalid()
+                        TaskDetachedException().left()
                     } else {
-                        dest.valid()
+                        dest.right()
                     }
                 } else {
-                    dest.valid()
+                    dest.right()
                 }
 
                 ret

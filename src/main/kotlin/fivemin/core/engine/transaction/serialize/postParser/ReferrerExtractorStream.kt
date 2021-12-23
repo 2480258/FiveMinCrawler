@@ -49,7 +49,7 @@ class ReferrerExtractorStream(private val resp: ResponseData) {
                         it.getElement(referrerNavigator)
                     }
                 }, {
-                    none<HtmlElement>().valid()
+                    none<HtmlElement>().right()
                 })
 
                 Some(ret)

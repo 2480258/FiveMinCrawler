@@ -1,6 +1,6 @@
 package fivemin.core.engine.crawlingTask
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.valid
 import fivemin.core.LoggerController
 import fivemin.core.engine.*
@@ -22,7 +22,7 @@ class MarkDetachablePolicy<Document : Request> :
         dest: PrepareTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, PrepareTransaction<Document>>> {
+    ): Deferred<Either<Throwable, PrepareTransaction<Document>>> {
         if (dest.ifDocument({
                 it.containerOption.workingSetMode == WorkingSetMode.Enabled
             }, { false })) {
@@ -35,7 +35,7 @@ class MarkDetachablePolicy<Document : Request> :
 
         return coroutineScope {
             async {
-                dest.valid()
+                dest.right()
             }
         }
     }

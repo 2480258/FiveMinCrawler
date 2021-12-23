@@ -1,8 +1,10 @@
 package fivemin.core.engine.transaction.export
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.filterOption
-import arrow.core.toOption
+import arrow.core.right
+import arrow.core.*
+import fivemin.core.LoggerController
 import fivemin.core.engine.*
 
 interface ExportPage {
@@ -11,12 +13,22 @@ interface ExportPage {
 }
 
 class ExportPageImpl(override val pageName: String, private val targetAttributeName : Iterable<String>, private val adapter: ExportAdapter) : ExportPage{
+    
+    companion object {
+        private val logger = LoggerController.getLogger("ExportPageImpl")
+    }
+    
+    
     private val specialAttributeTagFactory : SpecialAttributeTagFactory = SpecialAttributeTagFactory()
 
 
     override fun <Document : Request> export(trans: SerializeTransaction<Document>): Iterable<ExportHandle> {
-        return  adapter.parse(trans.request, parseInfo(trans)).map {
-            it.toOption() //TODO Log
+        return adapter.parse(trans.request, parseInfo(trans)).map {
+            it.swap().map {
+                logger.warn(trans.request.getDebugInfo() + " < is not exported due to: " + it)
+            }
+    
+            it.orNull().toOption()
         }.filterOption()
     }
 

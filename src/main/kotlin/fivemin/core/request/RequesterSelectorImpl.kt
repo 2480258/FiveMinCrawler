@@ -1,6 +1,6 @@
 package fivemin.core.request
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.valid
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
@@ -10,7 +10,7 @@ class RequesterSelectorImpl(val requesterMap: Map<RequesterEngineInfo, Requester
     RequesterSelector {
     var rd = Random(System.currentTimeMillis())
 
-    override fun <Document : Request, Resp : ResponseData> schedule(req: DocumentRequest<Document>): Validated<Throwable, RequesterSelected<Resp>> {
+    override fun <Document : Request, Resp : ResponseData> schedule(req: DocumentRequest<Document>): Either<Throwable, RequesterSelected<Resp>> {
         var pref = req.request.requestOption.preference
         var engine = getEngine<Resp>(pref.engine)
 
@@ -25,8 +25,8 @@ class RequesterSelectorImpl(val requesterMap: Map<RequesterEngineInfo, Requester
         }
     }
 
-    private fun <Resp : ResponseData> getEngine(info: RequesterEngineInfo): Validated<Throwable, RequesterEngine<Resp>> {
-        return (requesterMap[info]!! as RequesterEngine<Resp>).valid() //we wouldn't check type; if wrong restart is required anyway
+    private fun <Resp : ResponseData> getEngine(info: RequesterEngineInfo): Either<Throwable, RequesterEngine<Resp>> {
+        return (requesterMap[info]!! as RequesterEngine<Resp>).right() //we wouldn't check type; if wrong restart is required anyway
     }
 
     private fun <Resp : ResponseData> getCore(

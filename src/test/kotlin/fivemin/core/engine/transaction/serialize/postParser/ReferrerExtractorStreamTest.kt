@@ -70,14 +70,14 @@ class ReferrerExtractorStreamTest {
                     }, {
                         fail()
 
-                        IllegalArgumentException().invalid()
+                        IllegalArgumentException().left()
                     })
 
                     ret
                 }, {
                     fail()
 
-                    IllegalArgumentException().invalid()
+                    IllegalArgumentException().left()
                 }).toOption()
 
                 ret
@@ -118,14 +118,14 @@ class ReferrerExtractorStreamTest {
                     }, {
                         fail()
 
-                        IllegalArgumentException().invalid()
+                        IllegalArgumentException().left()
                     })
 
                     ret
                 }, {
                     fail()
 
-                    IllegalArgumentException().invalid()
+                    IllegalArgumentException().left()
                 }).toOption()
 
                 ret
@@ -165,14 +165,14 @@ class ReferrerExtractorStreamTest {
                     }, {
                         fail()
 
-                        IllegalArgumentException().invalid()
+                        IllegalArgumentException().left()
                     })
 
                     ret
                 }, {
                     fail()
 
-                    IllegalArgumentException().invalid()
+                    IllegalArgumentException().left()
                 }).toOption()
 
                 ret

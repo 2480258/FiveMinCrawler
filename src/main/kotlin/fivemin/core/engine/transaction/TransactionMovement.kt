@@ -1,6 +1,6 @@
 package fivemin.core.engine.transaction
 
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.engine.*
 import kotlinx.coroutines.Deferred
 
@@ -8,7 +8,7 @@ interface TransactionMovement<
         in SrcTrans : Transaction<Request>,
         out DstTrans : StrictTransaction<SrcTrans, Document>,
         out Document : Request> {
-    suspend fun move(source : SrcTrans, info : TaskInfo, state : SessionStartedState) : Deferred<Validated<Throwable, DstTrans>>
+    suspend fun move(source : SrcTrans, info : TaskInfo, state : SessionStartedState) : Deferred<Either<Throwable, DstTrans>>
 }
 
 interface PrepareRequestMovement<Document : Request>

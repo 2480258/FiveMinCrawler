@@ -1,6 +1,6 @@
 package fivemin.core.request.srtf
 
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.Deferred
@@ -14,10 +14,10 @@ class SRTFFinalizeSubPolicy(private val sc: SRTFScheduler) :
         dest: FinalizeRequestTransaction<Request>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, FinalizeRequestTransaction<Request>>> {
+    ): Deferred<Either<Throwable, FinalizeRequestTransaction<Request>>> {
         return coroutineScope {
             async {
-                Validated.catch {
+                Either.catch {
                     sc.atFinalizeStage(dest, state.isDetachable == DetachableState.WANT)
 
                     dest

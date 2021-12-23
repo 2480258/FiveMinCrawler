@@ -1,6 +1,6 @@
 package fivemin.core.engine.transaction.export
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.invalid
 import arrow.core.valid
 import fivemin.core.engine.ExportData
@@ -10,11 +10,11 @@ import fivemin.core.engine.FileIOToken
 class MemoryExportData(private val data: ByteArray) : ExportData {
     override var isSaved: Boolean = false
 
-    override fun save(token: FileIOToken): Validated<Throwable, ExportResultToken> {
+    override fun save(token: FileIOToken): Either<Throwable, ExportResultToken> {
 
-        return Validated.catch {
+        return Either.catch {
             if (isSaved) {
-                IllegalArgumentException().invalid()
+                IllegalArgumentException().left()
             }
 
             token.openFileWriteStream {

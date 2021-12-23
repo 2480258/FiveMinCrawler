@@ -6,7 +6,7 @@ import kotlinx.coroutines.runBlocking
 import java.net.URI
 
 interface LinkExtractor {
-    fun extract(resp: ResponseData, sel: Option<LinkSelector>): Validated<Throwable, Iterable<LinkExtractedInfo>>
+    fun extract(resp: ResponseData, sel: Option<LinkSelector>): Either<Throwable, Iterable<LinkExtractedInfo>>
 }
 
 class LinkExtractImpl : LinkExtractor {
@@ -16,17 +16,17 @@ class LinkExtractImpl : LinkExtractor {
     override fun extract(
         resp: ResponseData,
         sel: Option<LinkSelector>
-    ): Validated<Throwable, Iterable<LinkExtractedInfo>> {
+    ): Either<Throwable, Iterable<LinkExtractedInfo>> {
         return resp.responseBody.ifSucc({
             it.body.ifHtml({
                 it.parseAsHtmlDocument {
                     linkExtract(it, resp.responseBody.requestBody.currentUri, sel, ReferrerExtractorStream(resp))
                 }
             }, {
-                listOf<LinkExtractedInfo>().valid()
+                listOf<LinkExtractedInfo>().right()
             })
         }, {
-            listOf<LinkExtractedInfo>().valid()
+            listOf<LinkExtractedInfo>().right()
         })
 
     }

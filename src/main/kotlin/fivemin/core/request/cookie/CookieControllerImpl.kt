@@ -1,6 +1,6 @@
 package fivemin.core.request.cookie
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.invalid
 import arrow.core.valid
 import fivemin.core.engine.PerformedRequesterInfo
@@ -22,12 +22,12 @@ class CookieControllerImpl(val gradiant : List<CookieSyncGradiant>) : CookieReso
         }))
     }
 
-    override fun getReference(info: PerformedRequesterInfo): Validated<Throwable, CookieRepository> {
+    override fun getReference(info: PerformedRequesterInfo): Either<Throwable, CookieRepository> {
         if(cookieDic.containsKey(info)){
-            return cookieDic[info]!!.valid()
+            return cookieDic[info]!!.right()
         }
 
-        return NotRecognizedCookieSyncExcepion(info.toString()).invalid()
+        return NotRecognizedCookieSyncExcepion(info.toString()).left()
     }
 
 }

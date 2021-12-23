@@ -1,11 +1,16 @@
 package fivemin.core.engine.transaction.serialize.postParser
 
 import arrow.core.Option
+import arrow.core.toOption
+import fivemin.core.LoggerController
 import fivemin.core.engine.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 interface InternalContentInfoFactory<in Document : Request> {
-    fun get(trans: FinalizeRequestTransaction<Document>): Option<Iterable<InternalContentInfo>>
+    suspend fun get(trans: FinalizeRequestTransaction<Document>): Option<Iterable<InternalContentInfo>>
 }
 
 data class InternalContentInfo(val attributeName: String, val data: List<String>) {
@@ -29,9 +34,15 @@ class InternalContentInfoFactoryImpl<Document : Request>(
     private val attributeFactory: DocumentAttributeFactory,
     private val textExtractor: TextExtractor
 ) : InternalContentInfoFactory<Document> {
-    override fun get(trans: FinalizeRequestTransaction<Document>): Option<List<InternalContentInfo>> {
-        return runBlocking {
-            trans.result.map { y ->
+    
+    companion object {
+        private val logger = LoggerController.getLogger("SerializeTransactionMovementImpl")
+    }
+    
+    
+    override suspend fun get(trans: FinalizeRequestTransaction<Document>): Option<List<InternalContentInfo>> {
+        return coroutineScope {
+            var ret = trans.result.map { y ->
                 y.responseBody.ifSuccAsync({ z ->
                     z.body.ifHtml({ a ->
                         factories.map { x ->
@@ -39,7 +50,13 @@ class InternalContentInfoFactoryImpl<Document : Request>(
                         }
                     }, { listOf() })
                 }, { listOf() })
-            }.toOption() //TODO Log
+            }
+            
+            ret.swap().map {
+                logger.warn(trans.request.getDebugInfo() + " < can't extract internal attribute from due to: " + it)
+            }
+            
+            ret.orNull().toOption()
         }
     }
 }

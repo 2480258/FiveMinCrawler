@@ -1,6 +1,7 @@
 package fivemin.core.engine
 
 import arrow.core.*
+import fivemin.core.LoggerController
 import java.net.URI
 
 fun <T> DocumentAttributeElement.match(ifInte : (DocumentAttributeInternalElement) -> T, ifExt : (DocumentAttributeExternalElement) -> T) : T{
@@ -15,10 +16,10 @@ fun <T> DocumentAttributeElement.match(ifInte : (DocumentAttributeInternalElemen
 }
 
 interface DocumentAttributeFactory{
-    suspend fun getInternal(info : DocumentAttributeInfo, data : String) : Validated<Throwable, DocumentAttribute>
-    suspend fun getInternal(info : DocumentAttributeInfo, data : Iterable<String>) : Validated<Throwable, DocumentAttribute>
-    suspend fun <Document : Request> getExternal(info: DocumentAttributeInfo, data : FinalizeRequestTransaction<Document>) : Validated<Throwable, DocumentAttribute>
-    suspend fun <Document : Request> getExternal(info: DocumentAttributeInfo, data: Iterable<FinalizeRequestTransaction<Document>>) : Validated<Throwable, DocumentAttribute>
+    suspend fun getInternal(info : DocumentAttributeInfo, data : String) : Either<Throwable, DocumentAttribute>
+    suspend fun getInternal(info : DocumentAttributeInfo, data : Iterable<String>) : Either<Throwable, DocumentAttribute>
+    suspend fun <Document : Request> getExternal(info: DocumentAttributeInfo, data : FinalizeRequestTransaction<Document>) : Either<Throwable, DocumentAttribute>
+    suspend fun <Document : Request> getExternal(info: DocumentAttributeInfo, data: Iterable<FinalizeRequestTransaction<Document>>) : Either<Throwable, DocumentAttribute>
 }
 
 class NoAttributeContentException : Exception(){
@@ -26,28 +27,33 @@ class NoAttributeContentException : Exception(){
 }
 
 class DocumentAttributeFactoryImpl : DocumentAttributeFactory{
+    
+    companion object {
+        private val logger = LoggerController.getLogger("DocumentAttributeFactoryImpl")
+    }
+    
     private suspend fun create(data : String) : DocumentAttributeInternalElement{
         return DocumentAttributeInternalElementImpl(data)
     }
 
-    private suspend fun <Document : Request> create(data : FinalizeRequestTransaction<Document>) : Validated<Throwable, DocumentAttributeExternalElement> {
+    private suspend fun <Document : Request> create(data : FinalizeRequestTransaction<Document>) : Either<Throwable, DocumentAttributeExternalElement> {
         return data.result.map {
             it.responseBody.ifSuccAsync({
-                DocumentAttributeExternalElementImpl(data.request.token, data.request.target, data.tags, data.previous.requestOption, it).valid()
+                DocumentAttributeExternalElementImpl(data.request.token, data.request.target, data.tags, data.previous.requestOption, it).right()
             }, {
-                IllegalArgumentException().invalid()
-            }).toEither()
-        }.toEither().flatten().toValidated()
+                IllegalArgumentException().left()
+            })
+        }.flatten()
     }
 
-    override suspend fun getInternal(info: DocumentAttributeInfo, data: String): Validated<Throwable, DocumentAttribute> {
+    override suspend fun getInternal(info: DocumentAttributeInfo, data: String): Either<Throwable, DocumentAttribute> {
         var item = DocumentAttributeSingleItemImpl(create(data))
-        return DocumentAttributeImpl(item, info).valid()
+        return DocumentAttributeImpl(item, info).right()
     }
 
-    override suspend fun getInternal(info: DocumentAttributeInfo, data: Iterable<String>): Validated<Throwable, DocumentAttribute> {
+    override suspend fun getInternal(info: DocumentAttributeInfo, data: Iterable<String>): Either<Throwable, DocumentAttribute> {
         if(!data.any()){
-            return NoAttributeContentException().invalid()
+            return NoAttributeContentException().left()
         }
 
         if(data.count() == 1){
@@ -58,13 +64,13 @@ class DocumentAttributeFactoryImpl : DocumentAttributeFactory{
             create(it)
         })
 
-        return DocumentAttributeImpl(items, info).valid()
+        return DocumentAttributeImpl(items, info).right()
     }
 
     override suspend fun <Document : Request> getExternal(
         info: DocumentAttributeInfo,
         data: FinalizeRequestTransaction<Document>
-    ): Validated<Throwable, DocumentAttribute> {
+    ): Either<Throwable, DocumentAttribute> {
 
         var item = create(data).map {
             DocumentAttributeSingleItemImpl(it)
@@ -78,25 +84,31 @@ class DocumentAttributeFactoryImpl : DocumentAttributeFactory{
     override suspend fun <Document : Request> getExternal(
         info: DocumentAttributeInfo,
         data: Iterable<FinalizeRequestTransaction<Document>>
-    ): Validated<Throwable, DocumentAttribute> {
+    ): Either<Throwable, DocumentAttribute> {
 
 
         var ret = data.map {
-            create(it).toOption() //TODO
+            var r = create(it)
+            
+            r.swap().map { x ->
+                logger.warn(it.request.getDebugInfo() + " < can't extract attribute from due to: " + x)
+            }
+            
+            r.orNull().toOption()
         }.filterOption()
 
         var item = DocumentAttributeArrayItemImpl(ret)
 
         if(!ret.any()){
-            return NoAttributeContentException().invalid()
+            return NoAttributeContentException().left()
         }
 
         if(ret.count() == 1){
             var single = DocumentAttributeSingleItemImpl(ret.first())
-            return DocumentAttributeImpl(single, info).valid()
+            return DocumentAttributeImpl(single, info).right()
         }
 
-        return DocumentAttributeImpl(item, info).valid()
+        return DocumentAttributeImpl(item, info).right()
     }
 
 }

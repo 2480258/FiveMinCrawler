@@ -1,6 +1,6 @@
 package fivemin.core.engine.transaction.finalizeRequest
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.valid
 import fivemin.core.LoggerController
 import fivemin.core.engine.*
@@ -19,7 +19,7 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter :
         source: PrepareTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, FinalizeRequestTransaction<Document>>> {
+    ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
         val req = DocumentRequestImpl<Document>(source, DocumentRequestInfo(state.isDetachable))
         val ret = requestWaiter.request<Document, ResponseData>(req)
 
@@ -28,7 +28,7 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter :
                 logger.debug(source.request.getDebugInfo() + " < finalizing request transaction")
 
                 val r = ret.await()
-                FinalizeRequestTransactionImpl<Document>(r, source.tags, source).valid()
+                FinalizeRequestTransactionImpl<Document>(r, source.tags, source).right()
             }
         }
     }

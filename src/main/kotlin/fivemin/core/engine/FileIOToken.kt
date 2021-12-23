@@ -1,6 +1,6 @@
 package fivemin.core.engine
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.Valid
 import arrow.core.foldRight
 import kotlinx.serialization.Contextual
@@ -180,11 +180,11 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
         var p = Files.createDirectories(directoryPart.Path.toPath())
     }
 
-    fun unsafeOpenFileStream(): Validated<Throwable, FileOutputStream> {
+    fun unsafeOpenFileStream(): Either<Throwable, FileOutputStream> {
         ensureDirectory()
 
-        return Validated.catch {
-            return Valid(FileOutputStream(result))
+        return Either.catch {
+            return Either.Right(FileOutputStream(result))
         }
     }
 
@@ -199,14 +199,14 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
         }
     }
 
-    fun <T> openFileReadStream(func: (FileInputStream) -> T): Validated<Throwable, T> {
+    fun <T> openFileReadStream(func: (FileInputStream) -> T): Either<Throwable, T> {
         ensureDirectory()
-        return Validated.catch { ->
+        return Either.catch { ->
             var os: FileInputStream? = null
 
             try {
                 os = FileInputStream(result)
-                return Valid(func(os))
+                return Either.Right(func(os))
             } finally {
                 os?.close()
             }

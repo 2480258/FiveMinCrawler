@@ -1,6 +1,6 @@
 package fivemin.core.engine.transaction.prepareRequest
 
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.PageNotFoundException
@@ -19,11 +19,11 @@ class PrepareRequestTransactionMovement<Document : Request> (private val prePars
         source: InitialTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, PrepareTransaction<Document>>> {
+    ): Deferred<Either<Throwable, PrepareTransaction<Document>>> {
         return coroutineScope {
             async {
                 logger.debug(source.request.getDebugInfo() + " < Creating prepare transaction")
-                preParser.generateInfo(source).toEither { PageNotFoundException() }.toValidated()
+                preParser.generateInfo(source).toEither { PageNotFoundException() }
             }
         }
     }

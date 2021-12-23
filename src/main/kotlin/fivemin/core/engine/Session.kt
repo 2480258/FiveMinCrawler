@@ -81,11 +81,11 @@ interface SessionRetryable : SessionState {
     }
     
     
-    suspend fun <T> retryAsync(func: suspend (SessionInitState) -> Deferred<Validated<Throwable, T>>): Deferred<Validated<Throwable, T>> {
+    suspend fun <T> retryAsync(func: suspend (SessionInitState) -> Deferred<Either<Throwable, T>>): Deferred<Either<Throwable, T>> {
         if (Data.RetryCount >= MaxRetryCount) {
             return coroutineScope {
                 async {
-                    TaskCanceledException().invalid()
+                    TaskCanceledException().left()
                 }
             }
         }
@@ -134,8 +134,8 @@ interface SessionStartable : SessionState {
     
     suspend fun <T> start(
         key: UniqueKey,
-        func: suspend (SessionStartedState) -> Deferred<Validated<Throwable, T>>
-    ): Deferred<Validated<Throwable, T>> {
+        func: suspend (SessionStartedState) -> Deferred<Either<Throwable, T>>
+    ): Deferred<Either<Throwable, T>> {
         logger.debug(key.toString() + " < Creating SessionStartable")
         
         return coroutineScope {
@@ -153,7 +153,7 @@ interface SessionStartable : SessionState {
                     info.finish()
                     
                     f
-                }
+                }.flatten()
             }
         }
     }
@@ -168,7 +168,7 @@ interface SessionChildGeneratable : SessionState {
         private val logger = LoggerController.getLogger("SessionChildGeneratable")
     }
     
-    suspend fun <T> getChildSession(func: suspend (SessionInitState) -> Deferred<Validated<Throwable, T>>): Deferred<Validated<Throwable, T>> {
+    suspend fun <T> getChildSession(func: suspend (SessionInitState) -> Deferred<Either<Throwable, T>>): Deferred<Either<Throwable, T>> {
         
         logger.info(info.token.tokenNumber.toString() + " < Creating child session")
         

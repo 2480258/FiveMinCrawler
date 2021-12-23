@@ -1,6 +1,6 @@
 package fivemin.core.engine
 
-import arrow.core.Validated
+import arrow.core.Either
 import kotlinx.coroutines.Deferred
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -10,5 +10,5 @@ interface TransactionPolicy<in InTrans : Transaction<D1>,
                             out D1 : Request,
                             out D2 : Request>
 {
-    suspend fun progressAsync(trans : InTrans, info : TaskInfo, state : SessionStartedState) : Deferred<Validated<Throwable, OutTrans>>
+    suspend fun progressAsync(trans : InTrans, info : TaskInfo, state : SessionStartedState) : Deferred<Either<Throwable, OutTrans>>
 }

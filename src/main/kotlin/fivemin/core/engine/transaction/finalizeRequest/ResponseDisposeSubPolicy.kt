@@ -1,6 +1,6 @@
 package fivemin.core.engine.transaction.finalizeRequest
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.valid
 import fivemin.core.LoggerController
 import fivemin.core.engine.*
@@ -19,11 +19,11 @@ class ResponseDisposeSubPolicy<Document : Request> :
         dest: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, FinalizeRequestTransaction<Document>>> {
+    ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
 
         return coroutineScope {
             async {
-                Validated.catch {
+                Either.catch {
                     dest.result.map {
                         logger.info(source.request.getDebugInfo() + " < releasing requester")
                         it.releaseRequester()

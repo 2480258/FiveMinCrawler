@@ -92,11 +92,11 @@ class MemoryWriterImpl : MemoryWriter{
 }
 
 class ArrayMemoryData constructor(private val data : ByteArray) : MemoryData{
-    override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Validated<Throwable, T> {
-        return Validated.catch{func(ByteArrayInputStream(data))}
+    override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Either<Throwable, T> {
+        return Either.catch{func(ByteArrayInputStream(data))}
     }
 
-    override fun openWriteStreamUnsafe(): Validated<Throwable, OutputStream> {
+    override fun openWriteStreamUnsafe(): Either<Throwable, OutputStream> {
         TODO("Not yet implemented")
     }
 }

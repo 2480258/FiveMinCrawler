@@ -1,6 +1,6 @@
 package fivemin.core.engine.transaction.serialize
 
-import arrow.core.Validated
+import arrow.core.Either
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.AbstractPolicy
 import fivemin.core.engine.transaction.AbstractPolicyOption

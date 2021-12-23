@@ -2,7 +2,6 @@ package fivemin.core.engine
 
 import kotlinx.coroutines.*
 import arrow.core.Either
-import arrow.core.Validated
 import arrow.core.computations.either
 import arrow.core.valid
 import fivemin.core.LoggerController
@@ -26,7 +25,7 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
         private val logger = LoggerController.getLogger("CrawlerTask1")
     }
 
-    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Validated<Throwable, S2>> {
+    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S2>> {
         try {
             logger.info(trans.request.getDebugInfo() + " < Starting task")
 
@@ -50,7 +49,7 @@ constructor(
         private val logger = LoggerController.getLogger("CrawlerTask2")
     }
 
-    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Validated<Throwable, S3>> {
+    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S3>> {
         try {
             logger.info(trans.request.getDebugInfo() + " < Starting task")
 
@@ -62,7 +61,7 @@ constructor(
                             var p2 = policy2.progressAsync(p1, info, state).await().bind()
 
                             p2
-                        }.toValidated()
+                        }
                     }
                 }
             }
@@ -86,7 +85,7 @@ constructor(
     }
 
 
-    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Validated<Throwable, S4>> {
+    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S4>> {
         try {
             logger.info(trans.request.getDebugInfo() + " < Starting task")
 
@@ -99,7 +98,7 @@ constructor(
                             var p3 = policy3.progressAsync(p2, info, state).await().bind()
 
                             p3
-                        }.toValidated()
+                        }
                     }
                 }
             }
@@ -123,7 +122,7 @@ constructor(
         private val logger = LoggerController.getLogger("CrawlerTask4")
     }
 
-    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Validated<Throwable, S5>> {
+    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S5>> {
         try {
             logger.info(trans.request.getDebugInfo() + " < Starting task")
 
@@ -137,7 +136,7 @@ constructor(
                             var p4 = policy4.progressAsync(p3, info, state).await().bind()
 
                             p4
-                        }.toValidated()
+                        }
                     }
                 }
             }

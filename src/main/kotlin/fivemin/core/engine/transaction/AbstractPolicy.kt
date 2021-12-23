@@ -1,6 +1,6 @@
 package fivemin.core.engine.transaction
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.flatMap
 import fivemin.core.engine.*
 import kotlinx.coroutines.*
@@ -28,7 +28,7 @@ abstract class AbstractPolicy<
         source: SrcTrans,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, DstTrans>> {
+    ): Deferred<Either<Throwable, DstTrans>> {
         val movement = getMovement(movementFactory)
         val firstret = movement.move(source, info, state)
 
@@ -36,10 +36,10 @@ abstract class AbstractPolicy<
         return option.subPolicies.fold(firstret) { acc, transactionSubPolicy ->
             coroutineScope {
                 async {
-                    acc.await().toEither().flatMap {
-                        transactionSubPolicy.process(source, it, info, state).await().toEither()
-                    }.toValidated()
-                } //https://typelevel.org/cats/datatypes/validated.html
+                    acc.await().flatMap {
+                        transactionSubPolicy.process(source, it, info, state).await()
+                    }
+                } //https://typelevel.org/cats/datatypes/Either.html
             }
         }
     }

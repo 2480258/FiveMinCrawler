@@ -1,9 +1,6 @@
 package fivemin.core.engine.transaction.finalizeRequest
 
-import arrow.core.Validated
-import arrow.core.flatten
-import arrow.core.toOption
-import arrow.core.valid
+import arrow.core.*
 import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.TransactionSubPolicy
@@ -22,7 +19,7 @@ class RedirectSubPolicy<Document : Request> :
         dest: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<Validated<Throwable, FinalizeRequestTransaction<Document>>> {
+    ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
         return coroutineScope {
             async {
                 dest.result.map { x ->
@@ -44,13 +41,13 @@ class RedirectSubPolicy<Document : Request> :
                                         .start(source, info, it).await()
                                 }
                             }
-                        }.await().toEither()
+                        }.await()
                     }, {
                         withContext(Dispatchers.Default) {
-                            dest.valid()
-                        }.toEither()
+                            dest.right()
+                        }
                     })
-                }.toEither().flatten().toValidated()
+                }.flatten()
             }
         }
     }

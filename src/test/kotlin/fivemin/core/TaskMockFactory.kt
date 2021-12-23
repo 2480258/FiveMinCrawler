@@ -1,6 +1,6 @@
 package fivemin.core
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.none
 import arrow.core.valid
 import fivemin.core.DocumentMockFactory.Companion.upgrade
@@ -50,7 +50,7 @@ class TaskMockFactory {
             } coAnswers {
                 coroutineScope {
                     async {
-                        firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").valid()
+                        firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").right()
                     }
                 }
             }
@@ -61,7 +61,7 @@ class TaskMockFactory {
             } coAnswers {
                 coroutineScope {
                     async {
-                        firstArg<PrepareTransaction<Request>>().upgrade().valid()
+                        firstArg<PrepareTransaction<Request>>().upgrade().right()
                     }
                 }
             }
@@ -72,7 +72,7 @@ class TaskMockFactory {
             } coAnswers {
                 coroutineScope {
                     async {
-                        firstArg<FinalizeRequestTransaction<Request>>().upgrade().valid()
+                        firstArg<FinalizeRequestTransaction<Request>>().upgrade().right()
                     }
                 }
             }
@@ -83,7 +83,7 @@ class TaskMockFactory {
             } coAnswers {
                 coroutineScope {
                     async {
-                        firstArg<SerializeTransaction<Request>>().upgrade().valid()
+                        firstArg<SerializeTransaction<Request>>().upgrade().right()
                     }
                 }
             }

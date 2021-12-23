@@ -9,11 +9,12 @@ import fivemin.core.engine.transaction.PrepareDocumentRequestTransactionImpl
 import fivemin.core.engine.transaction.TagBuilder
 
 interface PreParserPage {
+    val name: PageName
     fun <Document : Request> makeTransaction(init: InitialTransaction<Document>): Option<PrepareTransaction<Document>>
 }
 
 class PreParserPageImpl(
-    private val name: PageName,
+    override val name: PageName,
     private val condition: PageCondition<InitialTransaction<Request>, Request>,
     private val containerOption: ContainerOption,
     private val requestOption: RequestOption,

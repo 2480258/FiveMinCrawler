@@ -1,10 +1,10 @@
 package fivemin.core.engine
 
-import arrow.core.Validated
+import arrow.core.Either
 
 interface FinalizeRequestTransaction<out Document : Request> :
     ReverableTransaction<PrepareTransaction<Request>, Document>
 {
     override val previous: PrepareTransaction<Document>
-    val result : Validated<Throwable, ResponseData>
+    val result : Either<Throwable, ResponseData>
 }

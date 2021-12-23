@@ -1,6 +1,6 @@
 package fivemin.core.initialize
 
-import arrow.core.Validated
+import arrow.core.Either
 import arrow.core.none
 import fivemin.core.engine.*
 import fivemin.core.engine.crawlingTask.*
@@ -64,7 +64,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
         createFactory(virtualOption.dequeue, virtualOption.subPolicyCollection)
 
 
-    public fun start(uri: URI): Validated<Throwable, ExportTransaction<Request>> {
+    public fun start(uri: URI): Either<Throwable, ExportTransaction<Request>> {
         var task = taskFactory.getFactory<Request>()
             .get4<
                     InitialTransaction<Request>,
