@@ -63,7 +63,7 @@ class PostParserContentPageImpl<Document : Request>(
                         logger.warn(req.request.getDebugInfo() + " < " + x.attributeName + " < has no content; ignoring")
                         none()
                     } else if (x.data.count() == 1) {
-                        attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data[0]).orNull().toOption() //TODO Log
+                        attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data[0]).orNull().toOption()
                     } else {
                         attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data).orNull().toOption()
                     }
@@ -107,7 +107,7 @@ class PostParserContentPageImpl<Document : Request>(
         return coroutineScope {
             async {
                 var finished = ret.toList().awaitAll().map {
-                    var downloaded = it //TODO Log
+                    var downloaded = it
     
                     downloaded.swap().map {
                         logger.warn(it.localizedMessage)

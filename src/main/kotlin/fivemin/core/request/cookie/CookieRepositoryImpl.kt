@@ -1,6 +1,7 @@
 package fivemin.core.request.cookie
 
 import arrow.core.Either
+import arrow.core.right
 import arrow.core.valid
 import java.net.HttpCookie
 import java.net.URI

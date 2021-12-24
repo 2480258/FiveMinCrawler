@@ -34,7 +34,7 @@ class PostParserContentPageImplTest {
     fun createInternal(it: Iterable<InternalContentInfo>): InternalContentInfoFactory<Request> {
         val fac: InternalContentInfoFactory<Request> = mockk()
 
-        every {
+        coEvery {
             fac.get(any())
         } returns (it.toOption())
 

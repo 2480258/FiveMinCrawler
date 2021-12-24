@@ -81,7 +81,7 @@ class ReferrerExtractorStreamTest {
                 }).toOption()
 
                 ret
-            }.toOption().flatten()
+            }.orNull().toOption().flatten()
 
             c.fold({ fail() }, {
                 assertEquals(it, "no-referrer-when-downgrade")
@@ -129,7 +129,7 @@ class ReferrerExtractorStreamTest {
                 }).toOption()
 
                 ret
-            }.toOption().flatten()
+            }.orNull().toOption().flatten()
 
             c.fold({ fail() }, {
                 assertEquals(it, "origin")
@@ -176,7 +176,7 @@ class ReferrerExtractorStreamTest {
                 }).toOption()
 
                 ret
-            }.toOption().flatten()
+            }.orNull().toOption().flatten()
 
             c.fold({ fail() }, {
                 assertEquals(it, "no-referrer")

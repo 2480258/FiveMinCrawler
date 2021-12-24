@@ -2,6 +2,7 @@ package fivemin.core
 
 import arrow.core.Either
 import arrow.core.none
+import arrow.core.right
 import arrow.core.valid
 import fivemin.core.DocumentMockFactory.Companion.upgrade
 import fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument

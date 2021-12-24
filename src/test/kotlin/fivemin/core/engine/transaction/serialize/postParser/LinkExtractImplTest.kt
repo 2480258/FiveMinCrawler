@@ -42,7 +42,7 @@ class LinkExtractImplTest {
 
         var ret = link.extract(resp, LinkSelector(ParserNavigator("a:nth-child(1)"), none()).toOption())
 
-        if(ret.isInvalid) {
+        if(ret.isEmpty()) {
             throw IllegalArgumentException()
         }
 
@@ -60,7 +60,7 @@ class LinkExtractImplTest {
 
         var ret = link.extract(resp, LinkSelector(ParserNavigator("a:nth-child(1)"), none()).toOption())
 
-        if(ret.isInvalid) {
+        if(ret.isEmpty()) {
             throw IllegalArgumentException()
         }
 
@@ -78,7 +78,7 @@ class LinkExtractImplTest {
 
         var ret = link.extract(resp, LinkSelector(ParserNavigator("a:nth-child(1)"), none()).toOption())
 
-        if(ret.isInvalid) {
+        if(ret.isEmpty()) {
             throw IllegalArgumentException()
         }
 
@@ -96,7 +96,7 @@ class LinkExtractImplTest {
 
         var ret = link.extract(resp, LinkSelector(ParserNavigator("a:nth-child(1)"), none()).toOption())
 
-        if(ret.isInvalid) {
+        if(ret.isEmpty()) {
             throw IllegalArgumentException()
         }
 
@@ -115,7 +115,7 @@ class LinkExtractImplTest {
 
         var ret = link.extract(resp, LinkSelector(ParserNavigator("*"), none()).toOption())
 
-        if(ret.isInvalid) {
+        if(ret.isEmpty()) {
             throw IllegalArgumentException()
         }
 
@@ -134,7 +134,7 @@ class LinkExtractImplTest {
 
         var ret = link.extract(resp, LinkSelector(ParserNavigator("*"), Regex("http").toOption()).toOption())
 
-        if(ret.isInvalid) {
+        if(ret.isEmpty()) {
             throw IllegalArgumentException()
         }
 
@@ -152,7 +152,7 @@ class LinkExtractImplTest {
 
         var ret = link.extract(resp, LinkSelector(ParserNavigator("*"), Regex("http").toOption()).toOption())
 
-        if(ret.isInvalid) {
+        if(ret.isEmpty()) {
             throw IllegalArgumentException()
         }
 
@@ -170,7 +170,7 @@ class LinkExtractImplTest {
 
         var ret = link.extract(resp, LinkSelector(ParserNavigator("*"), Regex("test2").toOption()).toOption())
 
-        if(ret.isInvalid) {
+        if(ret.isEmpty()) {
             throw IllegalArgumentException()
         }
 
@@ -187,7 +187,7 @@ class LinkExtractImplTest {
 
         var ret = link.extract(resp, LinkSelector(ParserNavigator("*"), Regex("http").toOption()).toOption())
 
-        if(ret.isInvalid) {
+        if(ret.isEmpty()) {
             throw IllegalArgumentException()
         }
 

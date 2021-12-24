@@ -56,8 +56,7 @@ class ReferrerExtractorStream(private val resp: ResponseData) {
             }, {
                 none()
             }).map {
-                //TODO: Log
-                it.toOption()
+                it.orNull().toOption()
             }.flatten().flatten().map {
                 it.getAttribute("content")
             }.flatten()

@@ -4,6 +4,7 @@ import arrow.core.Option
 import arrow.core.flatten
 import arrow.core.none
 import arrow.core.toOption
+import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import fivemin.core.export.ConfigControllerImpl
 import fivemin.core.initialize.json.JsonParserOptionFactory
@@ -27,7 +28,10 @@ class StartTaskOption(
     val resumeAt: Option<String> = none(),
     val rootPath : Option<String> = none()
 ) {
-
+    
+    companion object {
+        private val logger = LoggerController.getLogger("PostParserContentPageImpl")
+    }
     private val resume: ResumeDataFactory = ResumeDataFactory()
 
     fun run() {
@@ -64,7 +68,13 @@ class StartTaskOption(
 
     private fun getResumeOption(): Option<ResumeOption> {
         return resumeAt.map {
-            resume.get(it).orNull().toOption() // TODO
+            var ret = resume.get(it)
+            
+            ret.swap().map {
+                logger.warn("can't load resume file: " + it.localizedMessage)
+            }
+            
+            ret.orNull().toOption()
         }.flatten()
     }
 }

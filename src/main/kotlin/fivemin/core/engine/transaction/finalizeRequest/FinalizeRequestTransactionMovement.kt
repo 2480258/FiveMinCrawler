@@ -1,6 +1,7 @@
 package fivemin.core.engine.transaction.finalizeRequest
 
 import arrow.core.Either
+import arrow.core.right
 import arrow.core.valid
 import fivemin.core.LoggerController
 import fivemin.core.engine.*

@@ -1,9 +1,6 @@
 package fivemin.core.engine.transaction.prepareRequest
 
-import arrow.core.Option
-import arrow.core.Either
-import arrow.core.invalid
-import arrow.core.valid
+import arrow.core.*
 import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.TransactionSubPolicy
@@ -43,7 +40,7 @@ class DetachableSubPolicy<Document : Request> :
                         it.detach {
                             logger.info(source.request.getDebugInfo() + " < trying to detach")
 
-                            task.start(source, info, it).await().swap().toOption()
+                            task.start(source, info, it).await().swap().orNull().toOption()
                         }
                     }
 

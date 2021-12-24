@@ -2,6 +2,7 @@ package fivemin.core.request
 
 import arrow.core.Either
 import arrow.core.invalid
+import arrow.core.left
 import arrow.core.valid
 import fivemin.core.engine.Request
 import fivemin.core.engine.ResponseData

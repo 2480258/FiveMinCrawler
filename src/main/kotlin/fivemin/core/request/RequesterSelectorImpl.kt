@@ -1,6 +1,7 @@
 package fivemin.core.request
 
 import arrow.core.Either
+import arrow.core.right
 import arrow.core.valid
 import fivemin.core.engine.*
 import fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
