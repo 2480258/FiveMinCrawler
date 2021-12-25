@@ -7,13 +7,16 @@ import fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import mu.KotlinLogging
 
 class RetrySubPolicy<Document : Request> :
     TransactionSubPolicy<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document> {
     
+    private val RETRY_DELAY = 3000L
+    
     companion object {
-        private val logger = LoggerController.getLogger("FinalizeRequestTransactionMovement")
+        private val logger = LoggerController.getLogger("RetrySubPolicy")
     }
     
     override suspend fun process(
@@ -46,6 +49,8 @@ class RetrySubPolicy<Document : Request> :
         logger.debug(source.request.getDebugInfo() + " < trying to retry")
         
         return state.retryAsync {
+            delay(RETRY_DELAY)
+            
             info.createTask<Document>()
                 .get1<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>>(source.request.documentType)
                 .start(source, info, it)

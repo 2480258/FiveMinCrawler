@@ -27,13 +27,19 @@ class ExportStateImpl(private val directIO: DirectIO, private val continueExport
 
     private fun createInternal(handle : ExportHandle) : PreprocessedExport{
         synchronized(lock){
-            if(set.contains(handle.request)){
+            if(checkFilenameDuplicate(handle.request)){
                 return createInternal(handle.withNewExportInfo(handle.request.addSuffix(DUP_STRING)))
             }
 
             set.add(handle.request)
 
             return PreprocessedExport(getInfo(handle), handle.data)
+        }
+    }
+    
+    private fun checkFilenameDuplicate(info : ExportInfo) : Boolean {
+        return set.any {
+            it.token.fileName == info.token.fileName
         }
     }
 

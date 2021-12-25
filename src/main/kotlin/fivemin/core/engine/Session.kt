@@ -90,6 +90,8 @@ interface SessionRetryable : SessionState {
         
         logger.info(this.info.token.tokenNumber.toString() + " < retrying")
         var st = this as? SessionDetachable
+        
+        
         var state = st.rightIfNotNull { }
             .fold({ SessionDetachableInitStateImpl(info, Data) }, { SessionInitStateImpl(info, Data) })
         
@@ -150,8 +152,6 @@ interface SessionStartable : SessionState {
                         }
                         
                         var f = func(state).await()
-                        
-                        
                         f
                     }.flatten()
                 }

@@ -89,6 +89,19 @@ class DirectoryIOToken constructor(private val additionalPath: String) {
 }
 @Serializable
 data class FileName constructor(private val filename: String) {
+    override fun equals(other: Any?): Boolean {
+        if(other != null && other is FileName) {
+            return name.name == other.name.name
+        }
+        
+        return false
+    }
+    
+    override fun hashCode(): Int {
+        return filename.hashCode()
+    }
+    
+    
     val name: File
     get() = File(checkFileName(filename))
 
