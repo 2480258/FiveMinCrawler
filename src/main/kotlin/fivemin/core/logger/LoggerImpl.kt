@@ -6,6 +6,10 @@ import mu.KotlinLogging
 class LoggerImpl(private val name : String) : Logger {
     private val logger = KotlinLogging.logger(name)
 
+    init {
+    }
+    
+    
     override fun info(str : String) {
         logger.info {
             str

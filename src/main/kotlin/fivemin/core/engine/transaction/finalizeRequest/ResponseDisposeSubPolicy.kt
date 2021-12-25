@@ -25,7 +25,7 @@ class ResponseDisposeSubPolicy<Document : Request> :
             async {
                 Either.catch {
                     dest.result.map {
-                        logger.info(source.request.getDebugInfo() + " < releasing requester")
+                        logger.debug(source.request.getDebugInfo() + " < releasing requester")
                         it.releaseRequester()
                     }
 

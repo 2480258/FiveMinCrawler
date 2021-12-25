@@ -20,7 +20,7 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
         info: TaskInfo,
         state: SessionStartedState
     ): Deferred<Either<Throwable, SerializeTransaction<Document>>> {
-        logger.info(source.request.getDebugInfo() + " < serializing transaction")
+        logger.debug(source.request.getDebugInfo() + " < serializing transaction")
 
         return coroutineScope {
             async {

@@ -25,7 +25,7 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
     ): Deferred<Either<Throwable, ExportTransaction<Document>>> {
         return coroutineScope {
             async {
-                logger.info(source.request.getDebugInfo() + " < exporting transaction")
+                logger.debug(source.request.getDebugInfo() + " < exporting transaction")
                 var ret = parser.parse(source)
                 
                 Either.catch {
@@ -42,7 +42,7 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
             var ret = it.save()
             
             ret.mapLeft { x ->
-                logger.info(it.info.token.fileName.name.name + " < not exported due to: " + x.message)
+                logger.warn(it.info.token.fileName.name.name + " < not exported due to: " + x.message)
             }
             
             ret.map { x ->

@@ -34,7 +34,7 @@ class StartTaskOption(
     }
     private val resume: ResumeDataFactory = ResumeDataFactory()
 
-    fun run() {
+    suspend fun run() {
         //TODO Log
 
         var ret = build()

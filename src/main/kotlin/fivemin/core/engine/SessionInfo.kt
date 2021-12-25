@@ -17,18 +17,22 @@ constructor(private val finish : FinishObserver,
         finish.onStart()
     }
 
-    fun finish() {
-        if(progress != ProgressState.STARTED) {
-            throw IllegalStateException()
-        }
-
-        progress = ProgressState.FINISHED
-
-        if(detachable == DetachableState.WANT){
-            finish.onExportableFinish(token)
-        }
-        else {
-            finish.onFinish(token)
+    suspend fun <T> doRegisteredTask(func : suspend () -> T) : T{
+        try {
+            return func()
+        } finally {
+            if(progress != ProgressState.STARTED) {
+                throw IllegalStateException()
+            }
+    
+            progress = ProgressState.FINISHED
+    
+            if(detachable == DetachableState.WANT){
+                finish.onExportableFinish(token)
+            }
+            else {
+                finish.onFinish(token)
+            }
         }
     }
     

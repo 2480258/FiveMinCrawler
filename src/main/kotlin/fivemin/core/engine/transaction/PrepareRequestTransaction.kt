@@ -2,7 +2,7 @@ package fivemin.core.engine.transaction
 
 import fivemin.core.engine.*
 
-data class PrepareDocumentRequestTransactionImpl<Document : Request>(
+data class PrepareDocumentRequestTransactionImpl<out Document : Request>(
     override val previous: Transaction<Document>,
     override val tags: TagRepository,
     override val requestOption: RequestOption,

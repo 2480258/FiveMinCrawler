@@ -117,7 +117,9 @@ class LinkExtractImpl : LinkExtractor {
 
             var temp = URI(uri)
 
-            return Some(URI(host.scheme, host.host, temp.path, temp.fragment))
+            
+            
+            return Some(URI(host.scheme, null, host.host, host.port, temp.path, temp.query, temp.fragment))
         })
     }
 

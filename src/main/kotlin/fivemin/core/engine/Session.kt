@@ -1,8 +1,6 @@
 package fivemin.core.engine
 
-import fivemin.core.Logger
 import arrow.core.*
-import arrow.core.computations.either
 import fivemin.core.LoggerController
 import kotlinx.coroutines.*
 
@@ -90,7 +88,7 @@ interface SessionRetryable : SessionState {
             }
         }
         
-        logger.info(this.info.token.tokenNumber.toString() + " < Retrying")
+        logger.info(this.info.token.tokenNumber.toString() + " < retrying")
         var st = this as? SessionDetachable
         var state = st.rightIfNotNull { }
             .fold({ SessionDetachableInitStateImpl(info, Data) }, { SessionInitStateImpl(info, Data) })
@@ -111,14 +109,14 @@ interface SessionDetachable : SessionState {
         var detached = Data.SessionRepo.create(info.token.toOption())
         Data.KeyRepo.transferOwnership(info.token, detached.token)
         
-        coroutineScope {
-            launch {
-                logger.info(info.token.tokenNumber.toString() + " < Detached")
-                func(SessionInitStateImpl(detached, Data))
-            }
-        }
-        
         return coroutineScope {
+            Thread {
+                runBlocking {
+                    logger.debug(info.token.tokenNumber.toString() + " < detached")
+                    func(SessionInitStateImpl(detached, Data))
+                }
+            }.start()
+            
             async {
                 TaskCanceledException().toOption()
             }
@@ -136,24 +134,27 @@ interface SessionStartable : SessionState {
         key: UniqueKey,
         func: suspend (SessionStartedState) -> Deferred<Either<Throwable, T>>
     ): Deferred<Either<Throwable, T>> {
-        logger.debug(key.toString() + " < Creating SessionStartable")
         
         return coroutineScope {
             async {
-                Either.catch {
-                    Data.KeyRepo.addAlias(info.token, key)
-                }.map {
-                    var state = if (this as? SessionDetachable != null) {
-                        SessionDetachableStartedStateImpl(info, Data)
-                    } else {
-                        SessionStartedStateImpl(info, Data)
-                    }
-                    
-                    var f = func(state).await()
-                    info.finish()
-                    
-                    f
-                }.flatten()
+                info.doRegisteredTask {
+                    Either.catch {
+                        Data.KeyRepo.addAlias(info.token, key)
+                    }.map {
+                        logger.debug(key.toString() + " < creating SessionStartable")
+    
+                        var state = if (this@SessionStartable as? SessionDetachable != null) {
+                            SessionDetachableStartedStateImpl(info, Data)
+                        } else {
+                            SessionStartedStateImpl(info, Data)
+                        }
+                        
+                        var f = func(state).await()
+                        
+                        
+                        f
+                    }.flatten()
+                }
             }
         }
     }
@@ -170,9 +171,9 @@ interface SessionChildGeneratable : SessionState {
     
     suspend fun <T> getChildSession(func: suspend (SessionInitState) -> Deferred<Either<Throwable, T>>): Deferred<Either<Throwable, T>> {
         
-        logger.info(info.token.tokenNumber.toString() + " < Creating child session")
-        
         var detached = Data.SessionRepo.create(info.parent)
+        logger.debug(info.token.tokenNumber.toString() + " < creating child session")
+    
         var ret = func(SessionDetachableInitStateImpl(detached, Data))
         return ret
     }

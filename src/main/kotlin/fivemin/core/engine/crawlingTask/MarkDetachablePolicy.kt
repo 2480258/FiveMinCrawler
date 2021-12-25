@@ -27,10 +27,10 @@ class MarkDetachablePolicy<Document : Request> :
         if (dest.ifDocument({
                 it.containerOption.workingSetMode == WorkingSetMode.Enabled
             }, { false })) {
-            logger.info(source.request.getDebugInfo() + " < Marked as detachable")
+            logger.debug(source.request.getDebugInfo() + " < Marked as detachable")
             state.setDetachable()
         } else {
-            logger.info(source.request.getDebugInfo() + " < Marked as non-detachable")
+            logger.debug(source.request.getDebugInfo() + " < Marked as non-detachable")
             state.setNonDetachable()
         }
 

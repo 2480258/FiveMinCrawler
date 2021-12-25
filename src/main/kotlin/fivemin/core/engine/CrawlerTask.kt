@@ -27,13 +27,13 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
 
     suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S2>> {
         try {
-            logger.info(trans.request.getDebugInfo() + " < Starting task")
-
             return session.start(info.uniqueKeyProvider.documentKey.create(trans.request)) { it ->
+                logger.debug(trans.request.getDebugInfo() + " < starting task")
+    
                 coroutineScope { policy.progressAsync(trans, info, it) }
             }
         } catch (e: Exception) {
-            logger.info(trans.request.getDebugInfo() + " < Caught unhandled exception")
+            logger.warn(trans.request.getDebugInfo() + " < caught unhandled exception: " + e)
 
             throw e
         }
@@ -51,11 +51,11 @@ constructor(
 
     suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S3>> {
         try {
-            logger.info(trans.request.getDebugInfo() + " < Starting task")
 
             return session.start(info.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
                 coroutineScope {
                     async {
+                        logger.debug(trans.request.getDebugInfo() + " < starting task")
                         either<Throwable, S3> {
                             var p1 = policy1.progressAsync(trans, info, state).await().bind()
                             var p2 = policy2.progressAsync(p1, info, state).await().bind()
@@ -66,7 +66,7 @@ constructor(
                 }
             }
         } catch (e: Exception) {
-            logger.info(trans.request.getDebugInfo() + " < Caught unhandled exception")
+            logger.warn(trans.request.getDebugInfo() + " < caught unhandled exception: " + e)
 
             throw e
         }
@@ -87,11 +87,11 @@ constructor(
 
     suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S4>> {
         try {
-            logger.info(trans.request.getDebugInfo() + " < Starting task")
-
             return session.start(info.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
                 coroutineScope {
                     async {
+                        logger.debug(trans.request.getDebugInfo() + " < starting task")
+    
                         either<Throwable, S4> {
                             var p1 = policy1.progressAsync(trans, info, state).await().bind()
                             var p2 = policy2.progressAsync(p1, info, state).await().bind()
@@ -103,8 +103,8 @@ constructor(
                 }
             }
         } catch (e: Exception) {
-            logger.info(trans.request.getDebugInfo() + " < Caught unhandled exception")
-
+            logger.warn(trans.request.getDebugInfo() + " < caught unhandled exception: " + e)
+    
             throw e
         }
     }
@@ -124,11 +124,11 @@ constructor(
 
     suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S5>> {
         try {
-            logger.info(trans.request.getDebugInfo() + " < Starting task")
-
             return session.start(info.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
                 coroutineScope {
                     async {
+                        logger.debug(trans.request.getDebugInfo() + " < starting task")
+    
                         either<Throwable, S5> {
                             var p1 = policy1.progressAsync(trans, info, state).await().bind()
                             var p2 = policy2.progressAsync(p1, info, state).await().bind()
@@ -141,7 +141,7 @@ constructor(
                 }
             }
         } catch (e: Exception) {
-            logger.info(trans.request.getDebugInfo() + " < Caught unhandled exception")
+            logger.warn(trans.request.getDebugInfo() + " < caught unhandled exception: " + e)
 
             throw e
         }
