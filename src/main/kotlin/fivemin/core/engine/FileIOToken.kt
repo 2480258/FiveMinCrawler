@@ -185,7 +185,7 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
     }
 
     private fun withDifferentName(nameWithoutExt: String): FileIOToken {
-        var replace = nameWithoutExt + fileName.name.extension
+        var replace = nameWithoutExt + "." + fileName.name.extension
         return FileIOToken(directoryPart, FileName(replace))
     }
 

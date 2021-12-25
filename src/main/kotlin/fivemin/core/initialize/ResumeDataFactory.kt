@@ -19,13 +19,8 @@ class ResumeDataFactory {
     }
     
     @OptIn(ExperimentalSerializationApi::class)
-    fun get(path : String) : Either<Throwable, ResumeOption> {
+    fun get(by : ByteArray) : Either<Throwable, ResumeOption> {
         return Either.catch {
-
-            val f = File(path)
-
-            val by = f.readBytes()
-
             val ret = ProtoBuf.decodeFromByteArray<ResumeOption>(by)
 
             ret
@@ -33,11 +28,9 @@ class ResumeDataFactory {
     }
 
     @OptIn(ExperimentalSerializationApi::class)
-    fun save(token : FileIOToken, option : ResumeOption){
-        token.openFileWriteStream {
-            logger.info("Exporting resume file")
-            it.write(ProtoBuf.encodeToByteArray(option))
-        }
+    fun save(option : ResumeOption) : ByteArray{
+        logger.info("Serializing resume file")
+        return ProtoBuf.encodeToByteArray(option)
     }
 }
 
