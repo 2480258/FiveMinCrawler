@@ -45,8 +45,12 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
                 y.match({ z -> Some(z.body) }, { none() })
             }.filterOption())
         }.map {
-            Tag(EnumSet.of(TagFlag.CONVERT_TO_ATTRIBUTE), it.first, it.second.first())
-        }
+            if(it.second.any()) {
+                Tag(EnumSet.of(TagFlag.CONVERT_TO_ATTRIBUTE), it.first, it.second.first()).toOption()
+            } else {
+                none()
+            }
+        }.filterOption()
 
         return TagRepositoryImpl(ret.toOption(), connect.toOption())
     }

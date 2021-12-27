@@ -141,7 +141,12 @@ interface SessionStartable : SessionState {
             async {
                 info.doRegisteredTask {
                     Either.catch {
-                        Data.KeyRepo.addAlias(info.token, key)
+                        try
+                        {
+                            Data.KeyRepo.addAlias(info.token, key).right()
+                        }catch (e : Exception) {
+                            e.left()
+                        }
                     }.map {
                         logger.debug(key.toString() + " < creating SessionStartable")
     

@@ -2,6 +2,7 @@ package fivemin.core.engine.transaction
 
 import arrow.core.Either
 import arrow.core.flatMap
+import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.selects.select
@@ -21,7 +22,10 @@ abstract class AbstractPolicy<
     private val option: AbstractPolicyOption<SrcTrans, DstTrans, Document>,
     private val movementFactory: MovementFactory<Document>
 ) : TransactionPolicy<SrcTrans, DstTrans, Document, Document>{
-
+    companion object {
+        private val logger = LoggerController.getLogger("AbstractPolicy")
+    }
+    
     protected abstract fun getMovement(factory: MovementFactory<Document>): TransactionMovement<SrcTrans, DstTrans, Document>
 
     override suspend fun progressAsync(
@@ -36,7 +40,14 @@ abstract class AbstractPolicy<
         return option.subPolicies.fold(firstret) { acc, transactionSubPolicy ->
             coroutineScope {
                 async {
-                    acc.await().flatMap {
+                    var aq = acc.await()
+                    
+                    aq.swap().map {
+                        logger.warn(source.request.getDebugInfo() + " < get movement error: " + it)
+                        it.printStackTrace()
+                    }
+                    
+                    aq.flatMap {
                         transactionSubPolicy.process(source, it, info, state).await()
                     }
                 } //https://typelevel.org/cats/datatypes/Either.html

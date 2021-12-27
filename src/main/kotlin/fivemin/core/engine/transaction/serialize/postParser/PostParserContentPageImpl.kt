@@ -26,14 +26,14 @@ class PostParserContentPageImpl<Document : Request>(
         req: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
-    ): Deferred<List<DocumentAttribute>> {
+    ): Deferred<Option<List<DocumentAttribute>>> {
         return coroutineScope {
             async {
                 req.previous.ifDocumentAsync({
                     if (it.parseOption.name == pageCondition) {
-                        var links = processLinks(req, info, state)
-                        var attrs = processExtAttributes(req, info, state)
                         var intes = processIntAttribute(req)
+                        var attrs = processExtAttributes(req, info, state)
+                        var links = processLinks(req, info, state)
 
                         links.toList().awaitAll() //wait until all child link downloaded
 
@@ -45,12 +45,12 @@ class PostParserContentPageImpl<Document : Request>(
                             finished.plus(x)
                         }
 
-                        ret
+                        ret.toOption()
                     } else {
-                        listOf()
+                        none()
                     }
                 }, {
-                    listOf()
+                    none()
                 })
             }
         }

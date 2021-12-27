@@ -62,7 +62,7 @@ class SpecialAttributeTagFactory {
         }
 
         private fun getLastSeg(t : URI) : String{
-            val ext = Paths.get(t).name
+            val ext = Paths.get(t.path).toFile().name
 
             if(ext.isBlank()){
                 return FallBackName
@@ -86,7 +86,7 @@ class SpecialAttributeTagFactory {
         }
 
         private fun getLastExtension(t : URI) : String{
-            val ext = Paths.get(t).extension
+            val ext = Paths.get(t.path).toFile().extension
 
             return ext
         }

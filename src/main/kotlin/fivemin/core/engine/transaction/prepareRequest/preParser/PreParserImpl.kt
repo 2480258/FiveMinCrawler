@@ -55,7 +55,7 @@ class PreParserImpl(
         }
         
         if(!pages.any()) {
-            logger.warn(init.request.getDebugInfo() + " < has no matching pages : " + pages.first().first.name.name)
+            logger.warn(init.request.getDebugInfo() + " < has no matching pages")
         }
     }
     

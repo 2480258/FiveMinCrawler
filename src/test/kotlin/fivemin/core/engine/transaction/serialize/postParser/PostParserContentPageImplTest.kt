@@ -67,9 +67,10 @@ class PostParserContentPageImplTest {
                 DocumentAttributeFactoryImpl()
             )
 
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await()
+            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await().fold({fail()}) {
+                assertEquals(it.count(), 1)
+            }
 
-            assertEquals(ret.count(), 1)
         }
     }
 
@@ -88,9 +89,9 @@ class PostParserContentPageImplTest {
                 DocumentAttributeFactoryImpl()
             )
 
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await()
-
-            assertEquals(ret.count(), 1)
+            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await().fold({fail()}) {
+                assertEquals(it.count(), 1)
+            }
         }
     }
 
@@ -109,9 +110,9 @@ class PostParserContentPageImplTest {
                 DocumentAttributeFactoryImpl()
             )
 
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await()
-
-            assertEquals(ret.count(), 0)
+            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await().fold({fail()}) {
+                assertEquals(it.count(), 0)
+            }
         }
     }
 
@@ -131,9 +132,9 @@ class PostParserContentPageImplTest {
                 DocumentAttributeFactoryImpl()
             )
 
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), mockk()).await()
-
-            assertEquals(ret.count(), 0)
+            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), mockk()).await().fold({fail()}) {
+                assertEquals(it.count(), 0)
+            }
         }
     }
 
@@ -152,9 +153,9 @@ class PostParserContentPageImplTest {
                 DocumentAttributeFactoryImpl()
             )
 
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), mockk()).await()
-
-            assertEquals(ret.count(), 0)
+            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), mockk()).await().fold({fail()}) {
+                assertEquals(it.count(), 0)
+            }
         }
     }
 }

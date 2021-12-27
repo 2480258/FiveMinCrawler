@@ -34,6 +34,7 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
             }
         } catch (e: Exception) {
             logger.warn(trans.request.getDebugInfo() + " < caught unhandled exception: " + e)
+            e.printStackTrace()
 
             throw e
         }
@@ -67,6 +68,7 @@ constructor(
             }
         } catch (e: Exception) {
             logger.warn(trans.request.getDebugInfo() + " < caught unhandled exception: " + e)
+            e.printStackTrace()
 
             throw e
         }
@@ -104,6 +106,7 @@ constructor(
             }
         } catch (e: Exception) {
             logger.warn(trans.request.getDebugInfo() + " < caught unhandled exception: " + e)
+            e.printStackTrace()
     
             throw e
         }
@@ -142,6 +145,7 @@ constructor(
             }
         } catch (e: Exception) {
             logger.warn(trans.request.getDebugInfo() + " < caught unhandled exception: " + e)
+            e.printStackTrace()
 
             throw e
         }

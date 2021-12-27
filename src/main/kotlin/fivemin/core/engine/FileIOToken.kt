@@ -2,7 +2,6 @@ package fivemin.core.engine
 
 import arrow.core.Either
 import arrow.core.Valid
-import arrow.core.foldRight
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -190,7 +189,9 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
     }
 
     private fun ensureDirectory() {
-        var p = Files.createDirectories(directoryPart.Path.toPath())
+        if(!Files.exists(directoryPart.Path.toPath())) {
+            Files.createDirectories(directoryPart.Path.toPath())
+        }
     }
 
     fun unsafeOpenFileStream(): Either<Throwable, FileOutputStream> {

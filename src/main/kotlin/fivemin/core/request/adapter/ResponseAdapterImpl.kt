@@ -58,7 +58,7 @@ class ResponseAdapterImpl(
 
 
 
-        if (resp.body != null && resp.isSuccessful) {
+        if (resp.body != null && resp.code < 299 && resp.code > 199) {
             return createMemoryData(
                 resp.body!!,
                 original,

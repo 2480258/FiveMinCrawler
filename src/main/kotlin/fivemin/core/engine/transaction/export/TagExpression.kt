@@ -4,7 +4,7 @@ import arrow.core.toOption
 import fivemin.core.engine.TagRepository
 
 class TagExpression (private val originalString : String){
-    private val regexTag : String = "\\\$\\(([0-z]*)\\)"
+    private val regexTag : String = "&\\(([0-z]*)\\)"
     private val regex : Regex = Regex(regexTag)
 
     fun build(tagRepo : TagRepository) : String{
