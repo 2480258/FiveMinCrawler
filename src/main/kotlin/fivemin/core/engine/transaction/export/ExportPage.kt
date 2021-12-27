@@ -6,9 +6,11 @@ import arrow.core.right
 import arrow.core.*
 import fivemin.core.LoggerController
 import fivemin.core.engine.*
+import javax.swing.text.Document
 
 interface ExportPage {
     val pageName : String
+    fun <Document : Request> isAcceptable(trans : SerializeTransaction<Document>) : Boolean
     fun <Document : Request> export(trans : SerializeTransaction<Document>) : Iterable<ExportHandle>
 }
 
@@ -20,8 +22,11 @@ class ExportPageImpl(override val pageName: String, private val targetAttributeN
     
     
     private val specialAttributeTagFactory : SpecialAttributeTagFactory = SpecialAttributeTagFactory()
-
-
+    override fun <Document : Request> isAcceptable(trans: SerializeTransaction<Document>): Boolean {
+        return trans.serializeOption.parseOption.name.name == pageName
+    }
+    
+    
     override fun <Document : Request> export(trans: SerializeTransaction<Document>): Iterable<ExportHandle> {
         return adapter.parse(trans.request, parseInfo(trans)).map {
             it.swap().map {

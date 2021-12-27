@@ -12,8 +12,10 @@ class TagExpression (private val originalString : String){
     }
 
     private fun parse(macroStr : String, tagRepo : TagRepository) : String{
-        val ret = regex.findAll(macroStr)
-
+        val ret = regex.findAll(macroStr).toList()
+        
+        val macroMap = mutableMapOf<String, String>()
+        
         var str : String = macroStr
 
         ret.forEach {
@@ -21,11 +23,15 @@ class TagExpression (private val originalString : String){
                 val qry = it.value.subSequence(2, it.value.length - 1)
 
                 if(tagRepo.contains(qry.toString()) && !qry.contains('\\')){
-                    str = macroStr.replace("&(" + qry.toString() + ")", tagRepo[qry.toString()].value)
+                    macroMap[qry.toString()] = tagRepo[qry.toString()].value
                 }
             }
         }
-
+    
+        macroMap.forEach {
+            str = str.replace("&(" + it.key + ")", tagRepo[it.key].value)
+        }
+        
         return str
     }
 

@@ -41,7 +41,7 @@ constructor(
         }
     }
     
-    fun setFinished() {
+    private fun setFinished() {
         if (progress != ProgressState.STARTED) {
             throw IllegalStateException()
         }

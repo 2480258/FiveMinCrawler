@@ -2,6 +2,7 @@ package fivemin.core.engine.transaction
 
 import arrow.core.Either
 import arrow.core.flatMap
+import arrow.core.flatten
 import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import kotlinx.coroutines.*
@@ -47,9 +48,9 @@ abstract class AbstractPolicy<
                         it.printStackTrace()
                     }
                     
-                    aq.flatMap {
+                    aq.map {
                         transactionSubPolicy.process(source, it, info, state).await()
-                    }
+                    }.flatten()
                 } //https://typelevel.org/cats/datatypes/Either.html
             }
         }

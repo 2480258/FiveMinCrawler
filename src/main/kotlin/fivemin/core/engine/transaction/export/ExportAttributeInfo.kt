@@ -10,5 +10,5 @@ data class ExportAttributeInfo (val info: ExportAttributeLocator, val element : 
 }
 
 data class ExportAttributeLocator (val info : DocumentAttributeInfo, val index : Option<Int>){
-    val isList : Boolean = index.isEmpty()
+    val isList : Boolean = !index.isEmpty()
 }

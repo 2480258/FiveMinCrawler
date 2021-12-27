@@ -14,44 +14,50 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
     companion object {
         private val logger = LoggerController.getLogger("SerializeTransactionMovementImpl")
     }
-
+    
     override suspend fun move(
         source: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
     ): Deferred<Either<Throwable, SerializeTransaction<Document>>> {
         logger.debug(source.request.getDebugInfo() + " < serializing transaction")
-
+        
         return coroutineScope {
             async {
                 Either.catch {
                     postParser.getPostParseInfo(source, info, state).map {
-                        SerializeTransactionImpl<Document>(
-                            source.request,
-                            convertAttributeToTag(it.attribute, source.tags),
-                            it.attribute.toList()
-                        )
+                        source.previous.ifDocument({ doc ->
+                            SerializeTransactionImpl<Document>(
+                                source.request,
+                                convertAttributeToTag(it.attribute, source.tags),
+                                it.attribute.toList(),
+                                SerializeOption(doc.requestOption, doc.parseOption, doc.containerOption)
+                            )
+                        }, {
+                            throw IllegalArgumentException("not support for serialization transaction of non-text based document")
+                        })
+                        
                     }
                 }.flatten()
             }
         }
-
-
+        
+        
     }
-
+    
     private fun convertAttributeToTag(attr: Iterable<DocumentAttribute>, connect: TagRepository): TagRepositoryImpl {
         var ret = attr.map { x ->
             Pair(x.info.name, x.item.map { y ->
                 y.match({ z -> Some(z.body) }, { none() })
             }.filterOption())
         }.map {
-            if(it.second.any()) {
+            if (it.second.any()) {
                 Tag(EnumSet.of(TagFlag.CONVERT_TO_ATTRIBUTE), it.first, it.second.first()).toOption()
             } else {
                 none()
             }
         }.filterOption()
-
+        
         return TagRepositoryImpl(ret.toOption(), connect.toOption())
     }
 }
@@ -65,7 +71,8 @@ interface PostParserContentPage<in Document : Request> {
 }
 
 data class PostParseInfo(
-    val attribute: List<DocumentAttribute>) {
+    val attribute: List<DocumentAttribute>
+) {
 }
 
 interface PostParser<in Document : Request> {

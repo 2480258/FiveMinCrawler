@@ -141,15 +141,10 @@ interface SessionStartable : SessionState {
             async {
                 info.doRegisteredTask {
                     Either.catch {
-                        try
-                        {
-                            Data.KeyRepo.addAlias(info.token, key).right()
-                        }catch (e : Exception) {
-                            e.left()
-                        }
+                        Data.KeyRepo.addAlias(info.token, key)
                     }.map {
                         logger.debug(key.toString() + " < creating SessionStartable")
-    
+                        
                         var state = if (this@SessionStartable as? SessionDetachable != null) {
                             SessionDetachableStartedStateImpl(info, Data)
                         } else {
@@ -178,7 +173,7 @@ interface SessionChildGeneratable : SessionState {
         
         var detached = Data.SessionRepo.create(info.parent)
         logger.debug(info.token.tokenNumber.toString() + " < creating child session")
-    
+        
         var ret = func(SessionDetachableInitStateImpl(detached, Data))
         return ret
     }

@@ -50,9 +50,6 @@ class JsonExportAdapter(private val fileNameExp: TagExpression, private val expo
         }
     }
     
-    @Serializable
-    data class JsonExportObject(val result: Map<String, JsonElement>)
-    
     private fun convertToJson(data: Iterable<Pair<ExportAttributeLocator, String>>): String {
         val json = Json {}
         
@@ -73,17 +70,17 @@ class JsonExportAdapter(private val fileNameExp: TagExpression, private val expo
                 it.first.index.fold({ 0 }, { x -> x })
             }.map {
                 it.second
-            }.toList())
+            }.toTypedArray())
         }
+    
+        var multiMap = multi.map {
+            Pair(it.key, json.encodeToJsonElement(serializer(Array<String>::class.java), it.value))
+        }.toMap()
         
-        var res = single.plus(multi)
+        var singleMap = single.map {
+            Pair(it.key, json.encodeToJsonElement(serializer(String::class.java), it.value))
+        }.toMap()
         
-        var map = res.map {
-            Pair(it.key, json.encodeToJsonElement(serializer(it.value::class.javaObjectType), it.value))
-        }.asIterable().toMap()
-        
-        var ret = JsonExportObject(JsonObject(map))
-        
-        return Json.encodeToString(ret)
+        return Json.encodeToString(singleMap.plus(multiMap))
     }
 }

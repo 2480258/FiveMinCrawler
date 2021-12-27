@@ -13,10 +13,10 @@ class TagExpressionTest {
     
     @Test
     fun testBuild() {
-        val tagRepo = TagRepositoryImpl(listOf(Tag(EnumSet.of(TagFlag.CONVERT_TO_ATTRIBUTE), "name", "value")).toOption())
+        val tagRepo = TagRepositoryImpl(listOf(Tag(EnumSet.of(TagFlag.NONE), "name", "value"), Tag(EnumSet.of(TagFlag.NONE), "select", "sss")).toOption())
         
-        val tagExp = TagExpression("111&(name)222")
+        val tagExp = TagExpression("111&(name)2&(select)22")
         
-        assertEquals(tagExp.build(tagRepo), "111value222")
+        assertEquals(tagExp.build(tagRepo), "111value2sss22")
     }
 }

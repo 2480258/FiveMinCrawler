@@ -11,8 +11,10 @@ interface ExportParser {
 
 class ExportParserImpl(private val pages : Iterable<ExportPage>) : ExportParser{
     override fun <Document : Request> parse(trans: SerializeTransaction<Document>): Iterable<ExportHandle> {
-        return pages.flatMap {
-            it.export(trans)
+        var pg = pages.single {
+            it.isAcceptable(trans)
         }
+    
+        return pg.export(trans)
     }
 }
