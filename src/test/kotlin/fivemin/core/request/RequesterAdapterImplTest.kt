@@ -47,8 +47,8 @@ class RequesterAdapterImplTest {
     fun errRedirectRequestTest() {
 
         var req = HttpRequestImpl(
-            none(), URI("https://localhost:44376/Home/RedirectSource"), RequestType.LINK, PerRequestHeaderProfile(
-                RequestHeaderProfile(), none(), URI("https://localhost:12345"), URI("https://localhost:44376/Home/RedirectSource")
+            none(), URI("http://127.0.0.1:30001/redirect"), RequestType.LINK, PerRequestHeaderProfile(
+                RequestHeaderProfile(), none(), URI("https://localhost:12345"), URI("http://127.0.0.1:30001/redirect")
             ), TagRepositoryImpl()
         )
 
@@ -60,7 +60,7 @@ class RequesterAdapterImplTest {
             cret.map {
                 it.ifRedirect({ x ->
                     assertEquals(x.code, 302)
-                    assertEquals(x.redirectDest.toString(), "/Home/RedirectDest")
+                    assertEquals(x.redirectDest.toString(), "/about")
                 }, {
                     fail()
                 })
@@ -96,7 +96,7 @@ class RequesterAdapterImplTest {
     fun err404RequestTest() {
 
         var req = HttpRequestImpl(
-            none(), URI("https://localhost:44376/where"), RequestType.LINK, PerRequestHeaderProfile(
+            none(), URI("http://127.0.0.1:30001/nowhere"), RequestType.LINK, PerRequestHeaderProfile(
                 RequestHeaderProfile(), none(), URI("https://localhost:44376"), URI("https://localhost:44376/where")
             ), TagRepositoryImpl()
         )
@@ -120,7 +120,7 @@ class RequesterAdapterImplTest {
     fun succRequestTest() {
 
         var req = HttpRequestImpl(
-            none(), URI("https://localhost:44376"), RequestType.LINK, PerRequestHeaderProfile(
+            none(), URI("http://127.0.0.1:30001/home"), RequestType.LINK, PerRequestHeaderProfile(
                 RequestHeaderProfile(), none(), URI("https://localhost:44376"), URI("https://localhost:44376")
             ), TagRepositoryImpl()
         )

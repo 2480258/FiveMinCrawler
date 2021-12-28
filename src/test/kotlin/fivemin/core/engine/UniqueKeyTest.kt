@@ -7,10 +7,16 @@ import fivemin.core.engine.transaction.StringUniqueKey
 import org.testng.annotations.Test
 
 import org.testng.Assert.*
+import org.testng.annotations.BeforeMethod
 
 class UniqueKeyTest {
     
-    val uriIt = ElemIterator(UriIterator())
+    var uriIt = ElemIterator(UriIterator())
+    
+    @BeforeMethod
+    fun before() {
+        uriIt = ElemIterator(UriIterator())
+    }
     
     @Test
     fun testUriStringKey() {

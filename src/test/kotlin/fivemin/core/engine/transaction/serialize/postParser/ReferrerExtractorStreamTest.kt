@@ -46,7 +46,7 @@ class ReferrerExtractorStreamTest {
     fun referrerLinkMetaTest() {
         runBlocking {
             var req = HttpRequestImpl(
-                none(), URI("https://localhost:44376/home/referrertest"), RequestType.LINK, PerRequestHeaderProfile(
+                none(), URI("http://127.0.0.1:30001/referrertest"), RequestType.LINK, PerRequestHeaderProfile(
                     RequestHeaderProfile(),
                     none(),
                     URI("https://localhost:12345"),
@@ -84,7 +84,9 @@ class ReferrerExtractorStreamTest {
             }.orNull().toOption().flatten()
 
             c.fold({ fail() }, {
-                assertEquals(it, "no-referrer-when-downgrade")
+                it.fold({fail()}) {
+                    assertEquals(it, "no-referrer-when-downgrade")
+                }
             })
         }
     }
@@ -94,7 +96,7 @@ class ReferrerExtractorStreamTest {
     fun referrerGlobalMetaTest() {
         runBlocking {
             var req = HttpRequestImpl(
-                none(), URI("https://localhost:44376/"), RequestType.LINK, PerRequestHeaderProfile(
+                none(), URI("http://127.0.0.1:30001/referrermetatest"), RequestType.LINK, PerRequestHeaderProfile(
                     RequestHeaderProfile(),
                     none(),
                     URI("https://localhost:12345"),
@@ -132,7 +134,9 @@ class ReferrerExtractorStreamTest {
             }.orNull().toOption().flatten()
 
             c.fold({ fail() }, {
-                assertEquals(it, "origin")
+                it.fold({fail()}) {
+                    assertEquals(it, "origin")
+                }
             })
         }
     }
@@ -141,11 +145,11 @@ class ReferrerExtractorStreamTest {
     fun referrerHeaderTest() {
         runBlocking {
             var req = HttpRequestImpl(
-                none(), URI("https://localhost:44376/home/referrertest"), RequestType.LINK, PerRequestHeaderProfile(
+                none(), URI("http://127.0.0.1:30001/referrerheadertest"), RequestType.LINK, PerRequestHeaderProfile(
                     RequestHeaderProfile(),
                     none(),
-                    URI("https://localhost:12345"),
-                    URI("https://localhost:44376/home/referrertest")
+                    URI("http://127.0.0.1:30001/referrertest"),
+                    URI("http://127.0.0.1:30001/referrertest")
                 ), TagRepositoryImpl()
             )
             var ret = adapter.requestAsync(req).await()
@@ -179,7 +183,9 @@ class ReferrerExtractorStreamTest {
             }.orNull().toOption().flatten()
 
             c.fold({ fail() }, {
-                assertEquals(it, "no-referrer")
+                it.fold({fail()}) {
+                    assertEquals(it, "no-referrer")
+                }
             })
         }
     }

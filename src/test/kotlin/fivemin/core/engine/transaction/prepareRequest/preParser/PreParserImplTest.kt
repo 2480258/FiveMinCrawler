@@ -53,6 +53,10 @@ class PreParserImplTest {
             req.upgradeAsDocument("true").toOption()
         }
 
+        
+        every {
+            truePage.name
+        } returns (PageName("truePage"))
 
         falsePage = mockk()
 
@@ -61,6 +65,12 @@ class PreParserImplTest {
         } answers {
             none()
         }
+    
+    
+        every {
+            falsePage.name
+        } returns (PageName("falsePage"))
+    
     }
 
     fun generate(cond: PageCondition<InitialTransaction<Request>, Request>, it: List<PreParserPage>): PreParserImpl {

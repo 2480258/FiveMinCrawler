@@ -9,12 +9,18 @@ import fivemin.core.engine.transaction.StringUniqueKey
 import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.encodeToByteArray
 import kotlinx.serialization.protobuf.ProtoBuf
+import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
 class ResumeDataFactoryTest {
-    val uriIt = ElemIterator(UriIterator())
+    var uriIt = ElemIterator(UriIterator())
+    
+    @BeforeMethod
+    fun before() {
+        uriIt = ElemIterator(UriIterator())
+    }
     
     @Test
     fun testArchivedSessionGet() {

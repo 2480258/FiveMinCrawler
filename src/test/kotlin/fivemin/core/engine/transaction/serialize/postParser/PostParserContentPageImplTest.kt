@@ -30,35 +30,35 @@ import java.net.URI
 
 class PostParserContentPageImplTest {
     val uriIt = ElemIterator(UriIterator())
-
+    
     fun createInternal(it: Iterable<InternalContentInfo>): InternalContentInfoFactory<Request> {
         val fac: InternalContentInfoFactory<Request> = mockk()
-
+        
         coEvery {
             fac.get(any())
         } returns (it.toOption())
-
+        
         return fac
     }
-
+    
     fun createFactory(it: Iterable<RequestLinkInfo>): RequestContentInfoFactory<Request> {
         val fac: RequestContentInfoFactory<Request> = mockk()
-
+        
         every {
             fac.get(any())
         } returns (RequestContentInfo(it))
-
+        
         return fac
     }
-
-
+    
+    
     @Test
     fun testExtractInte() {
-
+        
         runBlocking {
             var creq =
                 DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a").upgrade()
-
+            
             val pp = PostParserContentPageImpl(
                 PageName("a"),
                 createFactory(listOf()),
@@ -66,64 +66,88 @@ class PostParserContentPageImplTest {
                 createInternal(listOf(InternalContentInfo("a", listOf("a")))),
                 DocumentAttributeFactoryImpl()
             )
-
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await().fold({fail()}) {
-                assertEquals(it.count(), 1)
-            }
-
+            
+            var ret =
+                pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await()
+                    .fold({ fail() }) {
+                        assertEquals(it.count(), 1)
+                    }
+            
         }
     }
-
+    
     @Test
     fun testExtractExt() {
-
+        
         runBlocking {
             var creq =
                 DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a").upgrade()
-
+            
             val pp = PostParserContentPageImpl(
                 PageName("a"),
                 createFactory(listOf()),
-                createFactory(listOf(RequestLinkInfo("a", listOf(getHttpRequest(uriIt.gen(), RequestType.LINK)), InitialOption()))),
+                createFactory(
+                    listOf(
+                        RequestLinkInfo(
+                            "a",
+                            listOf(getHttpRequest(uriIt.gen(), RequestType.LINK)),
+                            InitialOption()
+                        )
+                    )
+                ),
                 createInternal(listOf()),
                 DocumentAttributeFactoryImpl()
             )
-
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await().fold({fail()}) {
-                assertEquals(it.count(), 1)
-            }
+            
+            var ret =
+                pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await()
+                    .fold({ fail() }) {
+                        assertEquals(it.count(), 1)
+                    }
         }
     }
-
+    
     @Test
     fun testExtractLink() {
-
+        
         runBlocking {
             var creq =
                 DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a").upgrade()
-
+            
             val pp = PostParserContentPageImpl(
                 PageName("a"),
-                createFactory(listOf(RequestLinkInfo("a", listOf(getHttpRequest(uriIt.gen(), RequestType.LINK)), InitialOption()))),
+                createFactory(
+                    listOf(
+                        RequestLinkInfo(
+                            "a",
+                            listOf(getHttpRequest(uriIt.gen(), RequestType.LINK)),
+                            InitialOption()
+                        )
+                    )
+                ),
                 createFactory(listOf()),
                 createInternal(listOf()),
                 DocumentAttributeFactoryImpl()
             )
-
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await().fold({fail()}) {
-                assertEquals(it.count(), 0)
-            }
+            
+            var ret =
+                pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await()
+                    .fold({
+                        fail()
+                    }) {
+                        assertEquals(it.count(), 0)
+                    }
         }
     }
-
-
+    
+    
     @Test
     fun testExtractNoPage() {
-
+        
         runBlocking {
             var creq =
                 DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a").upgrade()
-
+            
             val pp = PostParserContentPageImpl(
                 PageName("ab"),
                 createFactory(listOf()),
@@ -131,20 +155,22 @@ class PostParserContentPageImplTest {
                 createInternal(listOf()),
                 DocumentAttributeFactoryImpl()
             )
-
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), mockk()).await().fold({fail()}) {
-                assertEquals(it.count(), 0)
+            
+            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), mockk()).await().fold({
+                
+                }) {
+                fail()
             }
         }
     }
-
+    
     @Test
     fun testExtractNone() {
-
+        
         runBlocking {
             var creq =
                 DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a").upgrade()
-
+            
             val pp = PostParserContentPageImpl(
                 PageName("a"),
                 createFactory(listOf()),
@@ -152,8 +178,8 @@ class PostParserContentPageImplTest {
                 createInternal(listOf()),
                 DocumentAttributeFactoryImpl()
             )
-
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), mockk()).await().fold({fail()}) {
+            
+            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), mockk()).await().fold({ fail() }) {
                 assertEquals(it.count(), 0)
             }
         }

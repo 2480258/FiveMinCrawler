@@ -10,10 +10,16 @@ import io.mockk.mockk
 import org.testng.annotations.Test
 
 import org.testng.Assert.*
+import org.testng.annotations.BeforeMethod
 
 class ExportStateImplTest {
     
     var strIt = ElemIterator(StringIterator())
+    
+    @BeforeMethod
+    fun before() {
+        strIt = ElemIterator(StringIterator())
+    }
     
     fun mockExportData() : ExportData {
         return mockk<ExportData>()
