@@ -24,6 +24,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
+    implementation("com.squareup.okhttp3:okhttp-urlconnection:4.9.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.3.1")
     implementation("org.jsoup:jsoup:1.14.3")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")

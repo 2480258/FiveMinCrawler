@@ -64,7 +64,11 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
             }
 
             override fun onResponse(call: Call, response: Response) {
-                act(responseAdapterImpl.createWithReceived(uri, response, ret))
+                try { //prevent not responding from exception
+                    act(responseAdapterImpl.createWithReceived(uri, response, ret))
+                } catch (e : Exception) {
+                    act(responseAdapterImpl.createWithError(uri, e.toOption(), ret))
+                }
             }
         })
     }

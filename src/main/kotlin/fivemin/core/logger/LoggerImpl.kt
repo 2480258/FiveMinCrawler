@@ -1,36 +1,70 @@
 package fivemin.core.logger
 
+import arrow.core.Option
 import fivemin.core.Logger
+import fivemin.core.engine.Request
 import mu.KotlinLogging
 
-class LoggerImpl(private val name : String) : Logger {
+class LoggerImpl(private val name: String) : Logger {
     private val logger = KotlinLogging.logger(name)
-
+    
     init {
     }
     
     
-    override fun info(str : String) {
+    override fun info(str: String) {
         logger.info {
             str
         }
     }
-
-    override fun debug(str : String) {
+    
+    override fun info(req: Request, str: String, e: Option<Throwable>) {
+        val logStr = req.getDebugInfo() + " < " + str
+        
+        e.fold({ logger.info(logStr) }) {
+            logger.info(logStr, e)
+        }
+    }
+    
+    override fun debug(str: String) {
         logger.info {
             str
         }
     }
-
+    
+    override fun debug(req: Request, str: String, e: Option<Throwable>) {
+        val logStr = req.getDebugInfo() + " < " + str
+    
+        e.fold({ logger.debug(logStr) }) {
+            logger.debug(logStr, e)
+        }
+    }
+    
     override fun warn(str: String) {
         logger.warn {
             str
         }
     }
-
-    override fun error(str : String) {
+    
+    override fun warn(req: Request, str: String, e: Option<Throwable>) {
+        val logStr = req.getDebugInfo() + " < " + str
+    
+        e.fold({ logger.warn(logStr) }) {
+            logger.warn(logStr, e)
+        }
+    }
+    
+    override fun error(str: String) {
         logger.error {
             str
+        }
+    }
+    
+    override fun error(req: Request, str: String, e: Option<Throwable>) {
+        val logStr = req.getDebugInfo() + " < " + str
+    
+        e.fold({ logger.error(logStr) }) {
+            logger.error(logStr, e)
         }
     }
 }

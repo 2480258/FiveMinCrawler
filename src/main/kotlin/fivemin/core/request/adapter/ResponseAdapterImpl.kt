@@ -25,7 +25,9 @@ class ResponseAdapterImpl(
         ex: Option<Exception>,
         req: Request
     ): Either<Throwable, ResponseBody> {
-        return CriticalErrorBodyImpl(createRequestBody(original.target, req), ex).right()
+        return Either.catch {
+            CriticalErrorBodyImpl(createRequestBody(original.target, req), ex)
+        }
     }
 
     private fun parseCharset(resp: Response): Option<Charset> {

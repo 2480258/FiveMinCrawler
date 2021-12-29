@@ -1,5 +1,8 @@
 package fivemin.core
 
+import arrow.core.Option
+import arrow.core.none
+import fivemin.core.engine.Request
 import fivemin.core.logger.LoggerImpl
 
 interface Logger {
@@ -10,7 +13,14 @@ interface Logger {
     fun warn(str: String)
 
     fun error(str : String)
-
+    
+    fun info(req : Request, str: String, e : Option<Throwable> = none())
+    
+    fun debug(req : Request, str: String, e : Option<Throwable> = none())
+    
+    fun warn(req : Request, str: String, e : Option<Throwable> = none())
+    
+    fun error(req : Request, str: String, e : Option<Throwable> = none())
 }
 
 class LoggerController {

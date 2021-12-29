@@ -3,6 +3,7 @@ package fivemin.core.engine.transaction
 import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.flatten
+import arrow.core.toOption
 import fivemin.core.LoggerController
 import fivemin.core.engine.*
 import kotlinx.coroutines.*
@@ -44,13 +45,14 @@ abstract class AbstractPolicy<
                     var aq = acc.await()
                     
                     aq.swap().map {
-                        logger.warn(source.request.getDebugInfo() + " < get movement error: " + it)
-                        it.printStackTrace()
+                        logger.warn(source.request, "got movement error", it.toOption())
                     }
                     
                     aq.map {
-                        transactionSubPolicy.process(source, it, info, state).await()
-                    }.flatten()
+                        Either.catch {
+                            transactionSubPolicy.process(source, it, info, state).await()
+                        }
+                    }.flatten().flatten()
                 } //https://typelevel.org/cats/datatypes/Either.html
             }
         }
