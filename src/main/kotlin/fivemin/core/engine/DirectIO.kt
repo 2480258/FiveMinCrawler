@@ -31,5 +31,4 @@ class DirectIOImpl(val configController: ConfigController, val mainPath : Option
     override fun getToken(path: UsingPath): DirectoryIOToken {
         return DirectoryIOToken(rootPath).withAdditionalPathDirectory(DirectoryIOToken(pathDic[path]!!))
     }
-
 }

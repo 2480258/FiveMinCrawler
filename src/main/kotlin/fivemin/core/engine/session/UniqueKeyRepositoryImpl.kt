@@ -14,8 +14,7 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
     private val dic: MutableMap<SessionToken, UniqueKeyOwnership> = mutableMapOf()
     private val list: MutableMap<UniqueKeyOwnership, MutableList<UniqueKeyState>> = mutableMapOf()
     private val lock: ReentrantLock = ReentrantLock()
-
-
+    
     private fun findGlobalExceptSelf(
         ownership: UniqueKeyOwnership,
         key: UniqueKey
@@ -36,7 +35,7 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
 
         return ret.filterOption().exclusiveSingleOrNone()
     }
-
+    
     private fun findFromSelf(self: UniqueKeyOwnership, key: UniqueKey): Option<UniqueKeyState> {
         return list[self].toOption().map {
             it.exclusiveSingleOrNone() {
@@ -45,6 +44,7 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
         }.flatten()
     }
 
+    
     private fun findFromStateList(
         states: List<UniqueKeyState>,
         key: UniqueKey

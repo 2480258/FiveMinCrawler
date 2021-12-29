@@ -46,7 +46,7 @@ class RetrySubPolicy<Document : Request> :
         info: TaskInfo,
         state: SessionStartedState
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
-        logger.debug(source.request.getDebugInfo() + " < trying to retry")
+        logger.debug(source.request, "trying to retry")
         
         return state.retryAsync {
             delay(RETRY_DELAY)

@@ -88,7 +88,7 @@ class RequestQueueImpl(
         }
 
         item.map {
-            when (it.request.info.dequeue.get()) {
+            when (it.request.info.dequeue.get()) { //TODO Fix if Exception
                 DequeueDecision.ALLOW -> {
                     it.info.callBack(DequeuedRequest(it.request, DequeuedRequestInfo()).right())
                 }

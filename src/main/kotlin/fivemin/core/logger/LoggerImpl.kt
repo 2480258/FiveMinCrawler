@@ -22,7 +22,7 @@ class LoggerImpl(private val name: String) : Logger {
         val logStr = req.getDebugInfo() + " < " + str
         
         e.fold({ logger.info(logStr) }) {
-            logger.info(logStr, e)
+            logger.info(it) { logStr }
         }
     }
     
@@ -34,9 +34,9 @@ class LoggerImpl(private val name: String) : Logger {
     
     override fun debug(req: Request, str: String, e: Option<Throwable>) {
         val logStr = req.getDebugInfo() + " < " + str
-    
+        
         e.fold({ logger.debug(logStr) }) {
-            logger.debug(logStr, e)
+            logger.debug(it) { logStr }
         }
     }
     
@@ -48,9 +48,9 @@ class LoggerImpl(private val name: String) : Logger {
     
     override fun warn(req: Request, str: String, e: Option<Throwable>) {
         val logStr = req.getDebugInfo() + " < " + str
-    
+        
         e.fold({ logger.warn(logStr) }) {
-            logger.warn(logStr, e)
+            logger.warn(it) { logStr }
         }
     }
     
@@ -62,9 +62,9 @@ class LoggerImpl(private val name: String) : Logger {
     
     override fun error(req: Request, str: String, e: Option<Throwable>) {
         val logStr = req.getDebugInfo() + " < " + str
-    
+        
         e.fold({ logger.error(logStr) }) {
-            logger.error(logStr, e)
+            logger.error(it) { logStr }
         }
     }
 }

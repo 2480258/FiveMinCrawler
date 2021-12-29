@@ -227,6 +227,10 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
         }
     }
 
+    fun remove() {
+        Files.delete(result.toPath())
+    }
+    
     fun moveFileToPath(token: FileIOToken) {
         ensureDirectory()
 

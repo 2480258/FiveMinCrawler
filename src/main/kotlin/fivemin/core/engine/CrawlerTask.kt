@@ -31,8 +31,21 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
         try {
             return session.start(info.uniqueKeyProvider.documentKey.create(trans.request)) { it ->
                 logger.debug(trans.request.getDebugInfo() + " < starting task")
-                
-                coroutineScope { policy.progressAsync(trans, info, it) }
+                coroutineScope {
+                    async {
+                        var ret = either<Throwable, S2> {
+                            var p1 = policy.progressAsync(trans, info, it).await().bind()
+        
+                            p1
+                        }
+    
+                        ret.swap().map {
+                            logger.warn(trans.request, "got task error", it.toOption())
+                        }
+    
+                        ret
+                    }
+                }
             }
         } catch (e: Exception) {
             return coroutineScope {
@@ -62,12 +75,18 @@ constructor(
                 coroutineScope {
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
-                        either<Throwable, S3> {
+                        var ret = either<Throwable, S3> {
                             var p1 = policy1.progressAsync(trans, info, state).await().bind()
                             var p2 = policy2.progressAsync(p1, info, state).await().bind()
                             
                             p2
                         }
+                        
+                        ret.swap().map {
+                            logger.warn(trans.request, "got task error", it.toOption())
+                        }
+                        
+                        ret
                     }
                 }
             }
@@ -102,13 +121,19 @@ constructor(
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        either<Throwable, S4> {
+                        var ret = either<Throwable, S4> {
                             var p1 = policy1.progressAsync(trans, info, state).await().bind()
                             var p2 = policy2.progressAsync(p1, info, state).await().bind()
                             var p3 = policy3.progressAsync(p2, info, state).await().bind()
                             
                             p3
                         }
+    
+                        ret.swap().map {
+                            logger.warn(trans.request, "got task error", it.toOption())
+                        }
+    
+                        ret
                     }
                 }
             }
@@ -143,7 +168,7 @@ constructor(
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        either<Throwable, S5> {
+                        var ret = either<Throwable, S5> {
                             var p1 = policy1.progressAsync(trans, info, state).await().bind()
                             var p2 = policy2.progressAsync(p1, info, state).await().bind()
                             var p3 = policy3.progressAsync(p2, info, state).await().bind()
@@ -151,6 +176,12 @@ constructor(
                             
                             p4
                         }
+    
+                        ret.swap().map {
+                            logger.warn(trans.request, "got task error", it.toOption())
+                        }
+    
+                        ret
                     }
                 }
             }

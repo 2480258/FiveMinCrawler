@@ -25,7 +25,7 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
     ): Deferred<Either<Throwable, ExportTransaction<Document>>> {
         return coroutineScope {
             async {
-                logger.debug(source.request.getDebugInfo() + " < exporting transaction")
+                logger.debug(source.request, "exporting transaction")
                 var ret = parser.parse(source)
                 
                 Either.catch {

@@ -36,7 +36,7 @@ class InternalContentInfoFactoryImpl<Document : Request>(
 ) : InternalContentInfoFactory<Document> {
     
     companion object {
-        private val logger = LoggerController.getLogger("SerializeTransactionMovementImpl")
+        private val logger = LoggerController.getLogger("InternalContentInfoFactoryImpl")
     }
     
     
@@ -44,6 +44,10 @@ class InternalContentInfoFactoryImpl<Document : Request>(
         return coroutineScope {
             var ret = trans.result.map { y ->
                 y.responseBody.ifSuccAsync({ z ->
+                    z.body.ifFile({ //remove temp file because anyway it should be read
+                        it.file.remove()
+                    }, { })
+                    
                     z.body.ifHtml({ a ->
                         factories.map { x ->
                             InternalContentInfo(x.attributeName, textExtractor.parse(a, x.nav, x.selectionMode).toList())
