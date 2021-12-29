@@ -40,7 +40,7 @@ tasks.test {
     useTestNG()
 }
 
-tasks.withType<KotlinCompile>() {
+tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "16"
 }
 

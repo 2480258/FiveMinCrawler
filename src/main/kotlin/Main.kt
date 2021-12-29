@@ -1,6 +1,6 @@
 import arrow.core.toOption
-import fivemin.core.LoggerController
-import fivemin.core.initialize.StartTaskOption
+import com.fivemin.core.LoggerController
+import com.fivemin.core.initialize.StartTaskOption
 import kotlinx.cli.*
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -13,8 +13,8 @@ class MainKt {
         @JvmStatic
         fun main(args: Array<String>) {
             logger.debug("Logging Level = Debug")
-            System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE");
-            
+            System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
+    
             runBlocking {
                 try {
                     logger.info("Starting crawler")
