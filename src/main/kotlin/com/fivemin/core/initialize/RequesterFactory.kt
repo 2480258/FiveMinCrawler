@@ -7,6 +7,6 @@ import com.fivemin.core.request.RequesterCore
 import com.fivemin.core.request.cookie.CookieResolveTargetFactory
 
 interface RequesterFactory {
-    val key : String
-    fun build(info: PerformedRequesterInfo, io : DirectIO, factory : CookieResolveTargetFactory) : RequesterCore<ResponseData>
+    val key: String
+    fun build(info: PerformedRequesterInfo, io: DirectIO, factory: CookieResolveTargetFactory): RequesterCore<ResponseData>
 }

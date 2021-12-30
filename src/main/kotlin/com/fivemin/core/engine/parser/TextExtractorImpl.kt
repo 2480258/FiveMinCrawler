@@ -7,11 +7,11 @@ import com.fivemin.core.engine.ParserNavigator
 import com.fivemin.core.engine.transaction.serialize.postParser.TextExtractor
 import com.fivemin.core.engine.transaction.serialize.postParser.TextSelectionMode
 
-class TextSelectionModeNotFoundException
-    : Exception()
+class TextSelectionModeNotFoundException :
+    Exception()
 
 class TextExtractorImpl : TextExtractor {
-    override fun parse(data: HtmlMemoryData, nav: ParserNavigator, mode : TextSelectionMode): Iterable<String> {
+    override fun parse(data: HtmlMemoryData, nav: ParserNavigator, mode: TextSelectionMode): Iterable<String> {
         var ret = data.parseAsHtmlDocument {
             it.getElements(nav).map {
                 it
@@ -25,8 +25,8 @@ class TextExtractorImpl : TextExtractor {
         }
     }
 
-    private fun selectMode(elem : HtmlElement, mode: TextSelectionMode) : String{
-        return when(mode){
+    private fun selectMode(elem: HtmlElement, mode: TextSelectionMode): String {
+        return when (mode) {
             TextSelectionMode.TEXT_CONTENT -> elem.textContent
             TextSelectionMode.OUTER_HTML -> elem.outerHtml
             TextSelectionMode.INNER_HTML -> elem.innerHtml

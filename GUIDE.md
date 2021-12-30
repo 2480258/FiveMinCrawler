@@ -1,8 +1,8 @@
 # Customization Guide
 
-We can change behavior of crawler by changing JSON and gave its path as parameter (-p)
+We can change the behavior of the crawler by changing JSON and giving its path as a parameter (-p)
 
-Please read with [JSON example](debugWeb.json) for better understandings.
+**Please read with [Boilerplate](debugWeb.json) for better understandings. You may want to start to customize with this file because copying and pasting this one allows faster customization speed.**
 
 ## Notations
 
@@ -12,7 +12,7 @@ Please read with [JSON example](debugWeb.json) for better understandings.
 
 ### Page
 
-**Page** means kinds of **document**s. For example, You can name **document**s contains list of images as "
+**Page** means kinds of **document**s. For example, You can name **document**s that containing list of images as "
 ImageListPage"
 
 **Page**s can convert a **document** to **attribute**s and conditions for **document**s.
@@ -24,7 +24,7 @@ ImageListPage"
 
 ## Parser Composition
 
-- Global Condition: Request doesn't match with this regex will not be downloaded.
+- Global Condition: Request doesn't match with this regex will not be downloaded. _(essential)_
 
 ```json
 "bookName": "Debug",
@@ -40,12 +40,12 @@ ImageListPage"
 
 Note that one **Document** should be attached with one **Page**.
 
-- Internal **Attribute**: See [Internal **Attribute**](#Internal Attribute) section. _(essential)_
-- External **Attribute**: See [External **Attribute**](#External Attribute) section. _(essential)_
-- Link **Attribute**: See [Link **Attribute**](#Link Attribute) section. _(essential)_
+- Internal **Attribute**: See [Internal **Attribute**](#InternalAttribute) section. _(essential)_
+- External **Attribute**: See [External **Attribute**](#ExternalAttribute) section. _(essential)_
+- Link **Attribute**: See [Link **Attribute**](#LinkAttribute) section. _(essential)_
 
 
-- Target Container: See [Target Container](#Target Container) section. _(essential)_
+- Target Container: See [Target Container](#TargetContainer) section. _(essential)_
 - Tag: See [Tag](#Tag) section. _(essential)_
 
 ```json
@@ -77,7 +77,7 @@ Note that one **Document** should be attached with one **Page**.
 ]
 ```
 
-### Internal Attribute
+### InternalAttribute
 
 Internal **Attribute** is **attribute** from downloaded html pages, and can be saved as JSON format.
 
@@ -102,7 +102,7 @@ or allows empty list.
 "internalAttributes": []
 ```
 
-### External Attribute
+### ExternalAttribute
 
 External **Attribute** is **attribute** that should be downloaded later. (images or other files)
 
@@ -128,7 +128,7 @@ or allows empty list.
 "externalAttributes": []
 ```
 
-### Link Attribute
+### LinkAttribute
 
 Link **Attribute** is **attribute** that should be requested and parsed further.
 
@@ -153,12 +153,12 @@ or allows empty list.
 "linkAttributes": []
 ```
 
-### Target Container
+### TargetContainer
 
-Target Container specifies how to update downloaded data after crawled.
+Target Container specifies how to update downloaded data after crawling.
 
 - If the **page** is marked as **working set** enabled, it means that the page and its children page are _atomic_, they
-  will not change overtime and no need to be downloaded again.
+  will not change over time and no need to be downloaded again.
 - If the **page** is marked as **working set** disabled, it will be downloaded again.
 
 ```json
@@ -221,7 +221,7 @@ or allows empty list.
 ```
 ## Export
 
-### Export Page
+### ExportPage
 
 - PageName: Name of **page** to be applied. _(essential)_
 - Target Attribute Name: Specifies name of **attribute**s that needed to be exported. _(essential)_
@@ -234,9 +234,9 @@ or allows empty list.
 ]
 ```
 
-### Export Adapter
+### ExportAdapter
 
-- Mode: Selects between "Json" and "Binary". If downloaded data is not a text based, can not export as JSON file.
+- Mode: Selects between "Json" and "Binary". If downloaded data is not text-based, can not export as JSON file.
 - File Name Tag Expression: Specifies where to export files. We can use [tag](#tag) by writing **&(tagName)**. Some tags are added automatically for sake of usability. See below.
 
 | Tag Name |             Functions             |
@@ -246,14 +246,13 @@ or allows empty list.
 | lastseg  |   last segment of requested URL   |
 | name     |         name of attribute         |
 
-Note that directory separators are actually work as directory separator. It means that "a\b" will create b directory under a directory.
-Also, when file name is duplicated, " - (Dup)" will be appended. But, this behavior doesn't work with files before crawler starts.
+Note that directory separators actually work as the directory separator. It means that "a\b" will create b directory under a directory. Also, when filename is duplicated, " - (Dup)" will be appended. But, this behavior doesn't work with files before crawler starts.
 
-  
-So basically not recommended selecting duplicated names for to be exported file.
+So basically not recommended to select duplicated names for to be exported file.
+
 ```json
 "adapter": {
     "mode": "Binary",
-    "fileNameTagExp": "[&(nameOfTag)] - &(lastseg)\\&(inc).&(ext)" // also you can use user-added tag by &(tagName)
+    "fileNameTagExp": "[&(nameOfTag)] - &(lastseg)\\&(inc).&(ext)"
 }
 ```

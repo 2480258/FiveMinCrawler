@@ -8,7 +8,6 @@ import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Request
 import okhttp3.Response
-import java.io.InputStream
 import java.net.URI
 import java.nio.charset.Charset
 
@@ -17,7 +16,7 @@ class ResponseAdapterImpl(
     private val factory: MemoryFilterFactory
 ) : ResponseAdapter {
 
-    private val DEFAULT_BUFFER_SIZE = 32768 //32KB
+    private val DEFAULT_BUFFER_SIZE = 32768 // 32KB
     private val decompressor = DecompressorImpl()
 
     override fun createWithError(
@@ -46,7 +45,6 @@ class ResponseAdapterImpl(
             IllegalArgumentException().left()
         }
 
-
         if (resp.request.url != httpTarget && resp.body != null) {
             return createWithReceived(original, resp, req).map { x ->
                 AutomaticRedirectResponseBodyImpl(
@@ -57,8 +55,6 @@ class ResponseAdapterImpl(
                 )
             }
         }
-
-
 
         if (resp.body != null && resp.code < 299 && resp.code > 199) {
             return createMemoryData(
@@ -129,7 +125,6 @@ class ResponseAdapterImpl(
         return none()
     }
 
-
     private fun handleStream(responseBody: okhttp3.ResponseBody, filter: MemoryFilter, decomp: Option<String>) {
         var originalStream = responseBody.byteStream()
 
@@ -152,7 +147,6 @@ class ResponseAdapterImpl(
         } while (isMoreToRead)
 
         responseBody.close()
-
     }
 
     private fun createMemoryFilter(
@@ -179,9 +173,7 @@ class ResponseAdapterImpl(
         }
     }
 
-
     private fun typeContents(type: okhttp3.MediaType, str: String): Boolean {
         return type.type.lowercase().contains(str.lowercase()) || type.subtype.lowercase().contains(str.lowercase())
     }
 }
-

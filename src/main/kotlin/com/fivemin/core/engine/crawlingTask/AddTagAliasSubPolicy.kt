@@ -5,7 +5,6 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.*
-import mu.KotlinLogging
 
 class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTransaction<SrcTrans, Document>, Document : Request> :
     TransactionSubPolicy<SrcTrans, DstTrans, Document> {
@@ -33,11 +32,7 @@ class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTr
 
                     dest
                 }
-
             }
         }
-
-
     }
-
 }

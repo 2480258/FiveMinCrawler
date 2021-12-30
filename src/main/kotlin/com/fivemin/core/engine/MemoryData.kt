@@ -8,16 +8,16 @@ import java.io.OutputStream
 import java.nio.charset.Charset
 
 interface MemoryData {
-    fun <T> openStreamAsByteAndDispose(func : (InputStream) -> T) : Either<Throwable, T>
+    fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Either<Throwable, T>
 
-    fun openWriteStreamUnsafe() : Either<Throwable, OutputStream>
+    fun openWriteStreamUnsafe(): Either<Throwable, OutputStream>
 }
 
-interface StringMemoryData : MemoryData{
-    fun <T> openStreamAsStringAndDispose(func : (InputStreamReader) -> T) : Either<Throwable, T>
+interface StringMemoryData : MemoryData {
+    fun <T> openStreamAsStringAndDispose(func: (InputStreamReader) -> T): Either<Throwable, T>
 }
 
-class StringMemoryDataImpl constructor(private val data : MemoryData, private val enc : Charset) : StringMemoryData{
+class StringMemoryDataImpl constructor(private val data: MemoryData, private val enc: Charset) : StringMemoryData {
     override fun <T> openStreamAsStringAndDispose(func: (InputStreamReader) -> T): Either<Throwable, T> {
         return data.openStreamAsByteAndDispose { x ->
             func(InputStreamReader(x, enc))
@@ -31,26 +31,26 @@ class StringMemoryDataImpl constructor(private val data : MemoryData, private va
     override fun openWriteStreamUnsafe(): Either<Throwable, OutputStream> {
         return data.openWriteStreamUnsafe()
     }
-
 }
 
-interface HtmlMemoryData : StringMemoryData{
-    fun <T> parseAsHtmlDocument(func : (HtmlParsable) -> T) : Either<Throwable, T>
+interface HtmlMemoryData : StringMemoryData {
+    fun <T> parseAsHtmlDocument(func: (HtmlParsable) -> T): Either<Throwable, T>
 }
 
-class HtmlMemoryDataImpl constructor(private val data : StringMemoryData, private val fac : HtmlDocumentFactory) : HtmlMemoryData{
-    val doc : Lazy<Either<Throwable, HtmlParsable>>
+class HtmlMemoryDataImpl constructor(private val data: StringMemoryData, private val fac: HtmlDocumentFactory) : HtmlMemoryData {
+    val doc: Lazy<Either<Throwable, HtmlParsable>>
 
     init {
         doc = lazy {
-             data.openStreamAsStringAndDispose {
-                     x -> fac.create(x) }
+            data.openStreamAsStringAndDispose {
+                x ->
+                fac.create(x)
+            }
         }
-
     }
 
     override fun <T> parseAsHtmlDocument(func: (HtmlParsable) -> T): Either<Throwable, T> {
-        return doc.value.map {x -> func(x) }
+        return doc.value.map { x -> func(x) }
     }
 
     override fun <T> openStreamAsStringAndDispose(func: (InputStreamReader) -> T): Either<Throwable, T> {
@@ -64,14 +64,13 @@ class HtmlMemoryDataImpl constructor(private val data : StringMemoryData, privat
     override fun openWriteStreamUnsafe(): Either<Throwable, OutputStream> {
         return data.openWriteStreamUnsafe()
     }
-
 }
 
-interface FileMemoryData : MemoryData{
-    val file : FileIOToken
+interface FileMemoryData : MemoryData {
+    val file: FileIOToken
 }
 
-class FileMemoryDataImpl constructor(override val file : FileIOToken) : FileMemoryData{
+class FileMemoryDataImpl constructor(override val file: FileIOToken) : FileMemoryData {
     override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Either<Throwable, T> {
         return file.openFileReadStream(func)
     }
@@ -81,24 +80,24 @@ class FileMemoryDataImpl constructor(override val file : FileIOToken) : FileMemo
     }
 }
 
-fun <T> MemoryData.ifHtml(action : (HtmlMemoryData) -> T, el : (MemoryData) -> T) : T{
-    if(this is HtmlMemoryData){
+fun <T> MemoryData.ifHtml(action: (HtmlMemoryData) -> T, el: (MemoryData) -> T): T {
+    if (this is HtmlMemoryData) {
         return action(this)
     }
 
     return el(this)
 }
 
-fun <T> MemoryData.ifString(action : (StringMemoryData) -> T, el : (MemoryData) -> T) : T{
-    if(this is StringMemoryData){
+fun <T> MemoryData.ifString(action: (StringMemoryData) -> T, el: (MemoryData) -> T): T {
+    if (this is StringMemoryData) {
         return action(this)
     }
 
     return el(this)
 }
 
-fun <T> MemoryData.ifFile(action : (FileMemoryData) -> T, el : (MemoryData) -> T) : T{
-    if(this is FileMemoryData){
+fun <T> MemoryData.ifFile(action: (FileMemoryData) -> T, el: (MemoryData) -> T): T {
+    if (this is FileMemoryData) {
         return action(this)
     }
 

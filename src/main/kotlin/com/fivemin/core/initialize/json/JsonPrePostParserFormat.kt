@@ -1,6 +1,5 @@
 package com.fivemin.core.initialize.json
 
-import arrow.core.Either
 import arrow.core.Option
 import arrow.core.none
 import arrow.core.toOption
@@ -9,7 +8,6 @@ import com.fivemin.core.engine.parser.TextExtractorImpl
 import com.fivemin.core.engine.transaction.TagBuilder
 import com.fivemin.core.engine.transaction.TagSelector
 import com.fivemin.core.engine.transaction.UriRegexPageCondition
-import com.fivemin.core.engine.transaction.prepareRequest.preParser.PreParserImpl
 import com.fivemin.core.engine.transaction.prepareRequest.preParser.PreParserPage
 import com.fivemin.core.engine.transaction.prepareRequest.preParser.PreParserPageImpl
 import com.fivemin.core.engine.transaction.serialize.postParser.*
@@ -35,10 +33,10 @@ class JsonParserPageFormat(
     val targetRequesterEngine: JsonParseRequesterFormat
 ) {
     @Transient
-    val attributeFactory : DocumentAttributeFactory= DocumentAttributeFactoryImpl()
+    val attributeFactory: DocumentAttributeFactory = DocumentAttributeFactoryImpl()
 
     @Transient
-    val extractor: TextExtractor= TextExtractorImpl()
+    val extractor: TextExtractor = TextExtractorImpl()
 
     init {
     }
@@ -77,9 +75,11 @@ class JsonParserPageFormat(
             condition.build(),
             targetContainer.build(),
             targetRequesterEngine.build(),
-            TagBuilder(tag.map {
-                it.build()
-            }.toOption())
+            TagBuilder(
+                tag.map {
+                    it.build()
+                }.toOption()
+            )
         )
     }
 }
@@ -141,7 +141,8 @@ data class JsonParserLinkAttributeFormat(
         return LinkRequestFactory(
             attributeName,
             LinkSelector(getNav(), getRegex()),
-            destPage.toOption().map { PageName(it) })
+            destPage.toOption().map { PageName(it) }
+        )
     }
 }
 

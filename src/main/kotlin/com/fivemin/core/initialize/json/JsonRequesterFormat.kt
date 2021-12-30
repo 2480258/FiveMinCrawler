@@ -1,9 +1,7 @@
 package com.fivemin.core.initialize.json
 
 import arrow.core.Some
-import arrow.core.toOption
 import com.fivemin.core.engine.*
-import com.fivemin.core.engine.transaction.serialize.postParser.RequestFactory
 import com.fivemin.core.initialize.RequesterFactory
 import com.fivemin.core.parser.HtmlDocumentFactoryImpl
 import com.fivemin.core.request.*
@@ -19,7 +17,7 @@ data class JsonRequesterCompFormat(
     val engines: List<JsonRequesterEngineFormat>,
     val cookiePolicies: List<JsonRequesterCookieSyncFormat>
 ) {
-    fun build(factories: Iterable<RequesterFactory>, io : DirectIO): RequesterSelector {
+    fun build(factories: Iterable<RequesterFactory>, io: DirectIO): RequesterSelector {
         val cookies = cookiePolicies.map {
             it.build(engines)
         }
@@ -50,9 +48,11 @@ class JsonRequesterCookieSyncFormat(
         return if (syncDest.index == null) {
             CookieSyncGradiant(
                 syncSrc.build(),
-                (0 until engine.single {
-                    it.requesterEngineName == syncDest.engine
-                }.requesters.count()).map {
+                (
+                    0 until engine.single {
+                        it.requesterEngineName == syncDest.engine
+                    }.requesters.count()
+                    ).map {
                     PerformedRequesterInfo(RequesterEngineInfo(syncDest.engine), RequesterSlotInfo(it))
                 }
             )
@@ -78,7 +78,7 @@ class JsonRequesterEngineFormat(
     val type: String,
     val requesters: List<JsonRequesterFormat>
 ) {
-    fun build(factories: Iterable<RequesterFactory>, io: DirectIO, factory: CookieResolveTargetFactory) : RequesterEngine<ResponseData>{
+    fun build(factories: Iterable<RequesterFactory>, io: DirectIO, factory: CookieResolveTargetFactory): RequesterEngine<ResponseData> {
         var dic = (0 until requesters.count()).associate {
             var info = buildInfo(it)
             var req = requesters.elementAt(it)
@@ -95,8 +95,8 @@ class JsonRequesterEngineFormat(
         info: PerformedRequesterInfo,
         io: DirectIO,
         factory: CookieResolveTargetFactory
-    ) : RequesterCore<ResponseData>{
-        if(type == "Default"){
+    ): RequesterCore<ResponseData> {
+        if (type == "Default") {
             return fmt.build(info, io, factory)
         }
 

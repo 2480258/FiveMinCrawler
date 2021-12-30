@@ -15,7 +15,7 @@ class RequestContentInfoFactoryImpl<Document : Request>(private val factories: I
         var ret = factories.map {
             it.get(trans)
         }.filterOption()
-        
+
         return RequestContentInfo(ret)
     }
 }
@@ -26,21 +26,25 @@ interface RequestFactory {
 
 class ExtAttrRequestFactory(private val attributeTargetName: String, private val selector: LinkSelector) :
     RequestFactory {
-    
+
     private val extractor: LinkExtractor = LinkExtractImpl()
-    
+
     private fun create(info: Iterable<LinkExtractedInfo>, token: RequestToken, parentURI: URI): RequestLinkInfo {
-        return RequestLinkInfo(attributeTargetName, info.map {
-            HttpRequestImpl(
-                Some(token),
-                it.absoluteURI,
-                RequestType.ATTRIBUTE,
-                PerRequestHeaderProfile(RequestHeaderProfile(), Some(it.referrer), parentURI, it.absoluteURI),
-                it.additionalTag
-            )
-        }, InitialOption())
+        return RequestLinkInfo(
+            attributeTargetName,
+            info.map {
+                HttpRequestImpl(
+                    Some(token),
+                    it.absoluteURI,
+                    RequestType.ATTRIBUTE,
+                    PerRequestHeaderProfile(RequestHeaderProfile(), Some(it.referrer), parentURI, it.absoluteURI),
+                    it.additionalTag
+                )
+            },
+            InitialOption()
+        )
     }
-    
+
     override fun <Document : Request> get(trans: FinalizeRequestTransaction<Document>): Option<RequestLinkInfo> {
         return trans.result.map {
             extractor.extract(it, Some(selector)).map {
@@ -56,27 +60,31 @@ class LinkRequestFactory(
     private val preDestPage: Option<PageName>
 ) : RequestFactory {
     private val extractor: LinkExtractor
-    
+
     init {
         extractor = LinkExtractImpl()
     }
-    
+
     private fun create(info: Iterable<LinkExtractedInfo>, token: RequestToken, parentURI: URI): RequestLinkInfo {
         val parseOption = preDestPage.map {
             ParseOption(it)
         }
-        
-        return RequestLinkInfo(attributeTargetName, info.map {
-            HttpRequestImpl(
-                Some(token),
-                it.absoluteURI,
-                RequestType.LINK,
-                PerRequestHeaderProfile(RequestHeaderProfile(), Some(it.referrer), parentURI, it.absoluteURI),
-                it.additionalTag
-            )
-        }, InitialOption(parseOption = parseOption))
+
+        return RequestLinkInfo(
+            attributeTargetName,
+            info.map {
+                HttpRequestImpl(
+                    Some(token),
+                    it.absoluteURI,
+                    RequestType.LINK,
+                    PerRequestHeaderProfile(RequestHeaderProfile(), Some(it.referrer), parentURI, it.absoluteURI),
+                    it.additionalTag
+                )
+            },
+            InitialOption(parseOption = parseOption)
+        )
     }
-    
+
     override fun <Document : Request> get(trans: FinalizeRequestTransaction<Document>): Option<RequestLinkInfo> {
         return trans.result.map {
             extractor.extract(it, Some(selector)).map {

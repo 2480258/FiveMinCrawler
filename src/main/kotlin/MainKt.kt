@@ -9,29 +9,27 @@ class MainKt {
     companion object {
         private val logger = LoggerController.getLogger("MainKt")
 
-
         @JvmStatic
         fun main(args: Array<String>) {
             logger.debug("Logging Level = Debug")
             System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
-    
+
             runBlocking {
                 try {
                     logger.info("Starting crawler")
-        
+
                     start(args)
-                } catch (e : Exception) {
+                } catch (e: Exception) {
                     println(e.printStackTrace())
                 }
-    
+
                 logger.info("Finished")
-    
+
                 kotlin.system.exitProcess(0)
             }
         }
 
         suspend fun start(args: Array<String>) {
-
 
             val parser = ArgParser("example")
             val uri by parser.option(ArgType.String, shortName = "u", description = "crawl uri")
@@ -44,7 +42,7 @@ class MainKt {
 
             parser.parse(args)
 
-            if(argsText != null) {
+            if (argsText != null) {
                 start(File(argsText).readText().split(' ').toTypedArray())
             } else {
                 val opt = StartTaskOption(uri!!, paramPath!!, pluginPath.toOption(), resumeFrom.toOption(), rootPath.toOption())

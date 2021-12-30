@@ -9,9 +9,9 @@ With this feature, you can make a crawler for specific site very fast.
 
 ## Features
 
-- Recursively downloads web pages that pass condition specified by you (regex)
-- Effectively parses downloaded html powered by [jsoup](https://github.com/jhy/jsoup)
-- Saves parsed and downloaded things (web pages, images and others) as you want (directory and file names)
+- Recursively downloads web pages that pass conditions specified by you (regex)
+- Effectively parses downloaded HTML powered by [jsoup](https://github.com/jhy/jsoup)
+- Saves parsed and downloaded things (web pages, images, and others) as you want (directory and file names)
 - Skips downloading pages if you did before (only applies pages that you want)
 
 ## Getting Started

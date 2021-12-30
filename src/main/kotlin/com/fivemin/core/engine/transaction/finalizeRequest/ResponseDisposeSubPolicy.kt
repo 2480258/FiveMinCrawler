@@ -1,7 +1,6 @@
 package com.fivemin.core.engine.transaction.finalizeRequest
 
 import arrow.core.Either
-import arrow.core.valid
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy

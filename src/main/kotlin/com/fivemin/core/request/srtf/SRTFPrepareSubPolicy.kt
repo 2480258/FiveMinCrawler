@@ -7,7 +7,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
-class SRTFPrepareSubPolicy(private val sc : SRTFScheduler) : TransactionSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request> {
+class SRTFPrepareSubPolicy(private val sc: SRTFScheduler) : TransactionSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request> {
 
     override suspend fun process(
         source: InitialTransaction<Request>,

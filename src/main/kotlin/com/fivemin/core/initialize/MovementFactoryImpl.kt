@@ -11,7 +11,7 @@ import com.fivemin.core.engine.transaction.prepareRequest.PrepareRequestTransact
 import com.fivemin.core.engine.transaction.serialize.PostParser
 import com.fivemin.core.engine.transaction.serialize.SerializeTransactionMovementImpl
 
-class MovementFactoryImpl(private val pp : PreParser, private val rw : RequestWaiter, private val ep : ExportParser, private val es : ExportState, private val po : PostParser<Request>) : MovementFactory<Request> {
+class MovementFactoryImpl(private val pp: PreParser, private val rw: RequestWaiter, private val ep: ExportParser, private val es: ExportState, private val po: PostParser<Request>) : MovementFactory<Request> {
     override fun <Document : Request> findRequest(): ExecuteRequestMovement<Document> {
         return FinalizeRequestTransactionMovement(rw)
     }
@@ -27,5 +27,4 @@ class MovementFactoryImpl(private val pp : PreParser, private val rw : RequestWa
     override fun <Document : Request> findSerialize(): ExecuteSerializeMovement<Document> {
         return SerializeTransactionMovementImpl(po)
     }
-
 }

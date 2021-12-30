@@ -1,7 +1,6 @@
 package com.fivemin.core.parser
 
 import arrow.core.Option
-import arrow.core.invalidNel
 import arrow.core.none
 import arrow.core.toOption
 import com.fivemin.core.engine.HtmlDocumentFactory
@@ -12,8 +11,6 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.io.InputStreamReader
-import java.nio.charset.Charset
-
 
 class HtmlDocumentFactoryImpl : HtmlDocumentFactory {
     override fun create(html: String): HtmlParsable {
@@ -26,14 +23,13 @@ class HtmlDocumentFactoryImpl : HtmlDocumentFactory {
 }
 
 class HtmlParseableImpl(
-    val doc : Document
-) : HtmlParsable{
+    val doc: Document
+) : HtmlParsable {
 
     override fun getElements(nav: ParserNavigator): Iterable<HtmlElement> {
         return doc.select(nav.queryStr).map {
             HtmlElementImpl(it)
         }
-
     }
 
     override fun getElement(nav: ParserNavigator): Option<HtmlElement> {
@@ -41,11 +37,10 @@ class HtmlParseableImpl(
             HtmlElementImpl(it)
         }
     }
-
 }
 
 class HtmlElementImpl(
-    val elem : Element
+    val elem: Element
 ) : HtmlElement {
     override val outerHtml: String
         get() = elem.outerHtml()
@@ -57,7 +52,7 @@ class HtmlElementImpl(
     override fun getAttribute(name: String): Option<String> {
         var ret = elem.attr(name)
 
-        if(ret == ""){
+        if (ret == "") {
             return none()
         }
 
@@ -75,5 +70,4 @@ class HtmlElementImpl(
             HtmlElementImpl(it)
         }
     }
-
 }

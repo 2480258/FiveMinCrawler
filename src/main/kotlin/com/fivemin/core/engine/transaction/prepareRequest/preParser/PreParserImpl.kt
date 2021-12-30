@@ -12,32 +12,31 @@ class PreParserImpl(
     private val pages: List<PreParserPage>,
     private val attributeRequestOption: RequestOption
 ) : PreParser {
-    
+
     companion object {
         private val logger = LoggerController.getLogger("SerializeTransactionMovementImpl")
     }
-    
+
     override fun <Document : Request> generateInfo(init: InitialTransaction<Document>): Option<PrepareTransaction<Document>> {
         var ret = globalCondition.check(init).isMet
 
-        return if(ret && init.request.requestType == RequestType.LINK){
-            var ret = pages.map{
+        return if (ret && init.request.requestType == RequestType.LINK) {
+            var ret = pages.map {
                 Pair(it, it.makeTransaction(init))
             }
-    
+
             logPages(ret, init)
-            
+
             ret.map {
                 it.second
             }.filterOption().singleOrNone()
-        } else if(ret){
+        } else if (ret) {
             Some(PrepareRequestTransactionImpl(init, init.tags, attributeRequestOption))
-        }
-        else{
+        } else {
             none()
         }
     }
-    
+
     private fun <Document : Request> logPages(
         ret: List<Pair<PreParserPage, Option<PrepareTransaction<Document>>>>,
         init: InitialTransaction<Document>
@@ -45,18 +44,19 @@ class PreParserImpl(
         val pages = ret.filter {
             it.second.isNotEmpty()
         }
-        
-        if(pages.count() > 1) {
+
+        if (pages.count() > 1) {
             pages.map {
-                logger.warn(init.request.getDebugInfo() + " < has conflicting pages: " + ret.map {
-                    it.first
-                }.fold("") { x, y -> x + ", " + y.name.name })
+                logger.warn(
+                    init.request.getDebugInfo() + " < has conflicting pages: " + ret.map {
+                        it.first
+                    }.fold("") { x, y -> x + ", " + y.name.name }
+                )
             }
         }
-        
-        if(!pages.any()) {
+
+        if (!pages.any()) {
             logger.warn(init.request.getDebugInfo() + " < has no matching pages")
         }
     }
-    
 }

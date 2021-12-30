@@ -3,7 +3,6 @@ package com.fivemin.core.request.srtf
 import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.none
-import arrow.core.toOption
 import com.fivemin.core.engine.*
 import com.fivemin.core.request.PreprocessedRequest
 import com.fivemin.core.request.queue.DequeueOptimizationPolicy
@@ -47,7 +46,6 @@ class SRTFScheduler : DequeueOptimizationPolicy {
             var fullcount = lst.sumOf {
                 it.value.count
             }
-
 
             if (memorization.containsKey(wshandle) && memorization[wshandle]?.second == fullcount) {
                 return memorization[wshandle]!!.first
@@ -100,7 +98,7 @@ class SRTFScheduler : DequeueOptimizationPolicy {
                 handle,
                 parent,
                 pageBlock
-            ) //handle is unique so if duplicated then preprocess called twice or retry.
+            ) // handle is unique so if duplicated then preprocess called twice or retry.
 
             if (parent.isEmpty() && !watchList.contains(handle)) {
                 watchList.put(handle, WorkingSetWatchList())
@@ -135,7 +133,6 @@ class SRTFScheduler : DequeueOptimizationPolicy {
             }
         }
     }
-
 
     fun atExportStage(token: RequestToken) {
         synchronized(sync) {

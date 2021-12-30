@@ -7,7 +7,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
-class SRTFExportSubPolicy(private val sc : SRTFScheduler) : TransactionSubPolicy<SerializeTransaction<Request>, ExportTransaction<Request>, Request> {
+class SRTFExportSubPolicy(private val sc: SRTFScheduler) : TransactionSubPolicy<SerializeTransaction<Request>, ExportTransaction<Request>, Request> {
     override suspend fun process(
         source: SerializeTransaction<Request>,
         dest: ExportTransaction<Request>,

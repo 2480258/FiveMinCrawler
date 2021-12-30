@@ -4,5 +4,5 @@ import com.fivemin.core.engine.Request
 import com.fivemin.core.request.PreprocessedRequest
 
 interface DequeueOptimizationPolicy {
-    fun getScore(req : PreprocessedRequest<Request>) : Double
+    fun getScore(req: PreprocessedRequest<Request>): Double
 }

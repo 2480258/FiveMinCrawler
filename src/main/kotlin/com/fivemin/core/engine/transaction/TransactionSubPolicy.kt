@@ -5,7 +5,7 @@ import com.fivemin.core.engine.*
 import kotlinx.coroutines.Deferred
 
 interface TransactionSubPolicy <in SrcTrans : Transaction<Document>,
-        DstTrans : StrictTransaction<SrcTrans, Document>,
-        out Document : Request>{
-    suspend fun process(source : SrcTrans, dest : DstTrans, info : TaskInfo, state : SessionStartedState) : Deferred<Either<Throwable, DstTrans>>
+    DstTrans : StrictTransaction<SrcTrans, Document>,
+    out Document : Request> {
+    suspend fun process(source: SrcTrans, dest: DstTrans, info: TaskInfo, state: SessionStartedState): Deferred<Either<Throwable, DstTrans>>
 }

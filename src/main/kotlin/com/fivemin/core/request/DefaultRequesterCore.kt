@@ -2,7 +2,6 @@ package com.fivemin.core.request
 
 import arrow.core.Either
 import com.fivemin.core.engine.PerformedRequesterInfo
-import com.fivemin.core.engine.ResponseBody
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -22,7 +21,7 @@ class DefaultRequesterCore(
 
     override suspend fun request(request: DequeuedRequest): Deferred<Either<Throwable, HttpResponseMessage>> {
         return coroutineScope {
-            async{
+            async {
                 val ret = procedure.request(request.request.request.request.request)
 
                 select {

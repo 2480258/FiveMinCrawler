@@ -22,7 +22,6 @@ class SRTFFinalizeSubPolicy(private val sc: SRTFScheduler) :
 
                     dest
                 }
-
             }
         }
     }

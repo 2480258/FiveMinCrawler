@@ -5,5 +5,5 @@ import com.fivemin.core.engine.*
 import kotlinx.coroutines.Deferred
 
 interface PostParserContentPage<in Document : Request> {
-    suspend fun extract(req : FinalizeRequestTransaction<Document>, info : TaskInfo, state : SessionStartedState) : Deferred<Option<Iterable<DocumentAttribute>>>
+    suspend fun extract(req: FinalizeRequestTransaction<Document>, info: TaskInfo, state: SessionStartedState): Deferred<Option<Iterable<DocumentAttribute>>>
 }

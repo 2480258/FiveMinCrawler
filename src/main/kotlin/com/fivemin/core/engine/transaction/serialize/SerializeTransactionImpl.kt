@@ -8,7 +8,7 @@ class SerializeTransactionImpl<Document : Request>(
     override val attributes: List<DocumentAttribute>,
     override val serializeOption: SerializeOption
 ) : SerializeTransaction<Document> {
-    fun modifyTags(tagRepository: TagRepository) : SerializeTransactionImpl<Document>{
+    fun modifyTags(tagRepository: TagRepository): SerializeTransactionImpl<Document> {
         return SerializeTransactionImpl<Document>(request, tagRepository, attributes, serializeOption)
     }
 }

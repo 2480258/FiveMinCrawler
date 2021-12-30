@@ -4,8 +4,7 @@ import com.fivemin.core.engine.PerformedRequesterInfo
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
 
-class PreprocessedRequest<out Document : Request>
-    (
+class PreprocessedRequest<out Document : Request>(
     val request: DocumentRequest<Document>,
     val info: PreprocessRequestInfo
 )

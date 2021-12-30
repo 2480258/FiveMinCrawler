@@ -8,20 +8,20 @@ import com.fivemin.core.exclusiveSingleOrNone
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-
 class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessionSet>) : UniqueKeyRepository {
 
     private val dic: MutableMap<SessionToken, UniqueKeyOwnership> = mutableMapOf()
     private val list: MutableMap<UniqueKeyOwnership, MutableList<UniqueKeyState>> = mutableMapOf()
     private val lock: ReentrantLock = ReentrantLock()
-    
+
     private fun findGlobalExceptSelf(
         ownership: UniqueKeyOwnership,
         key: UniqueKey
     ): Option<UniqueKeyState> {
         if (set.fold({ false }, {
-                it.isConflict(key)
-            })) {
+            it.isConflict(key)
+        })
+        ) {
             throw UniqueKeyDuplicateException()
         }
 
@@ -35,7 +35,7 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
 
         return ret.filterOption().exclusiveSingleOrNone()
     }
-    
+
     private fun findFromSelf(self: UniqueKeyOwnership, key: UniqueKey): Option<UniqueKeyState> {
         return list[self].toOption().map {
             it.exclusiveSingleOrNone {
@@ -44,7 +44,6 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
         }.flatten()
     }
 
-    
     private fun findFromStateList(
         states: List<UniqueKeyState>,
         key: UniqueKey
@@ -69,7 +68,8 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
 
             findFromSelf(handle, key).fold(
                 { list[handle]!!.add(UniqueKeyState(key)) },
-                { it.increaseDuplicationCount() })
+                { it.increaseDuplicationCount() }
+            )
         }
     }
 
@@ -81,7 +81,8 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
                     dic[token] = os
                     os
                 },
-                { x -> x })
+                { x -> x }
+            )
         }
     }
 
@@ -106,9 +107,11 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
                 dic.contains(x)
             }
 
-            return ArchivedSessionSet(lst.map {
-                ArchivedSession(list[dic[it]]!!.map { it.key })
-            })
+            return ArchivedSessionSet(
+                lst.map {
+                    ArchivedSession(list[dic[it]]!!.map { it.key })
+                }
+            )
         }
     }
 
@@ -123,8 +126,6 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
 
             duplicateCount++
         }
-
-
     }
 
     class UniqueKeyOwnership private constructor(val tokenNumber: Int) {

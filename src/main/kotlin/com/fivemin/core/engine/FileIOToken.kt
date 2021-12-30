@@ -2,16 +2,13 @@ package com.fivemin.core.engine
 
 import arrow.core.Either
 import arrow.core.Valid
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.StandardCopyOption
-
 
 class DirectoryIOToken constructor(private val additionalPath: String) {
     val Path: File
@@ -84,25 +81,23 @@ class DirectoryIOToken constructor(private val additionalPath: String) {
             }
         }
     }
-
 }
 @Serializable
 data class FileName constructor(private val filename: String) {
     override fun equals(other: Any?): Boolean {
-        if(other != null && other is FileName) {
+        if (other != null && other is FileName) {
             return name.name == other.name.name
         }
-        
+
         return false
     }
-    
+
     override fun hashCode(): Int {
         return filename.hashCode()
     }
-    
-    
+
     val name: File
-    get() = File(checkFileName(filename))
+        get() = File(checkFileName(filename))
 
     init {
 
@@ -147,7 +142,6 @@ data class FileName constructor(private val filename: String) {
             return name.contains(File.separator)
         }
 
-
         fun checkFileName(name: String): String {
             if (invalidFileNames.contains(name.uppercase())) {
                 return name + ErrorChar
@@ -189,7 +183,7 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
     }
 
     private fun ensureDirectory() {
-        if(!Files.exists(directoryPart.Path.toPath())) {
+        if (!Files.exists(directoryPart.Path.toPath())) {
             Files.createDirectories(directoryPart.Path.toPath())
         }
     }
@@ -230,7 +224,7 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
     fun remove() {
         Files.delete(result.toPath())
     }
-    
+
     fun moveFileToPath(token: FileIOToken) {
         ensureDirectory()
 

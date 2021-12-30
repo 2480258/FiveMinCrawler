@@ -29,7 +29,6 @@ suspend inline fun <Return, reified ExpectBodyType> ResponseBody.ifTypeAsync(
     return el(this)
 }
 
-
 fun <Return> ResponseBody.ifHttpSucc(
     succ: (HttpSuccessBody) -> Return,
     el: (ResponseBody) -> Return
@@ -117,8 +116,8 @@ suspend fun <Return> ResponseBody.ifRecoverableErrAsync(
 data class PerformedRequesterInfo(val engine: RequesterEngineInfo, val slot: RequesterSlotInfo)
 
 data class ResponseTime(val sentMS: Long, val receivedMS: Long) {
-    val duration : Long
-    get() = sentMS + receivedMS
+    val duration: Long
+        get() = sentMS + receivedMS
 }
 
 interface ResponseData {
@@ -141,7 +140,7 @@ interface SuccessBody : ResponseBody {
     val responseTime: ResponseTime
 }
 
-interface HttpSuccessBody : SuccessBody, HttpResponseReceivedBody{
+interface HttpSuccessBody : SuccessBody, HttpResponseReceivedBody {
     val contentType: MediaType
 }
 
@@ -162,7 +161,7 @@ interface RedirectResponseBody : HttpResponseReceivedBody {
 }
 
 data class RequestBody(
-    val originalUri : URI,
+    val originalUri: URI,
     val currentUri: URI,
     val requestHeader: NetworkHeader
 )

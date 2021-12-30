@@ -1,8 +1,7 @@
 package com.fivemin.core.request
 
-import arrow.core.Option
 import arrow.core.Either
-import com.fivemin.core.engine.HttpRequest
+import arrow.core.Option
 import com.fivemin.core.engine.ResponseBody
 import okhttp3.Request
 import okhttp3.Response

@@ -15,7 +15,6 @@ class CrawlerTaskFactory<Document : Request>(val policySet: DocumentPolicyStorag
         return CrawlerTask2(ps.find(), ps.find())
     }
 
-
     inline fun <reified S1 : Transaction<Document>, reified S2 : StrictTransaction<S1, Document>, reified S3 : StrictTransaction<S2, Document>, reified S4 : StrictTransaction<S3, Document>> get3(
         type: DocumentType
     ): CrawlerTask3<S1, S2, S3, S4, Document, Document, Document, Document> {

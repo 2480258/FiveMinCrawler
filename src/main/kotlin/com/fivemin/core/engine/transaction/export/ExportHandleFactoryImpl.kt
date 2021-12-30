@@ -3,7 +3,6 @@ package com.fivemin.core.engine.transaction.export
 import com.fivemin.core.engine.*
 import com.fivemin.core.export.ExportInfoImpl
 import java.io.InputStream
-import java.io.OutputStream
 
 data class ExportHandleImpl(override val request: ExportInfo, override val data: ExportData) : ExportHandle {
     override fun withNewExportInfo(info: ExportInfo): ExportHandle {
@@ -11,10 +10,10 @@ data class ExportHandleImpl(override val request: ExportInfo, override val data:
     }
 }
 
-class ExportHandleFactoryImpl(private val io : DirectIO, private val bookName : String) : ExportHandleFactory {
-    private val mainPath : DirectoryIOToken
+class ExportHandleFactoryImpl(private val io: DirectIO, private val bookName: String) : ExportHandleFactory {
+    private val mainPath: DirectoryIOToken
 
-    init{
+    init {
         mainPath = io.getToken(UsingPath.EXPORT)
     }
 

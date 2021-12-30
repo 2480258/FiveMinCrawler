@@ -36,11 +36,11 @@ class TagRepositoryImpl(
         })
     }
 
-
     override fun get(key: String): Tag {
         if (set.any {
-                it.name == key
-            }) {
+            it.name == key
+        }
+        ) {
             return set.single {
                 it.name == key
             }

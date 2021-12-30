@@ -17,7 +17,7 @@ interface Request : Taggable {
 
     fun copyWith(newTarget: Option<URI> = none(), tags: Option<TagRepository> = none()): Request
 
-    fun getDebugInfo() : String{
+    fun getDebugInfo(): String {
         return "[" + token.tokenNumber + "]: " + target.path + (target.query ?: "")
     }
 }

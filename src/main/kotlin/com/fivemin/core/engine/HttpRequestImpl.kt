@@ -10,7 +10,7 @@ class HttpRequestImpl(
     override val headerOption: PerRequestHeaderProfile,
     override val tags: TagRepository
 ) : HttpRequest {
-    override val token : RequestToken = RequestToken.create()
+    override val token: RequestToken = RequestToken.create()
     override val documentType: DocumentType = DocumentType.NATIVE_HTTP
 
     override fun copyWith(newTarget: Option<URI>, newTags: Option<TagRepository>): HttpRequest {

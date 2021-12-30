@@ -1,9 +1,9 @@
 package com.fivemin.core.request
 
 interface DequeueDecisionFactory {
-    fun get() : DequeueDecision
+    fun get(): DequeueDecision
 }
 
-enum class DequeueDecision{
+enum class DequeueDecision {
     ALLOW, DELAY, DENY
 }

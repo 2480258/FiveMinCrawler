@@ -21,40 +21,40 @@ class PreParserPageImpl(
     private val requestOption: RequestOption,
     private val tagBuilder: TagBuilder<InitialTransaction<Request>, Request>
 ) : PreParserPage {
-    
-    
+
     companion object {
         private val logger = LoggerController.getLogger("PostParserContentPageImpl")
     }
-    
+
     override fun <Document : Request> makeTransaction(init: InitialTransaction<Document>): Option<PrepareTransaction<Document>> {
-        var ret = if(isPageNamePreDefined(init)){
+        var ret = if (isPageNamePreDefined(init)) {
             checkPreDefined(init)
-        } else if(condition.check(init).isMet){
+        } else if (condition.check(init).isMet) {
             Some(buildTrans(init))
-        } else{
+        } else {
             none()
         }
-        
+
         ret.map {
             logPageName(init, it)
         }
-        
+
         return ret
     }
-    
-    private fun logPageName(init: InitialTransaction<Request>, opt : PrepareDocumentRequestTransactionImpl<Request>) {
+
+    private fun logPageName(init: InitialTransaction<Request>, opt: PrepareDocumentRequestTransactionImpl<Request>) {
         logger.debug(init.request.getDebugInfo() + " < checking page name: " + opt.parseOption.name.name)
     }
 
     private fun <Document : Request> isPageNamePreDefined(init: InitialTransaction<Document>): Boolean {
-        return init.option.parseOption.isNotEmpty() //Option<ParseOption>.PageName
+        return init.option.parseOption.isNotEmpty() // Option<ParseOption>.PageName
     }
 
     private fun <Document : Request> checkPreDefined(init: InitialTransaction<Document>): Option<PrepareDocumentRequestTransactionImpl<Document>> {
         return if (init.option.parseOption.fold({ false }, {
-                name == it.name
-            })) {
+            name == it.name
+        })
+        ) {
             Some(buildTrans(init))
         } else {
             none()
@@ -67,5 +67,4 @@ class PreParserPageImpl(
             ParseOption(name), containerOption
         )
     }
-
 }

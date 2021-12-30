@@ -7,9 +7,6 @@ import com.fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.selects.select
-import mu.KotlinLogging
 
 class TaskDetachedException : Exception()
 
@@ -29,8 +26,9 @@ class DetachableSubPolicy<Document : Request> :
         return coroutineScope {
             async {
                 val ret = if (dest.ifDocument({
-                        it.containerOption.workingSetMode == WorkingSetMode.Enabled
-                    }, { false })) {
+                    it.containerOption.workingSetMode == WorkingSetMode.Enabled
+                }, { false })
+                ) {
                     var task = info.createTask<Document>()
                         .get4<InitialTransaction<Document>, PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, ExportTransaction<Document>>(
                             dest.request.documentType
@@ -44,7 +42,7 @@ class DetachableSubPolicy<Document : Request> :
                         }
                     }
 
-                    if(disp.isNotEmpty()) {
+                    if (disp.isNotEmpty()) {
                         TaskDetachedException().left()
                     } else {
                         dest.right()
@@ -56,6 +54,5 @@ class DetachableSubPolicy<Document : Request> :
                 ret
             }
         }
-
     }
 }

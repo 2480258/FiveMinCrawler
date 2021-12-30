@@ -2,7 +2,6 @@ package com.fivemin.core.request
 
 import arrow.core.Either
 import arrow.core.right
-import arrow.core.valid
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
 import java.util.*
@@ -27,7 +26,7 @@ class RequesterSelectorImpl(val requesterMap: Map<RequesterEngineInfo, Requester
     }
 
     private fun <Resp : ResponseData> getEngine(info: RequesterEngineInfo): Either<Throwable, RequesterEngine<Resp>> {
-        return (requesterMap[info]!! as RequesterEngine<Resp>).right() //we wouldn't check type; if wrong restart is required anyway
+        return (requesterMap[info]!! as RequesterEngine<Resp>).right() // we wouldn't check type; if wrong restart is required anyway
     }
 
     private fun <Resp : ResponseData> getCore(

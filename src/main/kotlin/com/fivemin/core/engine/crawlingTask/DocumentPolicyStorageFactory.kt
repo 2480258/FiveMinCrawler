@@ -7,7 +7,6 @@ import com.fivemin.core.engine.transaction.prepareRequest.PrepareRequestTransact
 import com.fivemin.core.engine.transaction.serialize.SerializeTransactionPolicy
 import kotlin.reflect.*
 
-
 class DocumentPolicyStorageFactory(
     val prepare: PrepareRequestTransactionPolicy<Request>,
     val request: FinalizeRequestTransactionPolicy<Request>,
@@ -18,7 +17,6 @@ class DocumentPolicyStorageFactory(
         return DocumentTypePolicyStorage(prepare, request, serialize, export)
     }
 }
-
 
 class DocumentTypePolicyStorage<Document : Request>(
     val prepare: PrepareRequestTransactionPolicy<Request>,

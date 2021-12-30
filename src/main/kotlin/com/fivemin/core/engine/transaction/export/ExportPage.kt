@@ -1,44 +1,40 @@
 package com.fivemin.core.engine.transaction.export
 
-import arrow.core.Either
-import arrow.core.filterOption
-import arrow.core.right
 import arrow.core.*
+import arrow.core.filterOption
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import javax.swing.text.Document
 
 interface ExportPage {
-    val pageName : String
-    fun <Document : Request> isAcceptable(trans : SerializeTransaction<Document>) : Boolean
-    fun <Document : Request> export(trans : SerializeTransaction<Document>) : Iterable<ExportHandle>
+    val pageName: String
+    fun <Document : Request> isAcceptable(trans: SerializeTransaction<Document>): Boolean
+    fun <Document : Request> export(trans: SerializeTransaction<Document>): Iterable<ExportHandle>
 }
 
-class ExportPageImpl(override val pageName: String, private val targetAttributeName : Iterable<String>, private val adapter: ExportAdapter) : ExportPage{
-    
+class ExportPageImpl(override val pageName: String, private val targetAttributeName: Iterable<String>, private val adapter: ExportAdapter) : ExportPage {
+
     companion object {
         private val logger = LoggerController.getLogger("ExportPageImpl")
     }
-    
-    
-    private val specialAttributeTagFactory : SpecialAttributeTagFactory = SpecialAttributeTagFactory()
+
+    private val specialAttributeTagFactory: SpecialAttributeTagFactory = SpecialAttributeTagFactory()
     override fun <Document : Request> isAcceptable(trans: SerializeTransaction<Document>): Boolean {
         return trans.serializeOption.parseOption.name.name == pageName
     }
-    
-    
+
     override fun <Document : Request> export(trans: SerializeTransaction<Document>): Iterable<ExportHandle> {
         return adapter.parse(trans.request, parseInfo(trans)).map {
             it.swap().map {
-                logger.warn(trans.request, "is not exported due to: " , it.toOption())
+                logger.warn(trans.request, "is not exported due to: ", it.toOption())
             }
-    
+
             it.orNull().toOption()
         }.filterOption()
     }
 
-    private fun <Document : Request> parseInfo(trans : SerializeTransaction<Document>) : Iterable<ExportAttributeInfo>{
-        var ret = tagSelect(trans).map{
+    private fun <Document : Request> parseInfo(trans: SerializeTransaction<Document>): Iterable<ExportAttributeInfo> {
+        var ret = tagSelect(trans).map {
             Pair(it.info, buildTagAll(trans, it.info.name))
         }
 
@@ -49,13 +45,13 @@ class ExportPageImpl(override val pageName: String, private val targetAttributeN
         }
     }
 
-    private fun <Document : Request> tagSelect(trans : SerializeTransaction<Document>) : Iterable<DocumentAttribute>{
+    private fun <Document : Request> tagSelect(trans: SerializeTransaction<Document>): Iterable<DocumentAttribute> {
         return trans.attributes.filter {
             targetAttributeName.contains(it.info.name)
         }
     }
 
-    private fun <Document : Request> buildTagAll(trans : SerializeTransaction<Document>, targetAttributeName: String) : Map<DocumentAttributeElement, TagRepository>{
+    private fun <Document : Request> buildTagAll(trans: SerializeTransaction<Document>, targetAttributeName: String): Map<DocumentAttributeElement, TagRepository> {
         var ret = trans.attributes.single {
             it.info.name == targetAttributeName
         }
@@ -65,7 +61,7 @@ class ExportPageImpl(override val pageName: String, private val targetAttributeN
         }
     }
 
-    private fun <Document : Request> buildSpecialTags(trans : SerializeTransaction<Document>, targetAttributeName: String, targetAttrIdx : Int) : TagRepository{
+    private fun <Document : Request> buildSpecialTags(trans: SerializeTransaction<Document>, targetAttributeName: String, targetAttrIdx: Int): TagRepository {
         return specialAttributeTagFactory.build(trans, AttributeLocator(targetAttributeName, targetAttrIdx))
     }
 }

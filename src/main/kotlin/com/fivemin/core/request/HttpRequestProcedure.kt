@@ -1,14 +1,16 @@
 package com.fivemin.core.request
 
-import arrow.core.Option
 import arrow.core.Either
-import com.fivemin.core.engine.*
-import com.fivemin.core.request.adapter.RequesterAdapterImpl
-import com.fivemin.core.request.cookie.*
+import com.fivemin.core.engine.PerformedRequesterInfo
+import com.fivemin.core.engine.Request
+import com.fivemin.core.engine.ResponseBody
+import com.fivemin.core.request.cookie.CookieRepository
+import com.fivemin.core.request.cookie.CookieRepositoryImpl
+import com.fivemin.core.request.cookie.CookieResolveTarget
+import com.fivemin.core.request.cookie.CookiedRequester
+import com.fivemin.core.request.cookie.CustomCookieJar
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import java.net.URI
 
 class HttpRequestProcedure(info: PerformedRequesterInfo, config: HttpRequesterConfig, val adapter: RequesterAdapter) :
     CookiedRequester {
@@ -28,6 +30,3 @@ class HttpRequestProcedure(info: PerformedRequesterInfo, config: HttpRequesterCo
         }
     }
 }
-
-
-

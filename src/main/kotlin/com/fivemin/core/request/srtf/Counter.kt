@@ -1,18 +1,18 @@
 package com.fivemin.core.request.srtf
 
-class Counter{
-    val count : Int
-    get() {
-        return _count
-    }
+class Counter {
+    val count: Int
+        get() {
+            return _count
+        }
 
     var _count = 0
 
-    fun increase(){
+    fun increase() {
         _count++
     }
 
-    fun decrease(){
+    fun decrease() {
         _count--
     }
 }

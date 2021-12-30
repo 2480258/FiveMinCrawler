@@ -28,55 +28,54 @@ class StartTaskOption(
     val resumeAt: Option<String> = none(),
     val rootPath: Option<String> = none()
 ) {
-    
+
     companion object {
         private val logger = LoggerController.getLogger("PostParserContentPageImpl")
     }
-    
+
     private val resume: ResumeDataFactory = ResumeDataFactory()
-    
+
     suspend fun run() {
-        //TODO Log
-        
+        // TODO Log
+
         var ret = build()
-        
+
         val crawlerFactory = CrawlerFactory(ret)
-        
+
         crawlerFactory.start(URI(mainUriTarget))
-        
+
         var req = crawlerFactory.waitForFinish()
-        
+
         var tkn =
             ret.directIO.getToken(UsingPath.RESUME).withAdditionalPathFile(ResumeDataNameGenerator(this).generate())
-        
+
         tkn.openFileWriteStream {
             it.write(resume.save(req))
         }
     }
-    
+
     private fun build(): VirtualOption {
-        
+
         var file = File(paramPath)
-        
-        //var mef = MEFFactory(pluginDirectory)
-        
+
+// var mef = MEFFactory(pluginDirectory)
+
         var srtf = SRTFFactory().create()
         var config = ConfigControllerImpl()
         var io = DirectIOImpl(config, rootPath)
-        var fac = JsonParserOptionFactory(file.readText(), listOf(), io) //TODO MEF
-        
-        
+        var fac = JsonParserOptionFactory(file.readText(), listOf(), io) // TODO MEF
+
         return VirtualOption(fac.option, config, io, getResumeOption(), srtf.policies, srtf.scheduler)
     }
-    
+
     private fun getResumeOption(): Option<ResumeOption> {
         return resumeAt.map {
             var ret = resume.get(File(it).readBytes())
-            
+
             ret.swap().map {
                 logger.warn("can't load resume file: " + it.localizedMessage)
             }
-            
+
             ret.orNull().toOption()
         }.flatten()
     }

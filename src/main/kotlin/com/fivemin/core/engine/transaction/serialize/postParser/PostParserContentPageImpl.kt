@@ -16,12 +16,11 @@ class PostParserContentPageImpl<Document : Request>(
     private val inteInfoFactory: InternalContentInfoFactory<Document>,
     private val attributeFactory: DocumentAttributeFactory
 ) : PostParserContentPage<Document> {
-    
+
     companion object {
         private val logger = LoggerController.getLogger("PostParserContentPageImpl")
     }
-    
-    
+
     override suspend fun extract(
         req: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
@@ -35,7 +34,7 @@ class PostParserContentPageImpl<Document : Request>(
                         var attrs = processExtAttributes(req, info, state)
                         var links = processLinks(req, info, state)
 
-                        links.toList().awaitAll() //wait until all child link downloaded
+                        links.toList().awaitAll() // wait until all child link downloaded
 
                         var finished = attrs.map { y ->
                             y.await()
@@ -59,14 +58,14 @@ class PostParserContentPageImpl<Document : Request>(
     private suspend fun processIntAttribute(req: FinalizeRequestTransaction<Document>): Option<Iterable<DocumentAttribute>> {
         return inteInfoFactory.get(req).map {
             it.map { x ->
-                    if (!x.data.any()) {
-                        logger.warn(req.request.getDebugInfo() + " < " + x.attributeName + " < has no content; ignoring")
-                        none()
-                    } else if (x.data.count() == 1) {
-                        attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data[0]).orNull().toOption()
-                    } else {
-                        attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data).orNull().toOption()
-                    }
+                if (!x.data.any()) {
+                    logger.warn(req.request.getDebugInfo() + " < " + x.attributeName + " < has no content; ignoring")
+                    none()
+                } else if (x.data.count() == 1) {
+                    attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data[0]).orNull().toOption()
+                } else {
+                    attributeFactory.getInternal(DocumentAttributeInfo(x.attributeName), x.data).orNull().toOption()
+                }
             }.filterOption()
         }
     }
@@ -81,17 +80,16 @@ class PostParserContentPageImpl<Document : Request>(
         return attr.linkInfo.map { x ->
             var ret = x.requests.map { y ->
                 var task = info.createTask<HttpRequest>().get2<
-                        InitialTransaction<HttpRequest>,
-                        PrepareTransaction<HttpRequest>,
-                        FinalizeRequestTransaction<HttpRequest>>(DocumentType.NATIVE_HTTP)
+                    InitialTransaction<HttpRequest>,
+                    PrepareTransaction<HttpRequest>,
+                    FinalizeRequestTransaction<HttpRequest>>(DocumentType.NATIVE_HTTP)
 
                 state.getChildSession {
                     task.start(InitialTransactionImpl(x.option, TagRepositoryImpl(), y), info, it)
                 }
             }
 
-            
-            if(ret.any()) {
+            if (ret.any()) {
                 finalizeAttribute(x, ret).toOption()
             } else {
                 logger.warn(req.request.getDebugInfo() + " < " + x.name + " < has no content; ignoring")
@@ -108,11 +106,11 @@ class PostParserContentPageImpl<Document : Request>(
             async {
                 var finished = ret.toList().awaitAll().map {
                     var downloaded = it
-    
+
                     downloaded.swap().map {
                         logger.warn(it.localizedMessage)
                     }
-                    
+
                     downloaded.orNull().toOption()
                 }.filterOption()
                 val info = DocumentAttributeInfo(x.name)
@@ -126,7 +124,6 @@ class PostParserContentPageImpl<Document : Request>(
                 }
             }
         }
-
     }
 
     private suspend fun processLinks(
@@ -138,18 +135,18 @@ class PostParserContentPageImpl<Document : Request>(
         return links.linkInfo.map { x ->
             var ret = x.requests.map { y ->
                 var task = info.createTask<HttpRequest>().get4<
-                        InitialTransaction<HttpRequest>,
-                        PrepareTransaction<HttpRequest>,
-                        FinalizeRequestTransaction<HttpRequest>,
-                        SerializeTransaction<HttpRequest>,
-                        ExportTransaction<HttpRequest>>(DocumentType.NATIVE_HTTP)
+                    InitialTransaction<HttpRequest>,
+                    PrepareTransaction<HttpRequest>,
+                    FinalizeRequestTransaction<HttpRequest>,
+                    SerializeTransaction<HttpRequest>,
+                    ExportTransaction<HttpRequest>>(DocumentType.NATIVE_HTTP)
 
                 state.getChildSession {
                     task.start(InitialTransactionImpl(x.option, TagRepositoryImpl(), y), info, it)
                 }
             }
-            
-            if(ret.any()) {
+
+            if (ret.any()) {
                 ret.toOption()
             } else {
                 logger.warn(request.request.getDebugInfo() + " < " + x.name + " < has no content; ignoring")

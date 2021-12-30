@@ -27,7 +27,7 @@ class ReferrerPolicyFactory {
     private val UNSAFE_URL = "unsafe-url"
 
     private val DEFAULT_REFERRER =
-        ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN //Default value for contemporary browsers
+        ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN // Default value for contemporary browsers
 
     private fun parseReferrerPolicy(referrer: Option<String>): ReferrerPolicy {
         return referrer.fold({ DEFAULT_REFERRER }, {

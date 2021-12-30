@@ -19,12 +19,11 @@ class PostParserImpl(private val pages: List<PostParserContentPage<Request>>) : 
             var ret = pages.map {
                 it.extract(request, info, state).await()
             }.filterOption()
-            
-            
+
             var q = ret.single {
                 it.any()
             }
-            
+
             PostParseInfo(q.toList())
         }
     }

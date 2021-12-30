@@ -6,5 +6,5 @@ import com.fivemin.core.engine.PrepareTransaction
 import com.fivemin.core.engine.Request
 
 interface PreParser {
-    fun <Document : Request>generateInfo(init : InitialTransaction<Document>) : Option<PrepareTransaction<Document>>
+    fun <Document : Request> generateInfo(init: InitialTransaction<Document>): Option<PrepareTransaction<Document>>
 }

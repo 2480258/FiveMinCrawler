@@ -5,15 +5,15 @@ import arrow.core.Some
 
 class RequestOption(val preference: RequesterPreference)
 
-class RequesterPreference(val engine : RequesterEngineInfo, val slot : Option<RequesterSlotInfo>){
-    fun withSlot(nslot: RequesterSlotInfo) : RequesterPreference{
+class RequesterPreference(val engine: RequesterEngineInfo, val slot: Option<RequesterSlotInfo>) {
+    fun withSlot(nslot: RequesterSlotInfo): RequesterPreference {
         return RequesterPreference(engine, Some(nslot))
     }
 }
 
-class RequesterEngineInfo(val name: String){
+class RequesterEngineInfo(val name: String) {
     override fun equals(other: Any?): Boolean {
-        if(other != null && other is RequesterEngineInfo){
+        if (other != null && other is RequesterEngineInfo) {
             return other.name == name
         }
 
@@ -29,9 +29,9 @@ class RequesterEngineInfo(val name: String){
     }
 }
 
-class RequesterSlotInfo(val index: Int){
+class RequesterSlotInfo(val index: Int) {
     override fun equals(other: Any?): Boolean {
-        if(other != null && other is RequesterSlotInfo){
+        if (other != null && other is RequesterSlotInfo) {
             return other.index == index
         }
 

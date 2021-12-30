@@ -1,24 +1,17 @@
 package com.fivemin.core.request.adapter
 
 import arrow.core.*
-import arrow.core.computations.option
 import com.fivemin.core.engine.HttpRequest
 import com.fivemin.core.engine.PerRequestHeaderProfile
-import com.fivemin.core.engine.RequestBody
-import com.fivemin.core.engine.ResponseData
-import com.fivemin.core.request.NetworkHeader
 import com.fivemin.core.request.RequesterAdapter
 import com.fivemin.core.request.TaskWaitHandle
 import com.fivemin.core.request.cookie.CustomCookieJar
 import kotlinx.coroutines.Deferred
 import okhttp3.*
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.IOException
-import java.net.URI
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
-import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
@@ -52,7 +45,7 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
         request.url(uri.target.toURL())
         request.get()
 
-        if(uri is HttpRequest){
+        if (uri is HttpRequest) {
             request.setHeader(uri.headerOption)
         }
 
@@ -64,9 +57,9 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
             }
 
             override fun onResponse(call: Call, response: Response) {
-                try { //prevent not responding from exception
+                try { // prevent not responding from exception
                     act(responseAdapterImpl.createWithReceived(uri, response, ret))
-                } catch (e : Exception) {
+                } catch (e: Exception) {
                     act(responseAdapterImpl.createWithError(uri, e.toOption(), ret))
                 }
             }
@@ -127,5 +120,4 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
 
         return this
     }
-
 }

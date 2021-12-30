@@ -5,8 +5,6 @@ import com.fivemin.core.engine.Request
 import com.fivemin.core.request.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
-import java.text.SimpleDateFormat
-import java.time.LocalDateTime
 import java.util.*
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.microseconds
@@ -89,7 +87,7 @@ class RequestQueueImpl(
         }
 
         item.map {
-            when (it.request.info.dequeue.get()) { //TODO Fix if Exception
+            when (it.request.info.dequeue.get()) { // TODO Fix if Exception
                 DequeueDecision.ALLOW -> {
                     it.info.callBack(DequeuedRequest(it.request, DequeuedRequestInfo()).right())
                 }
@@ -116,15 +114,13 @@ class RequestQueueImpl(
             return Some(queue.removeFirst())
         }
 
-        var it =  //Because score changes overtime....
+        var it = // Because score changes overtime....
             queue.map {
                 Pair(it, policy.getScore(it.request))
             }.sortedBy { x -> x.second }
 
         return it.firstOrNull()?.first.toOption()
     }
-
-
 }
 
 class RequestDeniedException(str: String) : Exception(str)

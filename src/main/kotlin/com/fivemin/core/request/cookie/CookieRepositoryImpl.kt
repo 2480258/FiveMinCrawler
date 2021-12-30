@@ -2,13 +2,12 @@ package com.fivemin.core.request.cookie
 
 import arrow.core.Either
 import arrow.core.right
-import arrow.core.valid
 import java.net.HttpCookie
 import java.net.URI
 
-class CookieRepositoryImpl (private val container : CustomCookieJar): CookieRepository {
+class CookieRepositoryImpl(private val container: CustomCookieJar) : CookieRepository {
 
-    private val lock : Any = Any()
+    private val lock: Any = Any()
 
     override fun getAllCookies(): Either<Throwable, Iterable<HttpCookie>> {
         return container.cookieStore.cookies.right()
@@ -19,7 +18,7 @@ class CookieRepositoryImpl (private val container : CustomCookieJar): CookieRepo
     }
 
     override fun download(repo: CookieRepository) {
-        if(repo == this){
+        if (repo == this) {
             return
         }
 
@@ -27,15 +26,14 @@ class CookieRepositoryImpl (private val container : CustomCookieJar): CookieRepo
         var dst = repo.getAllCookies()
 
         reset()
-        src.map{ it ->
+        src.map { it ->
             it.forEach {
                 container.cookieStore.add(URI(it.domain), it)
             }
         }
     }
 
-    fun register(act : (CustomCookieJar) -> Unit){
+    fun register(act: (CustomCookieJar) -> Unit) {
         act(container)
     }
-
 }

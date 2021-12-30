@@ -31,17 +31,18 @@ class RedirectSubPolicy<Document : Request> :
                             loc = URI(x.responseBody.requestBody.currentUri.scheme + "://" + x.responseBody.requestBody.currentUri.authority + loc)
                         }
 
-                        var doc : Document = source.request.copyWith(loc.toOption()) as Document
+                        var doc: Document = source.request.copyWith(loc.toOption()) as Document
 
                         withContext(Dispatchers.Default) {
                             state.getChildSession {
                                 async {
                                     logger.info(doc.getDebugInfo() + " < redirect destination")
                                     info.createTask<Document>().get2<
-                                            InitialTransaction<Document>,
-                                            PrepareTransaction<Document>,
-                                            FinalizeRequestTransaction<Document>>(
-                                        doc.documentType)
+                                        InitialTransaction<Document>,
+                                        PrepareTransaction<Document>,
+                                        FinalizeRequestTransaction<Document>>(
+                                        doc.documentType
+                                    )
                                         .start(InitialTransactionImpl<Document>(InitialOption(), TagRepositoryImpl(), doc), info, it).await()
                                 }
                             }

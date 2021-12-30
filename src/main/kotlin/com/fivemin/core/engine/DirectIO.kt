@@ -3,21 +3,21 @@ package com.fivemin.core.engine
 import arrow.core.Option
 import arrow.core.getOrElse
 
-enum class UsingPath{
+enum class UsingPath {
     EXPORT, RESUME, TEMP
 }
 
 interface DirectIO {
-    fun getToken(path : UsingPath) : DirectoryIOToken
+    fun getToken(path: UsingPath): DirectoryIOToken
 }
 
-class DirectIOImpl(val configController: ConfigController, val mainPath : Option<String>) : DirectIO {
-    val pathDic : Map<UsingPath, String>
-    val rootPath : String
-    init{
-        val exp = configController.getSettings<String>("ExportPath").fold({"Output"}, {x -> x})
-        val res = configController.getSettings<String>("ResumePath").fold({"Resume"}, {x -> x})
-        var tmp = configController.getSettings<String>("TempPath").fold({"Temp"}, {x -> x})
+class DirectIOImpl(val configController: ConfigController, val mainPath: Option<String>) : DirectIO {
+    val pathDic: Map<UsingPath, String>
+    val rootPath: String
+    init {
+        val exp = configController.getSettings<String>("ExportPath").fold({ "Output" }, { x -> x })
+        val res = configController.getSettings<String>("ResumePath").fold({ "Resume" }, { x -> x })
+        var tmp = configController.getSettings<String>("TempPath").fold({ "Temp" }, { x -> x })
 
         pathDic = mapOf(
             UsingPath.EXPORT to exp,

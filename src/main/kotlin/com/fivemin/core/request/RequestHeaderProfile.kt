@@ -4,17 +4,17 @@ import arrow.core.Option
 import arrow.core.Some
 import arrow.core.none
 
-enum class AcceptHeaderType{
+enum class AcceptHeaderType {
     DEFAULT, IMAGE, VIDEO, AUDIO, SCRIPTS, CSS
 }
 
-interface AcceptHeaderPolicy{
-    fun getHeader(headerType : AcceptHeaderType) : Option<String>
+interface AcceptHeaderPolicy {
+    fun getHeader(headerType: AcceptHeaderType): Option<String>
 }
 
-class FirefoxAcceptHeaderPolicyImpl : AcceptHeaderPolicy{
+class FirefoxAcceptHeaderPolicyImpl : AcceptHeaderPolicy {
     override fun getHeader(headerType: AcceptHeaderType): Option<String> {
-        return when(headerType){
+        return when (headerType) {
             AcceptHeaderType.DEFAULT -> Some("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5")
             AcceptHeaderType.IMAGE -> Some("image/webp,*/*")
             AcceptHeaderType.CSS -> Some("text/css,*/*;q=0.1")
@@ -24,13 +24,12 @@ class FirefoxAcceptHeaderPolicyImpl : AcceptHeaderPolicy{
             else -> none()
         }
     }
-
 }
 
 data class RequestHeaderProfile(
-    val acceptEncoding : Option<String> = Some("gzip, deflate, br"),
-    val acceptLanguage : Option<String> = Some("en-US,en;q=0.5"),
-    val connection : Option<String> = Some("Keep-Alive"),
-    val te : Option<String> = Some("trailers"),
-    val userAgent : Option<String> = none())
-
+    val acceptEncoding: Option<String> = Some("gzip, deflate, br"),
+    val acceptLanguage: Option<String> = Some("en-US,en;q=0.5"),
+    val connection: Option<String> = Some("Keep-Alive"),
+    val te: Option<String> = Some("trailers"),
+    val userAgent: Option<String> = none()
+)

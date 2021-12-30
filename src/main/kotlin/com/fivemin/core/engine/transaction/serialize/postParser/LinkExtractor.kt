@@ -2,7 +2,6 @@ package com.fivemin.core.engine.transaction.serialize.postParser
 
 import arrow.core.*
 import com.fivemin.core.engine.*
-import kotlinx.coroutines.runBlocking
 import java.net.URI
 
 interface LinkExtractor {
@@ -28,7 +27,6 @@ class LinkExtractImpl : LinkExtractor {
         }, {
             listOf<LinkExtractedInfo>().right()
         })
-
     }
 
     private fun queryWarp(doc: HtmlParsable, selector: Option<LinkSelector>): Iterable<HtmlElement> {
@@ -80,8 +78,8 @@ class LinkExtractImpl : LinkExtractor {
         var ret = recur.plus(href).plus(src).distinctBy {
             it.absoluteURI
         }.filter { x ->
-            selector.fold({true}) {
-                it.regex.fold({true}) {
+            selector.fold({ true }) {
+                it.regex.fold({ true }) {
                     it.containsMatchIn(x.absoluteURI.toString())
                 }
             }
@@ -117,12 +115,9 @@ class LinkExtractImpl : LinkExtractor {
 
             var temp = URI(uri)
 
-            
-            
             return Some(URI(host.scheme, null, host.host, host.port, temp.path, temp.query, temp.fragment))
         })
     }
-
 }
 
 data class LinkSelector(val navigator: ParserNavigator, val regex: Option<Regex>)

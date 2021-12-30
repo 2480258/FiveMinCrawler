@@ -1,14 +1,10 @@
 package com.fivemin.core.engine.transaction.serialize
 
-import arrow.core.Either
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.AbstractPolicy
 import com.fivemin.core.engine.transaction.AbstractPolicyOption
 import com.fivemin.core.engine.transaction.MovementFactory
 import com.fivemin.core.engine.transaction.TransactionMovement
-import kotlinx.coroutines.Deferred
-import kotlin.reflect.KClass
-import kotlin.reflect.KType
 
 class SerializeTransactionPolicy<Document : Request>(
     private val option: AbstractPolicyOption<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document>,

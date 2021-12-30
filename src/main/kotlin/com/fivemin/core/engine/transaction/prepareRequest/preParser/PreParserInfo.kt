@@ -6,7 +6,7 @@ import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.transaction.PageCondition
 
 interface PreParserInfo<Document : Request> {
-    val passCondition : PageCondition<PrepareTransaction<Document>, Document>
+    val passCondition: PageCondition<PrepareTransaction<Document>, Document>
 
-    val retryCondition : PageCondition<FinalizeRequestTransaction<Document>, Document>
+    val retryCondition: PageCondition<FinalizeRequestTransaction<Document>, Document>
 }

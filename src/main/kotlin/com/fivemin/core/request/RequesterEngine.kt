@@ -16,10 +16,10 @@ class RequesterEngineImpl<out Resp : ResponseData>(
 ) :
     RequesterEngine<Resp> {
 
-    override val count : Int
-    get() {
-        return requesterDic.size
-    }
+    override val count: Int
+        get() {
+            return requesterDic.size
+        }
 
     override fun get(info: RequesterSlotInfo): RequesterCore<Resp> {
         return requesterDic[info]!!

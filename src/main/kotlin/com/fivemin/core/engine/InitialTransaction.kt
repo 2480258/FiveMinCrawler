@@ -5,9 +5,11 @@ import arrow.core.none
 import com.fivemin.core.engine.*
 
 interface InitialTransaction<out Document : Request> : Transaction<Document> {
-    val option : InitialOption
+    val option: InitialOption
 }
 
-data class InitialOption (val requestOption: Option<RequestOption> = none(),
-                          val parseOption: Option<ParseOption> = none(),
-                          val containerOption: Option<ContainerOption> = none())
+data class InitialOption(
+    val requestOption: Option<RequestOption> = none(),
+    val parseOption: Option<ParseOption> = none(),
+    val containerOption: Option<ContainerOption> = none()
+)

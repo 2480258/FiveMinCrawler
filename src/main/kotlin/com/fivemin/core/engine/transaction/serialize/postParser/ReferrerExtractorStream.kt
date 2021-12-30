@@ -41,7 +41,7 @@ class ReferrerExtractorStream(private val resp: ResponseData) {
     }
 
     private fun parseGlobal():
-            Option<String> {
+        Option<String> {
         return runBlocking {
             resp.responseBody.ifSuccAsync({ x ->
                 var ret = x.body.ifHtml({

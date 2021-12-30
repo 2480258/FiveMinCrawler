@@ -2,27 +2,25 @@ package com.fivemin.core.engine
 
 import arrow.core.Option
 import java.io.InputStreamReader
-import java.nio.charset.Charset
-import java.util.stream.Stream
 
-interface  HtmlDocumentFactory{
-    fun create(html : String) : HtmlParsable
+interface HtmlDocumentFactory {
+    fun create(html: String): HtmlParsable
 
-    fun create(html : InputStreamReader) : HtmlParsable
+    fun create(html: InputStreamReader): HtmlParsable
 }
 
 interface HtmlParsable {
-    fun getElements(nav: ParserNavigator) : Iterable<HtmlElement>
+    fun getElements(nav: ParserNavigator): Iterable<HtmlElement>
 
-    fun getElement(nav: ParserNavigator) : Option<HtmlElement>
+    fun getElement(nav: ParserNavigator): Option<HtmlElement>
 }
 
-interface HtmlElement : HtmlParsable{
-    val outerHtml : String
+interface HtmlElement : HtmlParsable {
+    val outerHtml: String
 
-    val innerHtml : String
+    val innerHtml: String
 
-    val textContent : String
+    val textContent: String
 
-    fun getAttribute(name:String) : Option<String>
+    fun getAttribute(name: String): Option<String>
 }

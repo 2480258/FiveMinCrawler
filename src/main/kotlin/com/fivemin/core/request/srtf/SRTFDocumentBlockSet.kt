@@ -3,30 +3,30 @@ package com.fivemin.core.request.srtf
 import arrow.core.Option
 import com.fivemin.core.engine.RequestToken
 
-class SRTFDocumentBlockSet{
-    val blocks : MutableMap<RequestToken, SRTFDocumentBlock> = mutableMapOf()
+class SRTFDocumentBlockSet {
+    val blocks: MutableMap<RequestToken, SRTFDocumentBlock> = mutableMapOf()
 
-    val count : Int
-    get() {
-        return _count
-    }
+    val count: Int
+        get() {
+            return _count
+        }
 
     var _count = 0
 
-    fun getBlockBy(token : RequestToken) : SRTFDocumentBlock {
+    fun getBlockBy(token: RequestToken): SRTFDocumentBlock {
         return blocks.asIterable().single {
             it.value.token == token
         }.value
     }
 
-    fun tryAddBlock(token : RequestToken, parent : Option<RequestToken>, name : SRTFPageBlock) : Boolean{
-        val wsHandle = parent.fold({token}, {
+    fun tryAddBlock(token: RequestToken, parent: Option<RequestToken>, name: SRTFPageBlock): Boolean {
+        val wsHandle = parent.fold({ token }, {
             getBlockBy(it).bottomMost
         })
 
         var block = SRTFDocumentBlock(token, wsHandle, name)
 
-        if(blocks.containsKey(token)){
+        if (blocks.containsKey(token)) {
             return false
         }
 
@@ -35,8 +35,8 @@ class SRTFDocumentBlockSet{
         return true
     }
 
-    fun removeIfExistByWorkingSetHandle(token : RequestToken){
-        if(!blocks.containsKey(token)){
+    fun removeIfExistByWorkingSetHandle(token: RequestToken) {
+        if (!blocks.containsKey(token)) {
             return
         }
 

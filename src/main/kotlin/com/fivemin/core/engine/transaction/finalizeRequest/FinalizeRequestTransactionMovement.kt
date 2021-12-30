@@ -2,7 +2,6 @@ package com.fivemin.core.engine.transaction.finalizeRequest
 
 import arrow.core.Either
 import arrow.core.right
-import arrow.core.valid
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.ExecuteRequestMovement
@@ -10,7 +9,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
-class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter : RequestWaiter) : ExecuteRequestMovement<Document> {
+class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: RequestWaiter) : ExecuteRequestMovement<Document> {
 
     companion object {
         private val logger = LoggerController.getLogger("FinalizeRequestTransactionMovement")

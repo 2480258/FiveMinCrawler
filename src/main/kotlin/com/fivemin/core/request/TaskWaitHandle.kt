@@ -5,16 +5,16 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 
-class TaskWaitHandle<T>{
-    private var result : T? = null
+class TaskWaitHandle<T> {
+    private var result: T? = null
     private val semaphore = Semaphore(1)
 
-    suspend fun run(act: () -> Unit) : Deferred<T> {
+    suspend fun run(act: () -> Unit): Deferred<T> {
         return coroutineScope {
-            async{
+            async {
                 semaphore.acquire()
 
-                try{
+                try {
                     act()
                 } finally {
                     semaphore.acquire()
@@ -25,10 +25,10 @@ class TaskWaitHandle<T>{
         }
     }
 
-    fun registerResult(_result : T){
-        try{
+    fun registerResult(_result: T) {
+        try {
             result = _result
-        }finally {
+        } finally {
             semaphore.release()
         }
     }
