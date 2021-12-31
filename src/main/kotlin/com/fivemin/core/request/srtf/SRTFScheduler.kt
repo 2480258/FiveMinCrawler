@@ -7,9 +7,12 @@ import com.fivemin.core.engine.*
 import com.fivemin.core.request.PreprocessedRequest
 import com.fivemin.core.request.queue.DequeueOptimizationPolicy
 import java.net.URI
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 class SRTFScheduler : DequeueOptimizationPolicy {
     private val sync: Any = Any()
+    private val lock = ReentrantLock()
 
     private val documentBlockSet = SRTFDocumentBlockSet()
 
@@ -35,7 +38,7 @@ class SRTFScheduler : DequeueOptimizationPolicy {
     private val memorization: MutableMap<RequestToken, Pair<Double, Int>> = mutableMapOf()
 
     override fun getScore(req: PreprocessedRequest<Request>): Double {
-        synchronized(sync) {
+        lock.withLock {
             var parent =
                 if (req.request.info.detachState == DetachableState.WANT) none() else req.request.request.request.parent
 
@@ -86,7 +89,7 @@ class SRTFScheduler : DequeueOptimizationPolicy {
     }
 
     fun atPrepareStage(trans: PrepareTransaction<Request>, detachable: Boolean) {
-        synchronized(sync) {
+        lock.withLock {
             var handle = trans.request.token
             var parent = if (detachable) none() else trans.request.parent
 
@@ -116,7 +119,7 @@ class SRTFScheduler : DequeueOptimizationPolicy {
     }
 
     fun atFinalizeStage(req: FinalizeRequestTransaction<Request>, detachable: Boolean) {
-        synchronized(sync) {
+        lock.withLock {
             var parent = if (detachable) none() else req.request.parent
 
             var key = documentBlockSet.getBlockBy(parent.getOrElse { req.request.token }).bottomMost
@@ -135,7 +138,7 @@ class SRTFScheduler : DequeueOptimizationPolicy {
     }
 
     fun atExportStage(token: RequestToken) {
-        synchronized(sync) {
+        lock.withLock {
             documentBlockSet.removeIfExistByWorkingSetHandle(token)
             memorization.remove(token)
         }

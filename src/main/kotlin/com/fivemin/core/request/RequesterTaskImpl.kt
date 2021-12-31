@@ -1,6 +1,7 @@
 package com.fivemin.core.request
 
 import arrow.core.Either
+import arrow.core.flatten
 import arrow.core.left
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.ResponseData
@@ -12,6 +13,7 @@ data class RequestTaskOption(val selector: RequesterSelector, val queue: Request
 class RequesterTaskImpl(private val option: RequestTaskOption) : RequesterTask {
     override suspend fun <Document : Request, Resp : ResponseData> run(request: DocumentRequest<Document>): Deferred<Either<Throwable, Resp>> {
         var handle = TaskWaitHandle<Either<Throwable, Resp>>()
+
         return handle.run {
             option.selector.schedule<Document, Resp>(request).map { x ->
                 var preprocess =
@@ -19,12 +21,15 @@ class RequesterTaskImpl(private val option: RequestTaskOption) : RequesterTask {
                 option.queue.enqueue(
                     preprocess,
                     EnqueueRequestInfo { y ->
-                        y.bimap({ z ->
-                            handle.registerResult(z.left())
-                        }) { z ->
-                            var ret = x.requester.request(z).await()
-                            handle.registerResult(ret)
-                        }
+                        var ret = y.map {
+                            try {
+                                x.requester.request(it).await()
+                            } catch (e: Exception) {
+                                e.left()
+                            }
+                        }.flatten()
+
+                        handle.registerResult(ret)
                     }
                 )
             }

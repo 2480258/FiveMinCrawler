@@ -31,7 +31,12 @@ abstract class AbstractPolicy<
     ): Deferred<Either<Throwable, DstTrans>> {
         return coroutineScope {
             async {
+                
                 Either.catch {
+    
+                    logger.info(source.request, "entering from abstracpolicy")
+    
+    
                     val movement = getMovement(movementFactory)
                     val firstret = movement.move(source, info, state)
 
@@ -47,6 +52,8 @@ abstract class AbstractPolicy<
                         }
                     }
 
+                    logger.info(source.request, "returning from abstracpolicy")
+                    
                     ret.await()
                 }.flatten()
             }

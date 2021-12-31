@@ -1,24 +1,29 @@
 package com.fivemin.core.engine.transaction.serialize.postParser
 
 import arrow.core.*
+import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import java.net.URI
 
 interface LinkExtractor {
-    fun extract(resp: ResponseData, sel: Option<LinkSelector>): Either<Throwable, Iterable<LinkExtractedInfo>>
+    suspend fun extract(resp: ResponseData, sel: Option<LinkSelector>): Either<Throwable, Iterable<LinkExtractedInfo>>
 }
 
 class LinkExtractImpl : LinkExtractor {
     private val allNavigator: ParserNavigator = ParserNavigator("*")
     private val linkNavigator: ParserNavigator = ParserNavigator("[href], [src]")
 
-    override fun extract(
+    companion object {
+        private val logger = LoggerController.getLogger("LinkExtractImpl")
+    }
+
+    override suspend fun extract(
         resp: ResponseData,
         sel: Option<LinkSelector>
     ): Either<Throwable, Iterable<LinkExtractedInfo>> {
-        return resp.responseBody.ifSucc({
-            it.body.ifHtml({
-                it.parseAsHtmlDocument {
+        return resp.responseBody.ifSuccAsync({
+            it.body.ifHtmlAsync({
+                it.parseAsHtmlDocumentAsync {
                     linkExtract(it, resp.responseBody.requestBody.currentUri, sel, ReferrerExtractorStream(resp))
                 }
             }, {
@@ -37,7 +42,7 @@ class LinkExtractImpl : LinkExtractor {
         })
     }
 
-    private fun getHrefAndSrc(
+    private suspend fun getHrefAndSrc(
         elem: HtmlElement,
         host: URI,
         referrer: ReferrerExtractorStream
@@ -55,7 +60,7 @@ class LinkExtractImpl : LinkExtractor {
         return links.plus(srcs).distinct()
     }
 
-    private fun linkExtract(
+    private suspend fun linkExtract(
         parsable: HtmlParsable,
         host: URI,
         selector: Option<LinkSelector>,
@@ -88,7 +93,7 @@ class LinkExtractImpl : LinkExtractor {
         return ret
     }
 
-    private fun convert(
+    private suspend fun convert(
         host: URI,
         elem: HtmlElement,
         attr: String,
@@ -110,12 +115,33 @@ class LinkExtractImpl : LinkExtractor {
             }
 
             if (uri.contains("://") && uri.contains("http")) {
-                return Some(URI(uri))
+                try {
+                    return Some(URI(uri))
+                } catch (e: Exception) {
+                    logger.warn("can't get URL from given string: $uri $e")
+
+                    return none<URI>()
+                }
             }
 
-            var temp = URI(uri)
+            var temp: URI? = null
+            var path: String? = null
 
-            return Some(URI(host.scheme, null, host.host, host.port, temp.path, temp.query, temp.fragment))
+            return try {
+                temp = URI(uri)
+
+                path = temp.path
+
+                if (path.first() != '/') {
+                    path = "/$path"
+                }
+
+                Some(URI(host.scheme, null, host.host, host.port, path, temp.query, null))
+            } catch (e: Exception) {
+                logger.warn("can't get URL from given string: " + host.scheme + ", " + host.host + ", " + (path ?: "null") + ", " + temp?.query)
+                logger.warn("URL is: " + (temp ?: "null"))
+                none<URI>()
+            }
         })
     }
 }

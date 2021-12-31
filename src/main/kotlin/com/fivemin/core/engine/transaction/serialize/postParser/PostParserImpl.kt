@@ -2,6 +2,8 @@ package com.fivemin.core.engine.transaction.serialize.postParser
 
 import arrow.core.Either
 import arrow.core.filterOption
+import arrow.core.getOrElse
+import arrow.core.singleOrNone
 import com.fivemin.core.engine.FinalizeRequestTransaction
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.SessionStartedState
@@ -20,9 +22,9 @@ class PostParserImpl(private val pages: List<PostParserContentPage<Request>>) : 
                 it.extract(request, info, state).await()
             }.filterOption()
 
-            var q = ret.single {
+            var q = ret.singleOrNone {
                 it.any()
-            }
+            }.getOrElse { listOf() }
 
             PostParseInfo(q.toList())
         }

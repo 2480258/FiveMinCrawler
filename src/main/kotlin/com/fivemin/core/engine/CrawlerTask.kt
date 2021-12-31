@@ -5,6 +5,7 @@ import arrow.core.computations.either
 import arrow.core.left
 import arrow.core.toOption
 import com.fivemin.core.LoggerController
+import com.fivemin.core.engine.transaction.prepareRequest.TaskDetachedException
 import kotlinx.coroutines.*
 
 class TaskResult<out T> constructor(val Result: Either<TaskError, T>)
@@ -33,7 +34,10 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
                         }
 
                         ret.swap().map {
-                            logger.warn(trans.request, "got task error", it.toOption())
+                            if (it is TaskDetachedException) {
+                            } else {
+                                logger.warn(trans.request, "got task error", it.toOption())
+                            }
                         }
 
                         ret
@@ -76,7 +80,10 @@ constructor(
                         }
 
                         ret.swap().map {
-                            logger.warn(trans.request, "got task error", it.toOption())
+                            if (it is TaskDetachedException) {
+                            } else {
+                                logger.warn(trans.request, "got task error", it.toOption())
+                            }
                         }
 
                         ret
@@ -122,7 +129,10 @@ constructor(
                         }
 
                         ret.swap().map {
-                            logger.warn(trans.request, "got task error", it.toOption())
+                            if (it is TaskDetachedException) {
+                            } else {
+                                logger.warn(trans.request, "got task error", it.toOption())
+                            }
                         }
 
                         ret
@@ -169,7 +179,10 @@ constructor(
                         }
 
                         ret.swap().map {
-                            logger.warn(trans.request, "got task error", it.toOption())
+                            if (it is TaskDetachedException) {
+                            } else {
+                                logger.warn(trans.request, "got task error", it.toOption())
+                            }
                         }
 
                         ret

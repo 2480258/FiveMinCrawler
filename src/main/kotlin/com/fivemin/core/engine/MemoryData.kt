@@ -35,6 +35,7 @@ class StringMemoryDataImpl constructor(private val data: MemoryData, private val
 
 interface HtmlMemoryData : StringMemoryData {
     fun <T> parseAsHtmlDocument(func: (HtmlParsable) -> T): Either<Throwable, T>
+    suspend fun <T> parseAsHtmlDocumentAsync(func: suspend (HtmlParsable) -> T): Either<Throwable, T>
 }
 
 class HtmlMemoryDataImpl constructor(private val data: StringMemoryData, private val fac: HtmlDocumentFactory) : HtmlMemoryData {
@@ -50,6 +51,10 @@ class HtmlMemoryDataImpl constructor(private val data: StringMemoryData, private
     }
 
     override fun <T> parseAsHtmlDocument(func: (HtmlParsable) -> T): Either<Throwable, T> {
+        return doc.value.map { x -> func(x) }
+    }
+
+    override suspend fun <T> parseAsHtmlDocumentAsync(func: suspend (HtmlParsable) -> T): Either<Throwable, T> {
         return doc.value.map { x -> func(x) }
     }
 
@@ -78,6 +83,14 @@ class FileMemoryDataImpl constructor(override val file: FileIOToken) : FileMemor
     override fun openWriteStreamUnsafe(): Either<Throwable, FileOutputStream> {
         return file.unsafeOpenFileStream()
     }
+}
+
+suspend fun <T> MemoryData.ifHtmlAsync(action: suspend (HtmlMemoryData) -> T, el: suspend (MemoryData) -> T): T {
+    if (this is HtmlMemoryData) {
+        return action(this)
+    }
+
+    return el(this)
 }
 
 fun <T> MemoryData.ifHtml(action: (HtmlMemoryData) -> T, el: (MemoryData) -> T): T {

@@ -25,7 +25,7 @@ class RecoverableErrorBodyImpl(
     override val responseHeader: NetworkHeader
 ) : RecoverableErrorBody
 
-class CriticalErrorBodyImpl(override val requestBody: RequestBody, override val error: Option<Exception>) : CriticalErrorBody
+class CriticalErrorBodyImpl(override val requestBody: RequestBody, override val error: Option<Throwable>) : CriticalErrorBody
 
 class SuccessBodyImpl(
     override val requestBody: RequestBody,

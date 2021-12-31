@@ -12,10 +12,9 @@ import com.fivemin.core.engine.transaction.PageCondition
 import com.fivemin.core.engine.transaction.PageConditionResult
 import io.mockk.every
 import io.mockk.mockk
-import org.testng.annotations.Test
-
 import org.testng.Assert.*
 import org.testng.annotations.BeforeMethod
+import org.testng.annotations.Test
 
 class PreParserImplTest {
 
@@ -36,7 +35,6 @@ class PreParserImplTest {
             trueCondition.check(any())
         } returns (PageConditionResult(true))
 
-
         falseCondition = mockk()
 
         every {
@@ -53,7 +51,6 @@ class PreParserImplTest {
             req.upgradeAsDocument("true").toOption()
         }
 
-        
         every {
             truePage.name
         } returns (PageName("truePage"))
@@ -65,24 +62,22 @@ class PreParserImplTest {
         } answers {
             none()
         }
-    
-    
+
         every {
             falsePage.name
         } returns (PageName("falsePage"))
-    
     }
 
     fun generate(cond: PageCondition<InitialTransaction<Request>, Request>, it: List<PreParserPage>): PreParserImpl {
         return PreParserImpl(
-            cond, it, RequestOption(
+            cond, it,
+            RequestOption(
                 RequesterPreference(
                     RequesterEngineInfo("false"), none()
                 )
             )
         )
     }
-
 
     @Test
     fun testDouble() {
@@ -99,7 +94,6 @@ class PreParserImplTest {
             fail()
         }
     }
-
 
     @Test
     fun testNone() {
@@ -132,6 +126,5 @@ class PreParserImplTest {
                 assertEquals(it.parseOption.name.name, "true")
             }, { fail() })
         }
-
     }
 }

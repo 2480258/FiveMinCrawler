@@ -21,7 +21,7 @@ class ResponseAdapterImpl(
 
     override fun createWithError(
         original: com.fivemin.core.engine.Request,
-        ex: Option<Exception>,
+        ex: Option<Throwable>,
         req: Request
     ): Either<Throwable, ResponseBody> {
         return Either.catch {

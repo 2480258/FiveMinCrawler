@@ -9,7 +9,7 @@ import okhttp3.Response
 interface ResponseAdapter {
     fun createWithError(
         original: com.fivemin.core.engine.Request,
-        ex: Option<Exception>,
+        ex: Option<Throwable>,
         req: Request
     ): Either<Throwable, ResponseBody>
 

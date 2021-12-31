@@ -1,6 +1,6 @@
 package com.fivemin.core.request
 
-data class HttpRequesterConfig(val config: RequesterConfig, val defaultProfile: RequestHeaderProfile)
+data class HttpRequesterConfig(val config: RequesterConfig)
 
 class RequesterExtraImpl : RequesterExtra {
     override val dequeueDecision: DequeueDecisionFactory = DefaultRequesterDequeueDecision()

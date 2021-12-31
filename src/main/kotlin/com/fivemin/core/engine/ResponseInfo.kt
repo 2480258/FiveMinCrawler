@@ -153,7 +153,7 @@ interface HttpAutomaticRedirectResponseBody : AutomaticRedirectResponseBody, Htt
 interface RecoverableErrorBody : HttpResponseReceivedBody
 
 interface CriticalErrorBody : ResponseBody {
-    val error: Option<Exception>
+    val error: Option<Throwable>
 }
 
 interface RedirectResponseBody : HttpResponseReceivedBody {

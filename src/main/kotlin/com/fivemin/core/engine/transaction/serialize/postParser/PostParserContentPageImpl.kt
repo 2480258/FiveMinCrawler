@@ -108,7 +108,7 @@ class PostParserContentPageImpl<Document : Request>(
                     var downloaded = it
 
                     downloaded.swap().map {
-                        logger.warn(it.localizedMessage)
+                        logger.warn(it.stackTraceToString())
                     }
 
                     downloaded.orNull().toOption()

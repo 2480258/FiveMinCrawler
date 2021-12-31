@@ -122,10 +122,11 @@ class JsonRequesterFormat(
         return DefaultRequesterCore(
             RequesterExtraImpl(),
             info,
-            HttpRequesterConfig(RequesterConfig(factory), RequestHeaderProfile(userAgent = Some(userAgent))),
+            HttpRequesterConfig(RequesterConfig(factory)),
             RequesterAdapterImpl(
                 CustomCookieJar(),
-                ResponseAdapterImpl(info, MemoryFilterFactoryImpl(io, HtmlDocumentFactoryImpl()))
+                ResponseAdapterImpl(info, MemoryFilterFactoryImpl(io, HtmlDocumentFactoryImpl())),
+                RequestHeaderProfile(userAgent = Some(userAgent))
             )
         )
     }

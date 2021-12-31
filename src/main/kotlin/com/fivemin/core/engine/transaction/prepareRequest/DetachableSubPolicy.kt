@@ -38,7 +38,7 @@ class DetachableSubPolicy<Document : Request> :
                         it.detach {
                             logger.debug(source.request.getDebugInfo() + " < trying to detach")
 
-                            task.start(source, info, it).await().swap().orNull().toOption()
+                            task.start(source, info, it).await().swap().orNone()
                         }
                     }
 

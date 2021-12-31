@@ -14,7 +14,7 @@ class PreParserImpl(
 ) : PreParser {
 
     companion object {
-        private val logger = LoggerController.getLogger("SerializeTransactionMovementImpl")
+        private val logger = LoggerController.getLogger("PreParserImpl")
     }
 
     override fun <Document : Request> generateInfo(init: InitialTransaction<Document>): Option<PrepareTransaction<Document>> {
@@ -48,7 +48,7 @@ class PreParserImpl(
         if (pages.count() > 1) {
             pages.map {
                 logger.warn(
-                    init.request.getDebugInfo() + " < has conflicting pages: " + ret.map {
+                    init.request, "has conflicting pages: " + ret.map {
                         it.first
                     }.fold("") { x, y -> x + ", " + y.name.name }
                 )
@@ -56,7 +56,7 @@ class PreParserImpl(
         }
 
         if (!pages.any()) {
-            logger.warn(init.request.getDebugInfo() + " < has no matching pages")
+            logger.warn(init.request, "has no matching pages")
         }
     }
 }

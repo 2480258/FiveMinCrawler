@@ -79,7 +79,13 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
                 InitialTransactionImpl<Request>(
                     InitialOption(),
                     TagRepositoryImpl(),
-                    DefaultRequest(TagRepositoryImpl(), none(), uri, RequestType.LINK)
+                    HttpRequestImpl(
+                        none(),
+                        uri,
+                        RequestType.LINK,
+                        PerRequestHeaderProfile(none(), none(), none(), uri),
+                        TagRepositoryImpl()
+                    )
                 ),
                 TaskInfo(provider, taskFactory),
                 SessionInitStateImpl(

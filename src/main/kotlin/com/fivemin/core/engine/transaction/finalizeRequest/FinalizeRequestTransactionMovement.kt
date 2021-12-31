@@ -20,12 +20,14 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
         info: TaskInfo,
         state: SessionStartedState
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
+        logger.info(source.request, "entered reqMovement")
+        
         val req = DocumentRequestImpl<Document>(source, DocumentRequestInfo(state.isDetachable))
         val ret = requestWaiter.request<Document, ResponseData>(req)
 
         return coroutineScope {
             async {
-                logger.debug(source.request.getDebugInfo() + " < finalizing request transaction")
+                logger.info(source.request, "finalizing request transaction")
 
                 val r = ret.await()
                 FinalizeRequestTransactionImpl<Document>(r, source.tags, source).right()

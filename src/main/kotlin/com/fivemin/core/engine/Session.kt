@@ -2,6 +2,7 @@ package com.fivemin.core.engine
 
 import arrow.core.*
 import com.fivemin.core.LoggerController
+import com.fivemin.core.engine.transaction.prepareRequest.TaskDetachedException
 import kotlinx.coroutines.*
 
 suspend fun <T> SessionInitState.ifDetachable(func: suspend (SessionDetachableInitState) -> T): Option<T> {
@@ -104,16 +105,21 @@ interface SessionDetachable : SessionState {
         var detached = Data.SessionRepo.create(info.token.toOption())
         Data.KeyRepo.transferOwnership(info.token, detached.token)
 
-        return coroutineScope {
-            Thread {
-                runBlocking {
+        GlobalScope.launch {
+            coroutineScope {
+                async {
                     logger.debug(info.token.tokenNumber.toString() + " < detached")
-                    func(SessionInitStateImpl(detached, Data))
+                    func(SessionInitStateImpl(detached, Data)).map {
+                        logger.warn(it.message ?: "null")
+                    }
+                    logger.debug(info.token.tokenNumber.toString() + " < detach job finished")
                 }
-            }.start()
+            }
+        }
 
+        return coroutineScope {
             async {
-                TaskCanceledException().toOption()
+                TaskDetachedException().toOption()
             }
         }
     }

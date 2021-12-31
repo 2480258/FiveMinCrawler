@@ -2,16 +2,15 @@ package com.fivemin.core.engine.transaction.serialize.postParser
 
 import arrow.core.*
 import com.fivemin.core.engine.*
-import com.fivemin.core.request.RequestHeaderProfile
 import java.net.URI
 
 interface RequestContentInfoFactory<in Document : Request> {
-    fun get(trans: FinalizeRequestTransaction<Document>): RequestContentInfo
+    suspend fun get(trans: FinalizeRequestTransaction<Document>): RequestContentInfo
 }
 
 class RequestContentInfoFactoryImpl<Document : Request>(private val factories: Iterable<RequestFactory>) :
     RequestContentInfoFactory<Document> {
-    override fun get(trans: FinalizeRequestTransaction<Document>): RequestContentInfo {
+    override suspend fun get(trans: FinalizeRequestTransaction<Document>): RequestContentInfo {
         var ret = factories.map {
             it.get(trans)
         }.filterOption()
@@ -21,7 +20,7 @@ class RequestContentInfoFactoryImpl<Document : Request>(private val factories: I
 }
 
 interface RequestFactory {
-    fun <Document : Request> get(trans: FinalizeRequestTransaction<Document>): Option<RequestLinkInfo>
+    suspend fun <Document : Request> get(trans: FinalizeRequestTransaction<Document>): Option<RequestLinkInfo>
 }
 
 class ExtAttrRequestFactory(private val attributeTargetName: String, private val selector: LinkSelector) :
@@ -37,7 +36,7 @@ class ExtAttrRequestFactory(private val attributeTargetName: String, private val
                     Some(token),
                     it.absoluteURI,
                     RequestType.ATTRIBUTE,
-                    PerRequestHeaderProfile(RequestHeaderProfile(), Some(it.referrer), parentURI, it.absoluteURI),
+                    PerRequestHeaderProfile(none(), Some(it.referrer), parentURI.toOption(), it.absoluteURI),
                     it.additionalTag
                 )
             },
@@ -45,7 +44,7 @@ class ExtAttrRequestFactory(private val attributeTargetName: String, private val
         )
     }
 
-    override fun <Document : Request> get(trans: FinalizeRequestTransaction<Document>): Option<RequestLinkInfo> {
+    override suspend fun <Document : Request> get(trans: FinalizeRequestTransaction<Document>): Option<RequestLinkInfo> {
         return trans.result.map {
             extractor.extract(it, Some(selector)).map {
                 create(it, trans.request.token, trans.request.target)
@@ -77,7 +76,7 @@ class LinkRequestFactory(
                     Some(token),
                     it.absoluteURI,
                     RequestType.LINK,
-                    PerRequestHeaderProfile(RequestHeaderProfile(), Some(it.referrer), parentURI, it.absoluteURI),
+                    PerRequestHeaderProfile(none(), Some(it.referrer), parentURI.toOption(), it.absoluteURI),
                     it.additionalTag
                 )
             },
@@ -85,7 +84,7 @@ class LinkRequestFactory(
         )
     }
 
-    override fun <Document : Request> get(trans: FinalizeRequestTransaction<Document>): Option<RequestLinkInfo> {
+    override suspend fun <Document : Request> get(trans: FinalizeRequestTransaction<Document>): Option<RequestLinkInfo> {
         return trans.result.map {
             extractor.extract(it, Some(selector)).map {
                 create(it, trans.request.token, trans.request.target)

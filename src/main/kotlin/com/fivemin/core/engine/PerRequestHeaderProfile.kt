@@ -1,14 +1,15 @@
 package com.fivemin.core.engine
 
 import arrow.core.Option
+import arrow.core.flatten
 import arrow.core.none
 import com.fivemin.core.request.*
 import java.net.URI
 
 class PerRequestHeaderProfile(
-    val requestHeaderProfile: RequestHeaderProfile,
+    val requestHeaderProfile: Option<RequestHeaderProfile>,
     referrerPolicy: Option<String>,
-    src: URI,
+    src: Option<URI>,
     dest: URI,
     headerType: Option<AcceptHeaderType> = none()
 ) {
@@ -22,7 +23,10 @@ class PerRequestHeaderProfile(
         acceptHeaderPolicy = FirefoxAcceptHeaderPolicyImpl()
         referrerPolicyFactory = ReferrerPolicyFactory()
 
-        referrer = referrerPolicyFactory.extractReferrer(src, dest, referrerPolicy)
+        referrer = src.map {
+            referrerPolicyFactory.extractReferrer(it, dest, referrerPolicy)
+        }.flatten()
+
         accept = acceptHeaderPolicy.getHeader(headerType.fold({ AcceptHeaderType.DEFAULT }, { it }))
     }
 }

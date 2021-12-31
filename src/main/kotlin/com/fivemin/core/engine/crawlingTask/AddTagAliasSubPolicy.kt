@@ -22,6 +22,7 @@ class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTr
         return coroutineScope {
             async {
                 Either.catch {
+                    logger.debug(source.request, "adding tags")
                     var ret = info.uniqueKeyProvider.tagKey.create(dest.tags)
 
                     ret.forEach {

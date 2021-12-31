@@ -2,7 +2,6 @@ package com.fivemin.core.engine.transaction.serialize.postParser
 
 import arrow.core.*
 import com.fivemin.core.engine.*
-import kotlinx.coroutines.runBlocking
 
 class ReferrerExtractorStream(private val resp: ResponseData) {
     val HEADER_REFERRER_TAGS = "Referrer-Policy"
@@ -12,7 +11,7 @@ class ReferrerExtractorStream(private val resp: ResponseData) {
         referrerNavigator = ParserNavigator("meta[name = referrer]")
     }
 
-    fun extract(link: HtmlElement): String {
+    suspend fun extract(link: HtmlElement): String {
         var r = link.getAttribute("referrerpolicy").fold({
             link.getAttribute("rel").map {
                 if (it == "noreferrer") {
@@ -40,26 +39,24 @@ class ReferrerExtractorStream(private val resp: ResponseData) {
         return none()
     }
 
-    private fun parseGlobal():
+    private suspend fun parseGlobal():
         Option<String> {
-        return runBlocking {
-            resp.responseBody.ifSuccAsync({ x ->
-                var ret = x.body.ifHtml({
-                    it.parseAsHtmlDocument {
-                        it.getElement(referrerNavigator)
-                    }
-                }, {
-                    none<HtmlElement>().right()
-                })
-
-                Some(ret)
+        return resp.responseBody.ifSuccAsync({ x ->
+            var ret = x.body.ifHtml({
+                it.parseAsHtmlDocument {
+                    it.getElement(referrerNavigator)
+                }
             }, {
-                none()
-            }).map {
-                it.orNull().toOption()
-            }.flatten().flatten().map {
-                it.getAttribute("content")
-            }.flatten()
-        }
+                none<HtmlElement>().right()
+            })
+
+            Some(ret)
+        }, {
+            none()
+        }).map {
+            it.orNull().toOption()
+        }.flatten().flatten().map {
+            it.getAttribute("content")
+        }.flatten()
     }
 }

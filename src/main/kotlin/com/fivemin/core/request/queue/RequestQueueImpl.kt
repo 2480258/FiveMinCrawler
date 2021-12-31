@@ -1,6 +1,7 @@
 package com.fivemin.core.request.queue
 
 import arrow.core.*
+import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.Request
 import com.fivemin.core.request.*
 import kotlinx.coroutines.*
@@ -12,7 +13,7 @@ import kotlin.time.ExperimentalTime
 
 class RequestQueueImpl(
     private val policy: DequeueOptimizationPolicy,
-    private val maxRequestThread: Int = 3,
+    private val maxRequestThread: Int = 1,
     private val maxDelayCount: Int = 5
 ) :
     RequestQueue {
@@ -21,6 +22,10 @@ class RequestQueueImpl(
         val delayCount: Int,
         val info: EnqueueRequestInfo
     )
+
+    companion object {
+        private val logger = LoggerController.getLogger("RequestQueue")
+    }
 
     private val enqueued: Semaphore = Semaphore(1)
     private val sync: Any = Any()
@@ -84,6 +89,10 @@ class RequestQueueImpl(
 
         synchronized(sync) {
             item = removeFirstFromQueue()
+            
+            if(queue.isEmpty()) {
+                enqueued.acquire() //Acquire only if the queue is empty
+            }
         }
 
         item.map {
@@ -119,7 +128,15 @@ class RequestQueueImpl(
                 Pair(it, policy.getScore(it.request))
             }.sortedBy { x -> x.second }
 
-        return it.firstOrNull()?.first.toOption()
+        var ret = it.firstOrNull()?.first.toOption()
+
+        ret.map {
+            if (!queue.remove(it)) {
+                logger.error(it.request.request.request.request, "can't remove queue from element")
+            }
+        }
+
+        return ret
     }
 }
 

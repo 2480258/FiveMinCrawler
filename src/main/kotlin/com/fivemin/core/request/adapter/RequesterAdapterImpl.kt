@@ -1,29 +1,35 @@
 package com.fivemin.core.request.adapter
 
 import arrow.core.*
+import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.HttpRequest
 import com.fivemin.core.engine.PerRequestHeaderProfile
+import com.fivemin.core.request.RequestHeaderProfile
 import com.fivemin.core.request.RequesterAdapter
 import com.fivemin.core.request.TaskWaitHandle
 import com.fivemin.core.request.cookie.CustomCookieJar
 import kotlinx.coroutines.Deferred
 import okhttp3.*
-import java.io.IOException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
-class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapterImpl: ResponseAdapterImpl) :
+class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapterImpl: ResponseAdapterImpl, private val requesterHeaderProfile: RequestHeaderProfile) :
     RequesterAdapter {
     val client: OkHttpClient
+
+    companion object {
+        private val logger = LoggerController.getLogger("RequesterAdapterImpl")
+    }
+
     init {
         var builder = OkHttpClient.Builder()
 
         client = builder
             .cookieJar(cookieJar)
-            .bypassInvalidCA()
+            // .bypassInvalidCA()
             .followRedirects(false)
             .followSslRedirects(false)
             .build()
@@ -46,28 +52,57 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
         request.get()
 
         if (uri is HttpRequest) {
-            request.setHeader(uri.headerOption)
+            request.setHeader(uri.headerOption, requesterHeaderProfile)
+        } else {
+            request.setHeader(requesterHeaderProfile)
         }
 
         var ret = request.build()
 
-        client.newCall(ret).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                act(responseAdapterImpl.createWithError(uri, e.toOption(), ret))
-            }
+        Either.catch {
+            logger.debug(ret.url.toString() + " < requesting")
+            client.newCall(ret).execute()
+        }.fold({
+            logger.debug(ret.url.toString() + " < received")
+            logger.debug(it.stackTraceToString())
 
-            override fun onResponse(call: Call, response: Response) {
-                try { // prevent not responding from exception
-                    act(responseAdapterImpl.createWithReceived(uri, response, ret))
-                } catch (e: Exception) {
-                    act(responseAdapterImpl.createWithError(uri, e.toOption(), ret))
-                }
-            }
+            act(responseAdapterImpl.createWithError(uri, it.toOption(), ret))
+        }, {
+            logger.debug(ret.url.toString() + " < received")
+
+            act(responseAdapterImpl.createWithReceived(uri, it, ret))
         })
     }
 
-    private fun Request.Builder.setHeader(headerOption: PerRequestHeaderProfile): Request.Builder {
-        headerOption.requestHeaderProfile.userAgent.map {
+    private fun Request.Builder.setHeader(headerOption: RequestHeaderProfile): Request.Builder {
+
+        headerOption.userAgent.map {
+            this.header("User-Agent", it)
+        }
+
+        headerOption.acceptEncoding.map {
+            this.header("Accept-Encoding", it)
+        }
+
+        headerOption.connection.map {
+            this.header("Connection", it)
+        }
+
+        headerOption.te.map {
+            this.header("TE", it)
+        }
+
+        headerOption.acceptLanguage.map {
+            this.header("Accept-Language", it)
+        }
+
+        return this
+    }
+
+    private fun Request.Builder.setHeader(headerOption: PerRequestHeaderProfile, backupProfile: RequestHeaderProfile): Request.Builder {
+        val option = headerOption.requestHeaderProfile.getOrElse { backupProfile }
+
+        option.userAgent.map {
             this.header("User-Agent", it)
         }
 
@@ -75,19 +110,19 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
             this.header("Accept", it)
         }
 
-        headerOption.requestHeaderProfile.acceptEncoding.map {
+        option.acceptEncoding.map {
             this.header("Accept-Encoding", it)
         }
 
-        headerOption.requestHeaderProfile.connection.map {
+        option.connection.map {
             this.header("Connection", it)
         }
 
-        headerOption.requestHeaderProfile.te.map {
+        option.te.map {
             this.header("TE", it)
         }
 
-        headerOption.requestHeaderProfile.acceptLanguage.map {
+        option.acceptLanguage.map {
             this.header("Accept-Language", it)
         }
 
