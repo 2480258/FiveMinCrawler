@@ -5,13 +5,8 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.Request
 import com.fivemin.core.request.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Semaphore
 import java.util.*
-import java.util.concurrent.locks.Condition
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.microseconds
-import kotlin.time.ExperimentalTime
+import java.util.concurrent.PriorityBlockingQueue
 
 class RequestQueueImpl(
     private val policy: DequeueOptimizationPolicy,
@@ -29,16 +24,13 @@ class RequestQueueImpl(
         private val logger = LoggerController.getLogger("RequestQueue")
     }
 
-    private val conditionLock = ReentrantLock()
-    private val notEmpty: Condition = conditionLock.newCondition()
-    
-    private val sync: Any = Any()
-    private val workers: Iterable<Thread>
-
-    private val queue: LinkedList<EnqueuedRequest<Request>>
+    private val blockQueue: PriorityBlockingQueue<EnqueuedRequest<Request>> =
+        PriorityBlockingQueue(10) { o1, o2 ->
+            policy.getScore(o1.request).toInt() - policy.getScore(o2.request).toInt()
+        }
 
     init {
-        workers = (0 until maxRequestThread).map {
+        val workers = (0 until maxRequestThread).map {
             Thread {
                 runBlocking {
                     work()
@@ -49,27 +41,18 @@ class RequestQueueImpl(
         workers.forEach {
             it.start()
         }
-
-        queue = LinkedList()
     }
 
     private fun enqueueInternal(doc: PreprocessedRequest<Request>, delayCount: Int, info: EnqueueRequestInfo) {
-        synchronized(sync) {
-            queue.addLast(EnqueuedRequest(doc, delayCount, info))
-
-            if (notEmpty.signalAll()) {
-                enqueued.release()
-            }
-        }
+        blockQueue.put(EnqueuedRequest(doc, delayCount, info))
     }
 
-    @OptIn(ExperimentalTime::class)
     private suspend fun enqueueWithDelayedTask(
         req: EnqueuedRequest<Request>,
-        delayCount: Duration = 3000.microseconds
+        delayCount: Long = 3000
     ) {
         runBlocking {
-            delay(3000)
+            delay(delayCount)
             enqueueInternal(req.request, req.delayCount + 1, req.info)
         }
     }
@@ -81,24 +64,14 @@ class RequestQueueImpl(
     private suspend fun work() {
         while (true) {
             runBlocking {
-                enqueued.acquire()
                 dequeue()
             }
         }
     }
 
     private suspend fun dequeue() {
-        var item: Option<EnqueuedRequest<Request>>
 
-        synchronized(sync) {
-            try {
-                item = removeFirstFromQueue()
-            } finally {
-                if ((!queue.isEmpty()) && enqueued.availablePermits == 0) {
-                    enqueued.release()
-                }
-            }
-        }
+        val item: Option<EnqueuedRequest<Request>> = removeFirstFromQueue()
 
         item.map {
             when (it.request.info.dequeue.get()) { // TODO Fix if Exception
@@ -120,28 +93,16 @@ class RequestQueueImpl(
     }
 
     private fun removeFirstFromQueue(): Option<EnqueuedRequest<Request>> {
-        if (queue.isEmpty()) {
-            return none()
+        val ret = Either.catch {
+            blockQueue.take()
         }
 
-        if (queue.count() == 1) {
-            return Some(queue.removeFirst())
+        ret.swap().map {
+            logger.warn("can't take from queue because: " + (it.message ?: "null"))
+            logger.warn(it.stackTraceToString())
         }
 
-        var it = // Because score changes overtime....
-            queue.map {
-                Pair(it, policy.getScore(it.request))
-            }.sortedBy { x -> x.second }
-
-        var ret = it.firstOrNull()?.first.toOption()
-
-        ret.map {
-            if (!queue.remove(it)) {
-                logger.error(it.request.request.request.request, "can't remove queue from element")
-            }
-        }
-
-        return ret
+        return ret.orNone()
     }
 }
 
