@@ -7,13 +7,15 @@ import com.fivemin.core.request.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import java.util.*
+import java.util.concurrent.locks.Condition
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.microseconds
 import kotlin.time.ExperimentalTime
 
 class RequestQueueImpl(
     private val policy: DequeueOptimizationPolicy,
-    private val maxRequestThread: Int = 1,
+    private val maxRequestThread: Int = 3,
     private val maxDelayCount: Int = 5
 ) :
     RequestQueue {
@@ -27,9 +29,10 @@ class RequestQueueImpl(
         private val logger = LoggerController.getLogger("RequestQueue")
     }
 
-    private val enqueued: Semaphore = Semaphore(1)
+    private val conditionLock = ReentrantLock()
+    private val notEmpty: Condition = conditionLock.newCondition()
+    
     private val sync: Any = Any()
-
     private val workers: Iterable<Thread>
 
     private val queue: LinkedList<EnqueuedRequest<Request>>
@@ -54,7 +57,7 @@ class RequestQueueImpl(
         synchronized(sync) {
             queue.addLast(EnqueuedRequest(doc, delayCount, info))
 
-            if (enqueued.availablePermits == 0) {
+            if (notEmpty.signalAll()) {
                 enqueued.release()
             }
         }
@@ -88,10 +91,12 @@ class RequestQueueImpl(
         var item: Option<EnqueuedRequest<Request>>
 
         synchronized(sync) {
-            item = removeFirstFromQueue()
-            
-            if(queue.isEmpty()) {
-                enqueued.acquire() //Acquire only if the queue is empty
+            try {
+                item = removeFirstFromQueue()
+            } finally {
+                if ((!queue.isEmpty()) && enqueued.availablePermits == 0) {
+                    enqueued.release()
+                }
             }
         }
 
