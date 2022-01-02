@@ -1,6 +1,7 @@
 package com.fivemin.core.request.adapter
 
 import arrow.core.*
+import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.request.*
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -15,6 +16,10 @@ class ResponseAdapterImpl(
     private val performedRequesterInfo: PerformedRequesterInfo,
     private val factory: MemoryFilterFactory
 ) : ResponseAdapter {
+
+    companion object {
+        private val logger = LoggerController.getLogger("ResponseAdapterImpl")
+    }
 
     private val DEFAULT_BUFFER_SIZE = 32768 // 32KB
     private val decompressor = DecompressorImpl()
@@ -40,57 +45,59 @@ class ResponseAdapterImpl(
         resp: Response,
         req: Request
     ): Either<Throwable, ResponseBody> {
-        val httpTarget = original.target.toHttpUrlOrNull()
-        if (httpTarget == null) {
-            IllegalArgumentException().left()
-        }
-
-        if (resp.request.url != httpTarget && resp.body != null) {
-            return createWithReceived(original, resp, req).map { x ->
-                AutomaticRedirectResponseBodyImpl(
-                    createRequestBody(original.target, req),
-                    resp.code,
-                    NetworkHeader(resp.headers.asIterable().toList()),
-                    x
-                )
+        resp.use { resp ->
+            val httpTarget = original.target.toHttpUrlOrNull()
+            if (httpTarget == null) {
+                IllegalArgumentException().left()
             }
-        }
 
-        if (resp.body != null && resp.code < 299 && resp.code > 199) {
-            return createMemoryData(
-                resp.body!!,
-                original,
-                parseCharset(resp),
-                resp.headers["Content-Encoding"].toOption()
-            ).fold({ HttpNoContentWithSuccessfulException(resp.request.url.toString()).left() }) { x ->
-                SuccessBodyImpl(
-                    createRequestBody(original.target, req),
-                    resp.code,
-                    NetworkHeader(resp.headers.asIterable().toList()),
-                    x,
-                    MediaType(resp.body!!.contentType()!!.type, resp.body!!.contentType()!!.subtype),
-                    ResponseTime(resp.sentRequestAtMillis, resp.receivedResponseAtMillis)
-                ).right()
-            }
-        }
-
-        if (resp.body != null && resp.code >= 300 && resp.code <= 399) {
-            return resp.headers["Location"].toOption()
-                .fold({ HttpNoLocationHeaderWithRedirectCodeException(resp.request.url.toString()).left() }) { x ->
-                    RedirectResponseBodyImpl(
+            if (resp.request.url != httpTarget && resp.body != null) {
+                return createWithReceived(original, resp, req).map { x ->
+                    AutomaticRedirectResponseBodyImpl(
                         createRequestBody(original.target, req),
                         resp.code,
                         NetworkHeader(resp.headers.asIterable().toList()),
-                        URI(x)
+                        x
+                    )
+                }
+            }
+
+            if (resp.body != null && resp.code < 299 && resp.code > 199) {
+                return createMemoryData(
+                    resp.body!!,
+                    original,
+                    parseCharset(resp),
+                    resp.headers["Content-Encoding"].toOption()
+                ).fold({ HttpNoContentWithSuccessfulException(resp.request.url.toString()).left() }) { x ->
+                    SuccessBodyImpl(
+                        createRequestBody(original.target, req),
+                        resp.code,
+                        NetworkHeader(resp.headers.asIterable().toList()),
+                        x,
+                        MediaType(resp.body!!.contentType()!!.type, resp.body!!.contentType()!!.subtype),
+                        ResponseTime(resp.sentRequestAtMillis, resp.receivedResponseAtMillis)
                     ).right()
                 }
-        }
+            }
 
-        return RecoverableErrorBodyImpl(
-            createRequestBody(original.target, req),
-            resp.code,
-            NetworkHeader(resp.headers.asIterable().toList())
-        ).right()
+            if (resp.body != null && resp.code >= 300 && resp.code <= 399) {
+                return resp.headers["Location"].toOption()
+                    .fold({ HttpNoLocationHeaderWithRedirectCodeException(resp.request.url.toString()).left() }) { x ->
+                        RedirectResponseBodyImpl(
+                            createRequestBody(original.target, req),
+                            resp.code,
+                            NetworkHeader(resp.headers.asIterable().toList()),
+                            URI(x)
+                        ).right()
+                    }
+            }
+
+            return RecoverableErrorBodyImpl(
+                createRequestBody(original.target, req),
+                resp.code,
+                NetworkHeader(resp.headers.asIterable().toList())
+            ).right()
+        }
     }
 
     private fun createRequestBody(originalUri: URI, req: Request): com.fivemin.core.engine.RequestBody {
@@ -106,23 +113,30 @@ class ResponseAdapterImpl(
         var filter: MemoryFilter? = null
 
         try {
-            var type = responseBody.contentType().toOption()
-            var total = if (responseBody.contentLength() != -1L) {
-                Some(responseBody.contentLength())
-            } else {
-                none()
+            var ret = Either.catch {
+                var type = responseBody.contentType().toOption()
+                var total = if (responseBody.contentLength() != -1L) {
+                    Some(responseBody.contentLength())
+                } else {
+                    none()
+                }
+
+                filter = createMemoryFilter(type, total, enc, request)
+
+                handleStream(responseBody, filter!!, decomp)
+
+                filter!!.flushAndExportAndDispose()
             }
 
-            filter = createMemoryFilter(type, total, enc, request)
+            ret.swap().map {
+                logger.warn(it.message ?: "null")
+                logger.warn(it.stackTraceToString())
+            }
 
-            handleStream(responseBody, filter, decomp)
-
-            return Some(filter.flushAndExportAndDispose())
-        } catch (e: Exception) {
+            return ret.orNone()
+        } finally {
             filter?.close()
         }
-
-        return none()
     }
 
     private fun handleStream(responseBody: okhttp3.ResponseBody, filter: MemoryFilter, decomp: Option<String>) {
@@ -145,8 +159,6 @@ class ResponseAdapterImpl(
                 filter.write(buffer, 0, read)
             }
         } while (isMoreToRead)
-
-        responseBody.close()
     }
 
     private fun createMemoryFilter(

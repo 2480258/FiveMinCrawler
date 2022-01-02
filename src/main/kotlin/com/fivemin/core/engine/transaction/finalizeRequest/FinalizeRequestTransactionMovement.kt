@@ -20,8 +20,6 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
         info: TaskInfo,
         state: SessionStartedState
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
-        logger.info(source.request, "entered reqMovement")
-        
         val req = DocumentRequestImpl<Document>(source, DocumentRequestInfo(state.isDetachable))
         val ret = requestWaiter.request<Document, ResponseData>(req)
 

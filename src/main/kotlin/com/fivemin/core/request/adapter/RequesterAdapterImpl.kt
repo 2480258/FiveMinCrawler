@@ -59,19 +59,25 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
 
         var ret = request.build()
 
-        Either.catch {
-            logger.debug(ret.url.toString() + " < requesting")
-            client.newCall(ret).execute()
-        }.fold({
-            logger.debug(ret.url.toString() + " < received")
-            logger.debug(it.stackTraceToString())
+        act(
+            Either.catch {
+                logger.debug(ret.url.toString() + " < requesting")
+                client.newCall(ret).execute()
+            }.fold({
+                logger.debug(ret.url.toString() + " < received")
+                logger.debug(it.stackTraceToString())
 
-            act(responseAdapterImpl.createWithError(uri, it.toOption(), ret))
-        }, {
-            logger.debug(ret.url.toString() + " < received")
+                Either.catch {
+                    responseAdapterImpl.createWithError(uri, it.toOption(), ret)
+                }.flatten()
+            }, {
+                logger.debug(ret.url.toString() + " < received")
 
-            act(responseAdapterImpl.createWithReceived(uri, it, ret))
-        })
+                Either.catch {
+                    responseAdapterImpl.createWithReceived(uri, it, ret)
+                }.flatten()
+            })
+        )
     }
 
     private fun Request.Builder.setHeader(headerOption: RequestHeaderProfile): Request.Builder {

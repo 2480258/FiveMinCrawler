@@ -1,12 +1,6 @@
 package com.fivemin.core.engine.transaction.serialize.postParser
 
 import arrow.core.*
-import com.fivemin.core.DocumentMockFactory
-import com.fivemin.core.DocumentMockFactory.Companion.getRequest
-import com.fivemin.core.DocumentMockFactory.Companion.getSuccResponse
-import com.fivemin.core.DocumentMockFactory.Companion.upgrade
-import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
-import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsRequestReq
 import com.fivemin.core.ElemIterator
 import com.fivemin.core.UriIterator
 import com.fivemin.core.engine.*
@@ -19,10 +13,9 @@ import com.fivemin.core.request.adapter.RequesterAdapterImpl
 import com.fivemin.core.request.adapter.ResponseAdapterImpl
 import com.fivemin.core.request.cookie.CustomCookieJar
 import kotlinx.coroutines.runBlocking
-import org.testng.annotations.Test
-
 import org.testng.Assert.*
 import org.testng.annotations.BeforeMethod
+import org.testng.annotations.Test
 import java.net.URI
 
 class ReferrerExtractorStreamTest {
@@ -37,8 +30,9 @@ class ReferrerExtractorStreamTest {
             CustomCookieJar(),
             ResponseAdapterImpl(
                 PerformedRequesterInfo(RequesterEngineInfo("A"), RequesterSlotInfo(0)),
-                MemoryFilterFactoryImpl(DirectIOImpl(ConfigControllerImpl(), none()), HtmlDocumentFactoryImpl())
-            )
+                MemoryFilterFactoryImpl(DirectIOImpl(ConfigControllerImpl(""), none()), HtmlDocumentFactoryImpl())
+            ),
+            RequestHeaderProfile()
         )
     }
 
@@ -46,12 +40,14 @@ class ReferrerExtractorStreamTest {
     fun referrerLinkMetaTest() {
         runBlocking {
             var req = HttpRequestImpl(
-                none(), URI("http://127.0.0.1:30001/referrertest"), RequestType.LINK, PerRequestHeaderProfile(
-                    RequestHeaderProfile(),
+                none(), URI("http://127.0.0.1:30001/referrertest"), RequestType.LINK,
+                PerRequestHeaderProfile(
+                    RequestHeaderProfile().toOption(),
                     none(),
-                    URI("https://localhost:12345"),
+                    URI("https://localhost:12345").toOption(),
                     URI("https://localhost:44376/home/referrertest")
-                ), TagRepositoryImpl()
+                ),
+                TagRepositoryImpl()
             )
             var ret = adapter.requestAsync(req).await()
 
@@ -60,9 +56,9 @@ class ReferrerExtractorStreamTest {
                     HttpResponseMessage(it, PerformedRequesterInfo(RequesterEngineInfo("a"), RequesterSlotInfo(0)))
                 val ref = ReferrerExtractorStream(msg)
 
-                var ret = it.ifSucc({
-                    var ret = it.body.ifHtml({
-                        var ret = it.parseAsHtmlDocument {
+                var ret = it.ifSuccAsync({
+                    var ret = it.body.ifHtmlAsync({
+                        var ret = it.parseAsHtmlDocumentAsync {
                             ref.extract(it.getElements(ParserNavigator("a")).last())
                         }
 
@@ -84,24 +80,25 @@ class ReferrerExtractorStreamTest {
             }.orNull().toOption().flatten()
 
             c.fold({ fail() }, {
-                it.fold({fail()}) {
+                it.fold({ fail() }) {
                     assertEquals(it, "no-referrer-when-downgrade")
                 }
             })
         }
     }
 
-
     @Test
     fun referrerGlobalMetaTest() {
         runBlocking {
             var req = HttpRequestImpl(
-                none(), URI("http://127.0.0.1:30001/referrermetatest"), RequestType.LINK, PerRequestHeaderProfile(
-                    RequestHeaderProfile(),
+                none(), URI("http://127.0.0.1:30001/referrermetatest"), RequestType.LINK,
+                PerRequestHeaderProfile(
+                    RequestHeaderProfile().toOption(),
                     none(),
-                    URI("https://localhost:12345"),
+                    URI("https://localhost:12345").toOption(),
                     URI("https://localhost:44376/home/referrertest")
-                ), TagRepositoryImpl()
+                ),
+                TagRepositoryImpl()
             )
             var ret = adapter.requestAsync(req).await()
 
@@ -110,9 +107,9 @@ class ReferrerExtractorStreamTest {
                     HttpResponseMessage(it, PerformedRequesterInfo(RequesterEngineInfo("a"), RequesterSlotInfo(0)))
                 val ref = ReferrerExtractorStream(msg)
 
-                var ret = it.ifSucc({
-                    var ret = it.body.ifHtml({
-                        var ret = it.parseAsHtmlDocument {
+                var ret = it.ifSuccAsync({
+                    var ret = it.body.ifHtmlAsync({
+                        var ret = it.parseAsHtmlDocumentAsync {
                             ref.extract(it.getElements(ParserNavigator("a")).first())
                         }
 
@@ -133,8 +130,10 @@ class ReferrerExtractorStreamTest {
                 ret
             }.orNull().toOption().flatten()
 
-            c.fold({ fail() }, {
-                it.fold({fail()}) {
+            c.fold({
+                fail()
+            }, {
+                it.fold({ fail() }) {
                     assertEquals(it, "origin")
                 }
             })
@@ -145,12 +144,14 @@ class ReferrerExtractorStreamTest {
     fun referrerHeaderTest() {
         runBlocking {
             var req = HttpRequestImpl(
-                none(), URI("http://127.0.0.1:30001/referrerheadertest"), RequestType.LINK, PerRequestHeaderProfile(
-                    RequestHeaderProfile(),
+                none(), URI("http://127.0.0.1:30001/referrerheadertest"), RequestType.LINK,
+                PerRequestHeaderProfile(
+                    RequestHeaderProfile().toOption(),
                     none(),
-                    URI("http://127.0.0.1:30001/referrertest"),
+                    URI("http://127.0.0.1:30001/referrertest").toOption(),
                     URI("http://127.0.0.1:30001/referrertest")
-                ), TagRepositoryImpl()
+                ),
+                TagRepositoryImpl()
             )
             var ret = adapter.requestAsync(req).await()
 
@@ -159,9 +160,9 @@ class ReferrerExtractorStreamTest {
                     HttpResponseMessage(it, PerformedRequesterInfo(RequesterEngineInfo("a"), RequesterSlotInfo(0)))
                 val ref = ReferrerExtractorStream(msg)
 
-                var ret = it.ifSucc({
-                    var ret = it.body.ifHtml({
-                        var ret = it.parseAsHtmlDocument {
+                var ret = it.ifSuccAsync({
+                    var ret = it.body.ifHtmlAsync({
+                        var ret = it.parseAsHtmlDocumentAsync {
                             ref.extract(it.getElements(ParserNavigator("a")).first())
                         }
 
@@ -183,7 +184,7 @@ class ReferrerExtractorStreamTest {
             }.orNull().toOption().flatten()
 
             c.fold({ fail() }, {
-                it.fold({fail()}) {
+                it.fold({ fail() }) {
                     assertEquals(it, "no-referrer")
                 }
             })

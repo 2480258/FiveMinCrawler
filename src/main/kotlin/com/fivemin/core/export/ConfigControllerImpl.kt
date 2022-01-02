@@ -3,29 +3,38 @@ package com.fivemin.core.export
 import arrow.core.Option
 import arrow.core.none
 import arrow.core.toOption
+import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.ConfigController
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import java.io.File
 
-class ConfigControllerImpl : ConfigController {
+class ConfigControllerImpl(jsonStr: String) : ConfigController {
+    companion object {
+        private val logger = LoggerController.getLogger("ConfigControllerImpl")
+    }
+
     private var dataObj: Map<String, JsonElement>
-
-    private val configFileName: String = "UniCrawlerConfig.json"
 
     init {
         dataObj = try {
-            Json.parseToJsonElement(File(configFileName).readText(Charsets.UTF_8)).jsonObject
+            Json.parseToJsonElement(jsonStr).jsonObject
         } catch (e: Exception) {
+            logger.warn("configControllerImpl Error: " + (e.message ?: "null"))
+            logger.warn(e.stackTraceToString())
             mutableMapOf()
         }
     }
 
     override fun <T> getSettings(settingName: String): Option<T> {
         if (dataObj.containsKey(settingName)) {
-            return (dataObj[settingName]?.jsonPrimitive?.content as? T).toOption()
+            var ret = (dataObj[settingName]?.jsonPrimitive?.content as? T).toOption()
+
+            ret.map {
+                logger.info("get setting: [$settingName] = $it")
+            }
+            return ret
         } else {
             return none()
         }

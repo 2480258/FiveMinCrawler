@@ -34,7 +34,7 @@ class StartTaskOption(
     }
 
     private val resume: ResumeDataFactory = ResumeDataFactory()
-
+    private val configFileName = "fivemin.config"
     suspend fun run() {
         // TODO Log
 
@@ -54,6 +54,14 @@ class StartTaskOption(
         }
     }
 
+    private fun getConfigString(): String {
+        if (File(configFileName).exists()) {
+            return File(configFileName).readText(Charsets.UTF_8)
+        }
+
+        return "{}"
+    }
+
     private fun build(): VirtualOption {
 
         var file = File(paramPath)
@@ -61,7 +69,7 @@ class StartTaskOption(
 // var mef = MEFFactory(pluginDirectory)
 
         var srtf = SRTFFactory().create()
-        var config = ConfigControllerImpl()
+        var config = ConfigControllerImpl(getConfigString())
         var io = DirectIOImpl(config, rootPath)
         var fac = JsonParserOptionFactory(file.readText(), listOf(), io) // TODO MEF
 

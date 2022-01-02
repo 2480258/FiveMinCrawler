@@ -3,7 +3,6 @@ package com.fivemin.core.initialize.json
 import com.fivemin.core.engine.DirectIO
 import com.fivemin.core.engine.transaction.prepareRequest.preParser.PreParserImpl
 import com.fivemin.core.engine.transaction.serialize.postParser.PostParserImpl
-import com.fivemin.core.export.ConfigControllerImpl
 import com.fivemin.core.initialize.ParseOption
 import com.fivemin.core.initialize.RequesterFactory
 import kotlinx.serialization.decodeFromString
@@ -29,8 +28,6 @@ class JsonParserOptionFactory(
     }
 
     private fun getOption(factories: Iterable<RequesterFactory>): ParseOption {
-        val config = ConfigControllerImpl()
-
         return ParseOption(
             PreParserImpl(
                 format.parseFormat.globalCondition.build(),
