@@ -15,9 +15,9 @@ class DirectIOImpl(val configController: ConfigController, val mainPath: Option<
     val pathDic: Map<UsingPath, String>
     val rootPath: String
     init {
-        val exp = configController.getSettings<String>("ExportPath").fold({ "Output" }, { x -> x })
-        val res = configController.getSettings<String>("ResumePath").fold({ "Resume" }, { x -> x })
-        var tmp = configController.getSettings<String>("TempPath").fold({ "Temp" }, { x -> x })
+        val exp = configController.getSettings("ExportPath").fold({ "Output" }, { x -> x })
+        val res = configController.getSettings("ResumePath").fold({ "Resume" }, { x -> x })
+        var tmp = configController.getSettings("TempPath").fold({ "Temp" }, { x -> x })
 
         pathDic = mapOf(
             UsingPath.EXPORT to exp,

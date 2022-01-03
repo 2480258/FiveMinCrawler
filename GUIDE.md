@@ -2,7 +2,7 @@
 
 We can change the behavior of the crawler by changing JSON and giving its path as a parameter (-p)
 
-**Please read with [Boilerplate](debugWeb.json) for better understandings. You may want to start to customize with this file because copying and pasting this one allows faster customization speed.**
+**Please read with [Boilerplate](debugWeb.json) for better understandings. You may want to start to customize with this file because copying and pasting this one allows faster customization.**
 
 ## Notations
 

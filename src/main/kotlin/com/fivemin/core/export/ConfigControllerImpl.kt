@@ -21,15 +21,14 @@ class ConfigControllerImpl(jsonStr: String) : ConfigController {
         dataObj = try {
             Json.parseToJsonElement(jsonStr).jsonObject
         } catch (e: Exception) {
-            logger.warn("configControllerImpl Error: " + (e.message ?: "null"))
-            logger.warn(e.stackTraceToString())
+            logger.warn(e)
             mutableMapOf()
         }
     }
 
-    override fun <T> getSettings(settingName: String): Option<T> {
+    override fun getSettings(settingName: String): Option<String> {
         if (dataObj.containsKey(settingName)) {
-            var ret = (dataObj[settingName]?.jsonPrimitive?.content as? T).toOption()
+            var ret = (dataObj[settingName]?.jsonPrimitive?.content).toOption()
 
             ret.map {
                 logger.info("get setting: [$settingName] = $it")

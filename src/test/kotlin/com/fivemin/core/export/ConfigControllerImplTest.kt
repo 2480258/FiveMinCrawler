@@ -4,12 +4,11 @@ import org.testng.Assert.*
 import org.testng.annotations.Test
 
 class ConfigControllerImplTest {
-
     @Test
-    fun testGetSettings() {
+    fun testGetSettingsString() {
         val configControllerImpl = ConfigControllerImpl("{\"a\" : \"b\"}")
 
-        configControllerImpl.getSettings<String>("a").fold({ fail() }) {
+        configControllerImpl.getSettings("a").fold({ fail() }) {
             assertEquals(it, "b")
         }
     }

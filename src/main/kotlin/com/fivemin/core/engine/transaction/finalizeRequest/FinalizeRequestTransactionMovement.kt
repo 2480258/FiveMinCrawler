@@ -25,7 +25,7 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
 
         return coroutineScope {
             async {
-                logger.info(source.request, "finalizing request transaction")
+                logger.debug(source.request, "finalizing request transaction")
 
                 val r = ret.await()
                 FinalizeRequestTransactionImpl<Document>(r, source.tags, source).right()

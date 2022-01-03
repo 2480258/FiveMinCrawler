@@ -101,20 +101,15 @@ interface SessionDetachable : SessionState {
         private val logger = LoggerController.getLogger("SessionDetachable")
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     suspend fun detach(func: suspend (SessionInitState) -> Option<Throwable>): Deferred<Option<Throwable>> {
         var detached = Data.SessionRepo.create(info.token.toOption())
         Data.KeyRepo.transferOwnership(info.token, detached.token)
 
         GlobalScope.launch {
-            coroutineScope {
-                async {
-                    logger.debug(info.token.tokenNumber.toString() + " < detached")
-                    func(SessionInitStateImpl(detached, Data)).map {
-                        logger.warn(it.message ?: "null")
-                    }
-                    logger.debug(info.token.tokenNumber.toString() + " < detach job finished")
-                }
-            }
+            logger.info(info.token.tokenNumber.toString() + " < detached")
+            func(SessionInitStateImpl(detached, Data))
+            logger.debug(info.token.tokenNumber.toString() + " < detach job finished")
         }
 
         return coroutineScope {

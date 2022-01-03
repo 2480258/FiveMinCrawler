@@ -6,6 +6,14 @@ import com.fivemin.core.engine.Request
 import com.fivemin.core.logger.LoggerImpl
 
 interface Logger {
+    fun info(ex: Throwable, str: String? = null)
+
+    fun debug(ex: Throwable, str: String? = null)
+
+    fun warn(ex: Throwable, str: String? = null)
+
+    fun error(ex: Throwable, str: String? = null)
+
     fun info(str: String)
 
     fun debug(str: String)

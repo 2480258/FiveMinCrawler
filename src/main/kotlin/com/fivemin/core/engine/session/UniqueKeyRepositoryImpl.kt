@@ -22,7 +22,7 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
             it.isConflict(key)
         })
         ) {
-            throw UniqueKeyDuplicateException()
+            throw UniqueKeyDuplicateException("Attempted to search with $key")
         }
 
         val lst = list.filter {
@@ -57,7 +57,7 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
             var isUnique = global.isNotEmpty()
 
             if (isUnique) {
-                throw UniqueKeyDuplicateException()
+                throw UniqueKeyDuplicateException("Attempted to start task with duplicated key: $key")
             }
 
             var lst = list[handle].toOption()
@@ -145,4 +145,4 @@ class UniqueKeyRepositoryImpl constructor(private val set: Option<ArchivedSessio
 
 class RetryCountMaxedException : Exception()
 
-class UniqueKeyDuplicateException : Exception()
+class UniqueKeyDuplicateException(msg: String) : Exception(msg)

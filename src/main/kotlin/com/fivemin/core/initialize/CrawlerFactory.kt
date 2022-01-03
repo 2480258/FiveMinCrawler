@@ -142,10 +142,13 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     }
 
     private fun getRequestQueue(deq: DequeueOptimizationPolicy): RequestQueue {
-        return RequestQueueImpl(
-            deq,
-            controller.getSettings<Int>("MaxRequestThread").fold({ 1 }, { it })
-        )
+        val count = controller.getSettings("MaxRequestThread").map { it.toInt() }.fold({ 1 }, { it })
+
+        if (count < 1) {
+            throw IllegalArgumentException("MaxRequestThread is below 1")
+        }
+
+        return RequestQueueImpl(deq, count)
     }
 
     private fun getRequestTaskFactory(deq: DequeueOptimizationPolicy): RequesterTaskFactory {

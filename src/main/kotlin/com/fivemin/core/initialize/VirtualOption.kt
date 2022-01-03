@@ -34,7 +34,7 @@ class StartTaskOption(
     }
 
     private val resume: ResumeDataFactory = ResumeDataFactory()
-    private val configFileName = "fivemin.config"
+    private val configFileName = "fivemin.config.json"
     suspend fun run() {
         // TODO Log
 

@@ -7,47 +7,73 @@ import java.io.File
 
 class MainKt {
     companion object {
-        private val logger = LoggerController.getLogger("MainKt")
 
         @JvmStatic
         fun main(args: Array<String>) {
-            logger.debug("Logging Level = Debug")
-            System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
 
             runBlocking {
                 try {
-                    logger.info("Starting crawler")
 
                     start(args)
                 } catch (e: Exception) {
-                    println(e.printStackTrace())
+                    e.printStackTrace()
                 }
-
-                logger.info("Finished")
-
                 kotlin.system.exitProcess(0)
             }
         }
 
         suspend fun start(args: Array<String>) {
 
-            val parser = ArgParser("example")
+            val parser = ArgParser("FiveMinCrawler")
             val uri by parser.option(ArgType.String, shortName = "u", description = "crawl uri")
             val paramPath by parser.option(ArgType.String, shortName = "p", description = "parameter path")
 
             val pluginPath by parser.option(ArgType.String, shortName = "g", description = "(Optional) plugin path")
-            val resumeFrom by parser.option(ArgType.String, shortName = "r", description = "(Optional) resume file path")
+            val resumeFrom by parser.option(
+                ArgType.String,
+                shortName = "r",
+                description = "(Optional) resume file path"
+            )
             val rootPath by parser.option(ArgType.String, shortName = "o", description = "(Optional) path to write")
-            val argsText by parser.option(ArgType.String, shortName = "a", description = "(Debug) resume file path")
+            val argsText by parser.option(
+                ArgType.String,
+                shortName = "a",
+                description = "(Debug) add argument via text file"
+            )
+            val useVerbose by parser.option(ArgType.Boolean, shortName = "v", description = "use verbose logging")
+                .default(false)
 
             parser.parse(args)
 
             if (argsText != null) {
                 start(File(argsText).readText().split(' ').toTypedArray())
             } else {
-                val opt = StartTaskOption(uri!!, paramPath!!, pluginPath.toOption(), resumeFrom.toOption(), rootPath.toOption())
+                if (useVerbose) {
+                    System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
+                } else {
+                    System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO")
+                }
+
+                val logger = LoggerController.getLogger("MainKt")
+                logger.debug("Logging Level = Debug")
+
+                logger.info("Starting crawler")
+
+                if (uri == null) {
+                    logger.error("please check your arguments.... exiting.")
+                    return
+                }
+                val opt = StartTaskOption(
+                    uri!!,
+                    paramPath!!,
+                    pluginPath.toOption(),
+                    resumeFrom.toOption(),
+                    rootPath.toOption()
+                )
 
                 opt.run()
+
+                logger.info("Finished")
             }
         }
     }

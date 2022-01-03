@@ -129,8 +129,7 @@ class ResponseAdapterImpl(
             }
 
             ret.swap().map {
-                logger.warn(it.message ?: "null")
-                logger.warn(it.stackTraceToString())
+                logger.warn(it)
             }
 
             return ret.orNone()

@@ -64,14 +64,14 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
                 logger.debug(ret.url.toString() + " < requesting")
                 client.newCall(ret).execute()
             }.fold({
-                logger.debug(ret.url.toString() + " < received")
-                logger.debug(it.stackTraceToString())
+                logger.info(ret.url.toString() + " < received")
+                logger.warn(it)
 
                 Either.catch {
                     responseAdapterImpl.createWithError(uri, it.toOption(), ret)
                 }.flatten()
             }, {
-                logger.debug(ret.url.toString() + " < received")
+                logger.info(ret.url.toString() + " < received")
 
                 Either.catch {
                     responseAdapterImpl.createWithReceived(uri, it, ret)

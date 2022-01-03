@@ -98,8 +98,8 @@ class RequestQueueImpl(
         }
 
         ret.swap().map {
-            logger.warn("can't take from queue because: " + (it.message ?: "null"))
-            logger.warn(it.stackTraceToString())
+            logger.warn("can't take from queue because: ")
+            logger.warn(it)
         }
 
         return ret.orNone()

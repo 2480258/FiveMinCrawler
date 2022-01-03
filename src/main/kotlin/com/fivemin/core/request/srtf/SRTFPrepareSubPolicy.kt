@@ -29,9 +29,9 @@ class SRTFPrepareSubPolicy(private val sc: SRTFScheduler) : TransactionSubPolicy
 
                     dest
                 }
-                
+
                 ret.swap().map {
-                    logger.warn(it.message ?: "null")
+                    logger.warn(it)
                 }
 
                 ret

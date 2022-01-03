@@ -11,6 +11,10 @@ class LoggerImpl(private val name: String) : Logger {
     init {
     }
 
+    override fun info(ex: Throwable, str: String?) {
+        logger.info(ex) { str }
+    }
+
     override fun info(str: String) {
         logger.info {
             str
@@ -25,8 +29,12 @@ class LoggerImpl(private val name: String) : Logger {
         }
     }
 
+    override fun debug(ex: Throwable, str: String?) {
+        logger.debug(ex) { str }
+    }
+
     override fun debug(str: String) {
-        logger.info {
+        logger.debug {
             str
         }
     }
@@ -37,6 +45,10 @@ class LoggerImpl(private val name: String) : Logger {
         e.fold({ logger.debug(logStr) }) {
             logger.debug(it) { logStr }
         }
+    }
+
+    override fun warn(ex: Throwable, str: String?) {
+        logger.warn(ex) { str }
     }
 
     override fun warn(str: String) {
@@ -51,6 +63,10 @@ class LoggerImpl(private val name: String) : Logger {
         e.fold({ logger.warn(logStr) }) {
             logger.warn(it) { logStr }
         }
+    }
+
+    override fun error(ex: Throwable, str: String?) {
+        logger.error(ex) { str }
     }
 
     override fun error(str: String) {
