@@ -13,10 +13,12 @@ With this feature, you can make a crawler for specific site very fast.
 
 - Recursively downloads web pages that pass conditions specified by you (regex)
 - Effectively parses downloaded HTML powered by [jsoup](https://github.com/jhy/jsoup)
-- Saves parsed and downloaded things (web pages, images, and others) as you want (directory and file names)
+- Saves parsed and downloaded things (web pages, images, and others) as you want (directory, file names and format)
 - Skips downloading pages if you did before (only applies pages that you want)
 
 ## Getting Started
+
+Firstly, if you have any questions, suggestions and others then please use issue tab.
 
 ### Command-line Options
 
@@ -62,11 +64,19 @@ Currently, that's all.... Can be modified at fivemin.config.json
 >
 > [brotli](https://github.com/google/brotli) 
 >
->[jsoup](https://github.com/jhy/jsoup)
+> [jsoup](https://github.com/jhy/jsoup)
 >
->[kotlin-logging](https://github.com/MicroUtils/kotlin-logging)
+> [kotlin-logging](https://github.com/MicroUtils/kotlin-logging)
 >
->[mockk](https://github.com/mockk/mockk)
+> [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines)
 >
->[okhttp](https://github.com/square/okhttp)
-
+> [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization)
+>
+> [kotlinx-cli](https://github.com/Kotlin/kotlinx-cli)
+>
+> [mockk](https://github.com/mockk/mockk)
+>
+> [okhttp](https://github.com/square/okhttp)
+> 
+> [slf4j](https://github.com/qos-ch/slf4j)
+>

@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "me.azure"
-version = "1.0-SNAPSHOT"
+version = "0"
 
 var arrow_version = "1.0.1"
 
@@ -18,9 +18,6 @@ repositories {
 dependencies {
     implementation("io.arrow-kt:arrow-core:$arrow_version")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
-    implementation("com.github.kittinunf.result:result-jvm:5.2.0")
-    implementation("com.github.kittinunf.fuel:fuel:2.3.1")
-    implementation("com.github.kittinunf.fuel:fuel-coroutines:2.3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
