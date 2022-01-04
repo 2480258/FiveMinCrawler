@@ -27,7 +27,7 @@ JSON 파일을 수정하고 이를 파라미터 경로 (-p) 로 지정함에 따
 ```json
 "bookName": "Debug",
 "globalCondition": {
-"uriRegex": "127.0.0.1:30001"
+  "uriRegex": "127.0.0.1:30001"
 }
 ```
 
@@ -48,30 +48,30 @@ JSON 파일을 수정하고 이를 파라미터 경로 (-p) 로 지정함에 따
 
 ```json
 "pages": [
-{
-"pageName": "Home",
-"condition": {
-"uriRegex": "127.0.0.1:30001/home"
-},
-"internalAttributes": [
-See Internal Attribute section
-],
-"linkAttributes": [
-See Link Attribute section
-],
-"externalAttributes": [
-See External Attribute section
-],
-"targetContainer": {
-See Target Container section
-},
-"tag": [
-See Tag section
-],
-"targetRequesterEngine": {
-"targetRequester": "Default" // just let this default
-}
-}
+  {
+    "pageName": "Home",
+    "condition": {
+      "uriRegex": "127.0.0.1:30001/home"
+    },
+    "internalAttributes": [
+      See Internal Attribute section
+    ],
+    "linkAttributes": [
+      See Link Attribute section
+    ],
+    "externalAttributes": [
+      See External Attribute section
+    ],
+    "targetContainer": {
+      See Target Container section
+    },
+    "tag": [
+      See Tag section
+    ],
+    "targetRequesterEngine": {
+      "targetRequester": "Default" // just let this default
+    }
+  }
 ]
 ```
 
@@ -85,11 +85,11 @@ Internal **Attribute** 는 다운로드 된 HTML 페이지에서 얻어진 **att
 
 ```json
 "internalAttributes": [
-{
-"attributeName": "Heading of Example Text",
-"queryStr": "body > h1",
-"parseMode": "TEXT_CONTENT"
-}
+  {
+    "attributeName": "Heading of Example Text",
+    "queryStr": "body > h1",
+    "parseMode": "TEXT_CONTENT"
+  }
 ]
 ```
 
@@ -109,11 +109,11 @@ External **Attribute**는 나중에 다운로드되어야 할 **attribute** 를 
 
 ```json
 "externalAttributes": [
-{
-"attributeName": "Images of Contents",
-"queryStr": "body > a", // get links only here.
-"uriRegex": "\\/" // get links that matches this regex.
-}
+  {
+    "attributeName": "Images of Contents",
+    "queryStr": "body > a", // get links only here.
+    "uriRegex": "\\/" // get links that matches this regex.
+  }
 ]
 ```
 
@@ -134,12 +134,12 @@ Link **Attribute**: 요청되고 파싱되어야 하는 **attribute**를 나타�
 
 ```json
 "linkAttributes": [
-{
-"attributeName": "Links of Contents",
-"queryStr": "body > a", // get links only here.
-"uriRegex": "\\/", // get links that matches this regex.
-"destPage": "entry" // (Optional)
-}
+  {
+    "attributeName": "Links of Contents",
+    "queryStr": "body > a", // get links only here.
+    "uriRegex": "\\/", // get links that matches this regex.
+    "destPage": "entry" // (Optional)
+  }
 ]
 ```
 
@@ -158,7 +158,7 @@ Target Container는 크롤링 후 어떻게 데이터를 업데이트 할 것인
 
 ```json
 "targetContainer": {
-"workingSetMode": "Disabled"
+  "workingSetMode": "Disabled"
 }
 ```
 
@@ -166,7 +166,7 @@ Target Container는 크롤링 후 어떻게 데이터를 업데이트 할 것인
 
 ```json
 "targetContainer": {
-"workingSetMode": "Enabled"
+  "workingSetMode": "Enabled"
 }
 ```
 
@@ -182,11 +182,11 @@ Target Container는 크롤링 후 어떻게 데이터를 업데이트 할 것인
 
 ```json
 "tag": [
-{
-"name": "nameOfTag",
-"tagRegex": "([a-z]+)", // extract tag from this regex via matching with URL
-"isAlias": false
-}
+  {
+    "name": "nameOfTag",
+    "tagRegex": "([a-z]+)", // extract tag from this regex via matching with URL
+    "isAlias": false
+  }
 ]
 ```
 
@@ -202,18 +202,18 @@ Target Container는 크롤링 후 어떻게 데이터를 업데이트 할 것인
 
 ```json
 "requestFormat": {
-"engines": [
-{
-"requesterEngineName": "Default", // just let them "Default".
-"type": "Default", // just let them "Default".
-"requesters": [
-{
-"userAgent": "I am User agent!"
-}
-]
-}
-],
-"cookiePolicies": []  // just let them empty.
+  "engines": [
+    {
+      "requesterEngineName": "Default", // just let them "Default".
+      "type": "Default", // just let them "Default".
+      "requesters": [
+        {
+          "userAgent": "I am User agent!"
+        }
+      ]
+    }
+  ],
+  "cookiePolicies": []  // just let them empty.
 }
 ```
 
@@ -228,7 +228,7 @@ Target Container는 크롤링 후 어떻게 데이터를 업데이트 할 것인
 ```json
 "pageName": "Home",
 "targetAttributeName": [
-"Images of Contents"
+  "Images of Contents"
 ]
 ```
 
@@ -251,7 +251,7 @@ Target Container는 크롤링 후 어떻게 데이터를 업데이트 할 것인
 
 ```json
 "adapter": {
-"mode": "Binary",
-"fileNameTagExp": "[&(nameOfTag)] - &(lastseg)\\&(inc).&(ext)"
+  "mode": "Binary",
+  "fileNameTagExp": "[&(nameOfTag)] - &(lastseg)\\&(inc).&(ext)"
 }
 ```
