@@ -1,7 +1,10 @@
-# Five-Minute Crawler - A Highly Customizable Crawler without Code
+# 🕐Five-Minute Crawler - A Highly Customizable Crawler without Code
 _and can be customized in five minutes (maybe.... if you know html and other things XD)_
 
-**This program is very experimental. Stuff will be break.**
+**⚠This program is very experimental. Stuff will be break.**
+   
+
+[한국어 설명서(KO)](README_KO.md)
 
 ## What is this?
 

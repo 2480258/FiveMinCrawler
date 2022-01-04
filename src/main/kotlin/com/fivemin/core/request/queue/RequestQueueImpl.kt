@@ -5,7 +5,6 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.Request
 import com.fivemin.core.request.*
 import kotlinx.coroutines.*
-import java.util.*
 import java.util.concurrent.PriorityBlockingQueue
 
 class RequestQueueImpl(
@@ -63,8 +62,10 @@ class RequestQueueImpl(
 
     private suspend fun work() {
         while (true) {
-            runBlocking {
+            try {
                 dequeue()
+            } catch (e: Throwable) {
+                logger.warn(e)
             }
         }
     }
@@ -74,7 +75,7 @@ class RequestQueueImpl(
         val item: Option<EnqueuedRequest<Request>> = removeFirstFromQueue()
 
         item.map {
-            when (it.request.info.dequeue.get()) { // TODO Fix if Exception
+            when (it.request.info.dequeue.get()) {
                 DequeueDecision.ALLOW -> {
                     it.info.callBack(DequeuedRequest(it.request, DequeuedRequestInfo()).right())
                 }

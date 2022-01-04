@@ -136,13 +136,15 @@ Link **Attribute** is **attribute** that should be requested and parsed further.
   scope due to possible file duplication. _(essential)_
 - Query String: CSS selector or JSoup query string select range of query. _(optional; default is select all)_
 - Uri Regex: Filters URL to downloaded by given regex. _(essential)_
+- Dest Page: Pins **Page** parsing to specified name. It's useful when hard to get regex that matches with **Page**
 
 ```json
 "linkAttributes": [
   {
     "attributeName": "Links of Contents",
     "queryStr": "body > a", // get links only here.
-    "uriRegex": "\\/" // get links that matches this regex.
+    "uriRegex": "\\/", // get links that matches this regex.
+    "destPage": "entry" // (Optional)
   }
 ]
 ```
@@ -224,7 +226,7 @@ or allows empty list.
 ### ExportPage
 
 - PageName: Name of **page** to be applied. _(essential)_
-- Target Attribute Name: Specifies name of **attribute**s that needed to be exported. _(essential)_
+- Target Attribute Name: Specifies name of **attribute**s (in current **page**) that needed to be exported. _(essential)_
 - Adapter: Specifies How to export **attribute**s _(essential)_
 
 ```json
@@ -237,7 +239,7 @@ or allows empty list.
 ### ExportAdapter
 
 - Mode: Selects between "Json" and "Binary". If downloaded data is not text-based, can not export as JSON file.
-- File Name Tag Expression: Specifies where to export files. We can use [tag](#tag) by writing **&(tagName)**. Some tags are added automatically for sake of usability. See below.
+- File Name Tag Expression: Specifies where to export files. We can use value of [tag](#tag) by writing **&(tagName)**. Some tags are added automatically for sake of usability. See below.
 
 | Tag Name |             Functions             |
 |:---------|:---------------------------------:|
