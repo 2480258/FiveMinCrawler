@@ -1,35 +1,46 @@
 package com.fivemin.core.request.srtf
 
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
+
 class WorkingSetWatchList {
-    val blocks: MutableMap<SRTFPageBlock, Counter> = mutableMapOf()
+    private val blocks: MutableMap<SRTFPageBlock, Counter> = mutableMapOf()
+    private val lock = ReentrantLock()
+
     val count: Int
         get() {
-            return _count
+            lock.withLock {
+                return blocks.count()
+            }
         }
-
-    var _count = 0
 
     fun add(block: SRTFPageBlock) {
-        if (!blocks.containsKey(block)) {
-            blocks[block] = Counter()
-        }
+        lock.withLock {
+            if (!blocks.containsKey(block)) {
+                blocks[block] = Counter()
+            }
 
-        blocks[block]!!.increase()
+            blocks[block]!!.increase()
+        }
     }
 
     fun get(): Iterable<Map.Entry<SRTFPageBlock, Counter>> {
-        return blocks.asIterable()
+        lock.withLock {
+            return blocks.asIterable().toList()
+        }
     }
 
     fun remove(block: SRTFPageBlock) {
-        if (!blocks.containsKey(block)) {
-            return
-        }
+        lock.withLock {
+            if (!blocks.containsKey(block)) {
+                return
+            }
 
-        blocks[block]!!.decrease()
+            blocks[block]!!.decrease()
 
-        if (blocks[block]!!.count == 0) {
-            blocks.remove(block)
+            if (blocks[block]!!.count == 0) {
+                blocks.remove(block)
+            }
         }
     }
 }

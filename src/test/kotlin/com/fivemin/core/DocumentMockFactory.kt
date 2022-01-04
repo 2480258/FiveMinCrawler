@@ -36,6 +36,48 @@ class AttributeMockFactory {
             }
         }
 
+        fun getMultiStringAttrEx(
+            name: String,
+            triple: Iterable<Triple<Request, RequestOption, SuccessBody>>
+        ): DocumentAttribute {
+            val mock = mockk<DocumentAttribute>()
+
+            every {
+                mock.info
+            }.returns(DocumentAttributeInfo(name))
+
+            every {
+                mock.item
+            }.returns(
+                DocumentAttributeArrayItemImpl(
+                    triple.map {
+                        DocumentAttributeExternalElementImpl(it.first.token, it.first.target, it.first.tags, it.second, it.third)
+                    }
+                )
+            )
+
+            return mock
+        }
+
+        fun getSingleStringAttrEx(
+            name: String,
+            req: Request,
+            succ: SuccessBody,
+            opt: RequestOption
+        ): DocumentAttribute {
+            val mock = mockk<DocumentAttribute>()
+
+            every {
+                mock.info
+            }.returns(DocumentAttributeInfo(name))
+
+            every {
+                mock.item
+            }.returns(DocumentAttributeSingleItemImpl(DocumentAttributeExternalElementImpl(req.token, req.target, req.tags, opt, succ)))
+
+            return mock
+        }
+
         fun getSingleStringAttr(
             name: String,
             value: String

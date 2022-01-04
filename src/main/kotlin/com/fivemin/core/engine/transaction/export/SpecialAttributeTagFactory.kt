@@ -16,7 +16,10 @@ class SpecialAttributeTagFactory {
     }
 
     class NameSpecialTagFactory : SpecialTagFactory {
-        override fun <Document : Request> create(trans: SerializeTransaction<Document>, locator: AttributeLocator): Tag {
+        override fun <Document : Request> create(
+            trans: SerializeTransaction<Document>,
+            locator: AttributeLocator
+        ): Tag {
             return Tag(EnumSet.of(TagFlag.NONE), "name", locator.attributeName)
         }
     }
@@ -55,9 +58,14 @@ class SpecialAttributeTagFactory {
                 EnumSet.of(TagFlag.NONE), "lastseg",
                 trans.attributes.single {
                     it.info.name == locator.attributeName
-                }.item.elementAt(locator.attributeIndex).match({ "" }, {
-                    getLastSeg(it.target)
-                })
+                }.item.elementAt(locator.attributeIndex).match(
+                    {
+                        getLastSeg(trans.request.target)
+                    },
+                    {
+                        getLastSeg(it.target)
+                    }
+                )
             )
         }
 
@@ -94,7 +102,8 @@ class SpecialAttributeTagFactory {
         }
     }
 
-    val factories: Iterable<SpecialTagFactory> = listOf(ExtSpecialTagFactory(), LastSegSpecialTagFactory(), IncSpecialTagFactory(), NameSpecialTagFactory())
+    val factories: Iterable<SpecialTagFactory> =
+        listOf(ExtSpecialTagFactory(), LastSegSpecialTagFactory(), IncSpecialTagFactory(), NameSpecialTagFactory())
 
     fun <Document : Request> build(trans: SerializeTransaction<Document>, locator: AttributeLocator): TagRepository {
         var ret = factories.map {

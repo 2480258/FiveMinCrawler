@@ -30,11 +30,6 @@ class SRTFScheduler : DequeueOptimizationPolicy {
 
     private val watchList: MutableMap<RequestToken, WorkingSetWatchList> = mutableMapOf()
 
-    private val watchlistCount: Int
-        get() {
-            return watchList.count()
-        }
-
     private val memorization: MutableMap<RequestToken, Pair<Double, Int>> = mutableMapOf()
 
     override fun getScore(req: PreprocessedRequest<Request>): Double {
@@ -54,19 +49,23 @@ class SRTFScheduler : DequeueOptimizationPolicy {
                 return memorization[wshandle]!!.first
             }
 
-            var ret = lst.sumOf {
+            var nonEndpoint = lst.sumOf { // for non-Endpoint time (uncle page)
                 it.key.getEndpointTime() * it.value.count
             }
 
+            var endpoint = pageBlockSet.get(convertTo(req.request.request)).getEndpointTime() // for endpoint time (children page)
+
+            var expectedTime = nonEndpoint + endpoint
+
             if (!(memorization.containsKey(wshandle) && memorization[wshandle]?.second == fullcount)) {
                 if (!memorization.containsKey(wshandle)) {
-                    memorization.put(wshandle, Pair(ret, fullcount))
+                    memorization.put(wshandle, Pair(expectedTime, fullcount))
                 } else {
-                    memorization[wshandle] = Pair(ret, fullcount)
+                    memorization[wshandle] = Pair(expectedTime, fullcount)
                 }
             }
 
-            return ret
+            return expectedTime
         }
     }
 
@@ -101,18 +100,22 @@ class SRTFScheduler : DequeueOptimizationPolicy {
                 handle,
                 parent,
                 pageBlock
-            ) // handle is unique so if duplicated then preprocess called twice or retry.
+            ) // handle is unique so if duplicated then preprocess should already have called
 
             if (parent.isEmpty() && !watchList.contains(handle)) {
-                watchList.put(handle, WorkingSetWatchList())
+                watchList[handle] = WorkingSetWatchList()
             }
 
-            trans.request.parent.map {
-                var parentBlock = documentBlockSet.getBlockBy(it).pageName
+            parent.getOrElse { handle }
 
-                if (isUnique) {
-                    parentBlock.addSample(pageBlock)
-                    watchList[documentBlockSet.getBlockBy(parent.getOrElse { handle }).bottomMost]!!.add(pageBlock)
+            if (!detachable) {
+                trans.request.parent.map {
+                    var parentBlock = documentBlockSet.getBlockBy(it).pageName
+
+                    if (isUnique) {
+                        parentBlock.addSample(pageBlock)
+                        watchList[documentBlockSet.getBlockBy(parent.getOrElse { handle }).bottomMost]!!.add(pageBlock)
+                    }
                 }
             }
         }

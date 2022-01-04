@@ -1,6 +1,5 @@
 package com.fivemin.core.request.srtf
 
-import arrow.core.none
 import com.fivemin.core.DocumentMockFactory.Companion.getRequest
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsAttribute
@@ -13,10 +12,9 @@ import com.fivemin.core.engine.*
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import org.testng.annotations.Test
-
 import org.testng.Assert.*
 import org.testng.annotations.BeforeMethod
+import org.testng.annotations.Test
 
 class SRTFSchedulerTest {
 
@@ -39,10 +37,10 @@ class SRTFSchedulerTest {
         strit = ElemIterator(StringIterator())
     }
 
-    private fun mockSessionFunc(mode : WorkingSetMode) : SessionStartedState{
+    private fun mockSessionFunc(mode: WorkingSetMode): SessionStartedState {
         var mock = mockk<SessionStartedState>()
 
-        val det = when(mode) {
+        val det = when (mode) {
             WorkingSetMode.Enabled -> DetachableState.WANT
             WorkingSetMode.Disabled -> DetachableState.HATE
         }
@@ -54,7 +52,7 @@ class SRTFSchedulerTest {
         return mock
     }
 
-    private fun addRequestSample(parent : RequestToken?, pageName : String, mode : WorkingSetMode) : FinalizeRequestTransaction<Request> {
+    private fun addRequestSample(parent: RequestToken?, pageName: String, mode: WorkingSetMode): FinalizeRequestTransaction<Request> {
         return runBlocking {
 
             var it = getRequest(uriIt.gen(), RequestType.LINK, parent).upgrade()
@@ -71,12 +69,12 @@ class SRTFSchedulerTest {
         }
     }
 
-    private fun addAttributeSample(parent : RequestToken?) : FinalizeRequestTransaction<Request> {
+    private fun addAttributeSample(parent: RequestToken?): FinalizeRequestTransaction<Request> {
         return runBlocking {
             var it = getRequest(uriIt.gen(), RequestType.ATTRIBUTE, parent).upgrade()
             var pp = it.upgradeAsAttribute()
 
-            var ret = prep.process(it,pp, mockk(), mockSessionFunc(WorkingSetMode.Disabled))
+            var ret = prep.process(it, pp, mockk(), mockSessionFunc(WorkingSetMode.Disabled))
             var fn = pp.upgrade()
 
             var retfn = final.process(pp, fn, mockk(), mockSessionFunc(WorkingSetMode.Disabled))
@@ -85,15 +83,15 @@ class SRTFSchedulerTest {
         }
     }
 
-    private fun registerAttribute(parent : RequestToken?) : PrepareTransaction<Request> {
+    private fun registerAttribute(parent: RequestToken?): PrepareTransaction<Request> {
         return runBlocking {
             var it = getRequest(uriIt.gen(), RequestType.ATTRIBUTE, parent).upgrade()
             var pp = it.upgradeAsAttribute()
 
             var ret = prep.process(it, pp, mockk(), mockSessionFunc(WorkingSetMode.Disabled))
-            ret.await().fold({throw it}
+            ret.await().fold({ throw it }
 
-            ){}
+            ) {}
             pp
         }
     }
@@ -134,16 +132,16 @@ class SRTFSchedulerTest {
         var dohandle = addRequestSample(root, pg1, WorkingSetMode.Enabled).request.token
         var dohandl1 = addAttributeSample(root)
 
-        var pp1 = registerAttribute(dohandle)
-        var pp2 = registerAttribute(dohandle)
+        var pp1 = registerAttribute(dohandle) // +5
+        var pp2 = registerAttribute(dohandle) // +5
 
-        var req = pp1.upgradeAsRequestReq(DetachableState.HATE).upgrade()
+        var req = pp1.upgradeAsRequestReq(DetachableState.HATE).upgrade() // +5
 
-        assertEquals(sc.getScore(req).toFloat(), 10.0f, 0.1f)
+        assertEquals(sc.getScore(req).toFloat(), 15.0f, 0.1f)
     }
 
     @Test
-    fun calcMemorizationTest() {
+    fun calcMemorizationSuccTest() {
         var pg1 = strit.gen()
 
         var root = addRequestSample(null, "root", WorkingSetMode.Enabled).request.token
@@ -156,10 +154,34 @@ class SRTFSchedulerTest {
         var dohandle = addRequestSample(root, pg1, WorkingSetMode.Enabled).request.token
         var dohandl1 = addAttributeSample(root)
 
-        var pp1 = registerAttribute(dohandle)
+        var pp1 = registerAttribute(dohandle) // +5
         var pp2 = registerAttribute(dohandle)
 
-        var req = pp1.upgradeAsRequestReq(DetachableState.HATE).upgrade()
+        var req = pp1.upgradeAsRequestReq(DetachableState.HATE).upgrade() // +5
+        var req2 = pp2.upgradeAsRequestReq(DetachableState.HATE).upgrade()
+
+        sc.getScore(req)
+        assertEquals(sc.getScore(req).toFloat(), 10.0f, 0.1f)
+    }
+
+    @Test
+    fun calcMemorizationFailTest() {
+        var pg1 = strit.gen()
+
+        var root = addRequestSample(null, "root", WorkingSetMode.Enabled).request.token
+
+        var handle1 = addRequestSample(root, pg1, WorkingSetMode.Enabled).request.token
+        var handles1 = (0 until 3).map {
+            addAttributeSample(handle1)
+        }
+
+        var dohandle = addRequestSample(root, pg1, WorkingSetMode.Enabled).request.token
+        var dohandl1 = addAttributeSample(root)
+
+        var pp1 = registerAttribute(dohandle) // +5
+        var pp2 = registerAttribute(dohandle)
+
+        var req = pp1.upgradeAsRequestReq(DetachableState.HATE).upgrade() // +5
         var req2 = pp2.upgradeAsRequestReq(DetachableState.HATE).upgrade()
 
         sc.getScore(req)
@@ -168,9 +190,9 @@ class SRTFSchedulerTest {
 
         runBlocking {
             final.process(pp1, fn, mockk(), mockSessionFunc(WorkingSetMode.Disabled))
-        }
+        } // edit fullcount so that memorization is not performed
 
-        assertEquals(sc.getScore(req2).toFloat(), 5.0f, 0.1f)
+        assertEquals(sc.getScore(req).toFloat(), 10.0f, 0.1f)
     }
 
     @Test
@@ -260,7 +282,6 @@ class SRTFSchedulerTest {
         assert(sc.blockCount == 0 && sc.watchListCount == 1)
     }
 
-
     @Test
     fun prepareTwice() {
         var it = getRequest(uriIt.gen(), RequestType.LINK).upgrade()
@@ -291,5 +312,4 @@ class SRTFSchedulerTest {
             sc.blockCount == 0 && sc.watchListCount == 1
         }
     }
-
 }

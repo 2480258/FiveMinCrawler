@@ -6,7 +6,7 @@ class Counter {
             return _count
         }
 
-    var _count = 0
+    private var _count = 0
 
     fun increase() {
         _count++
