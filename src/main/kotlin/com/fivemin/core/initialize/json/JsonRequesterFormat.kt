@@ -122,7 +122,7 @@ class JsonRequesterFormat(
         return DefaultRequesterCore(
             RequesterExtraImpl(),
             info,
-            HttpRequesterConfig(RequesterConfig(factory)),
+            RequesterConfig(factory),
             RequesterAdapterImpl(
                 CustomCookieJar(),
                 ResponseAdapterImpl(info, MemoryFilterFactoryImpl(io, HtmlDocumentFactoryImpl())),

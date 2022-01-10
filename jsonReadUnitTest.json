@@ -1,0 +1,105 @@
+{
+  "requestFormat":{
+    "engines":[
+      {
+        "requesterEngineName":"Default",
+        "type":"Default",
+        "requesters":[
+          {
+            "userAgent":"TESTTESTTEST"
+          }
+        ]
+      }
+    ],
+    "cookiePolicies": [
+      {
+        "syncDest": {
+          "engine": "A",
+          "index": 0
+        },
+        "syncSrc":{
+          "engine": "A",
+          "index": 1
+        }
+      }
+    ]
+  },
+  "parseFormat":{
+    "bookName":"Debug",
+    "globalCondition":{
+      "uriRegex":"127.0.0.1:30001"
+    },
+    "pages":[
+      {
+        "pageName":"redirect",
+        "condition":{
+          "uriRegex":"127.0.0.1:30001/redirect"
+        },
+        "internalAttributes":[
+          {
+            "attributeName":"A1234567890",
+            "queryStr":"body > h1",
+            "parseMode":"TEXT_CONTENT"
+          }
+        ],
+        "linkAttributes":[
+          {
+            "attributeName":"links",
+            "queryStr":"body > a",
+            "uriRegex":"\\/",
+            "destPage":"destPage"
+          }
+        ],
+        "externalAttributes":[
+          {
+            "attributeName":"testImages",
+            "queryStr":"body > div",
+            "uriRegex":".png"
+          }
+        ],
+        "targetContainer":{
+          "workingSetMode":"Disabled"
+        },
+        "tag":[
+          {
+            "name":"uri",
+            "tagRegex":"([a-z]+)",
+            "isAlias":false
+          }
+        ],
+        "targetRequesterEngine":{
+          "targetRequester":"Default"
+        }
+      }
+    ],
+    "attributeRequester":{
+      "targetRequester":"Default"
+    }
+  },
+  "exportFormat":{
+    "bookName":"Debug",
+    "pages":[
+      {
+        "pageName":"users",
+        "targetAttributeName":[
+          "C1234567890"
+        ],
+        "adapter":{
+          "mode":"Json",
+          "fileNameTagExp":"&(lastseg)\\users.json"
+        }
+      },
+
+      {
+        "pageName":"users",
+        "targetAttributeName":[
+          "C1234567890"
+        ],
+        "adapter":{
+          "mode":"Binary",
+          "fileNameTagExp":"&(lastseg)\\users.json"
+        }
+      }
+    ]
+  }
+}

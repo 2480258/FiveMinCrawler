@@ -29,6 +29,7 @@ class SRTFSchedulerTest {
     @BeforeMethod
     fun before() {
         sc = SRTFScheduler()
+        SRTFPageBlock.reset()
         prep = SRTFPrepareSubPolicy(sc)
         final = SRTFFinalizeSubPolicy(sc)
         export = SRTFExportSubPolicy(sc)
@@ -155,13 +156,13 @@ class SRTFSchedulerTest {
         var dohandl1 = addAttributeSample(root)
 
         var pp1 = registerAttribute(dohandle) // +5
-        var pp2 = registerAttribute(dohandle)
+        var pp2 = registerAttribute(dohandle) // +5
 
         var req = pp1.upgradeAsRequestReq(DetachableState.HATE).upgrade() // +5
         var req2 = pp2.upgradeAsRequestReq(DetachableState.HATE).upgrade()
 
         sc.getScore(req)
-        assertEquals(sc.getScore(req).toFloat(), 10.0f, 0.1f)
+        assertEquals(sc.getScore(req).toFloat(), 15.0f, 0.1f)
     }
 
     @Test

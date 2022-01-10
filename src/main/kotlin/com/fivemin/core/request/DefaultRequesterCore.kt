@@ -10,7 +10,7 @@ import kotlinx.coroutines.selects.select
 class DefaultRequesterCore(
     override val extraInfo: RequesterExtra,
     private val info: PerformedRequesterInfo,
-    config: HttpRequesterConfig,
+    config: RequesterConfig,
     adapter: RequesterAdapter
 ) : RequesterCore<HttpResponseMessage> {
     private val procedure: HttpRequestProcedure

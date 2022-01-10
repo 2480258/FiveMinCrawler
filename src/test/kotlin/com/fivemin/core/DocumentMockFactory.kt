@@ -2,6 +2,8 @@ package com.fivemin.core
 
 import arrow.core.*
 import com.fivemin.core.engine.* // ktlint-disable no-unused-imports
+import com.fivemin.core.engine.transaction.StringUniqueKeyProvider
+import com.fivemin.core.engine.transaction.UriUniqueKeyProvider
 import com.fivemin.core.engine.transaction.export.ExportAttributeInfo
 import com.fivemin.core.engine.transaction.export.ExportAttributeLocator
 import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
@@ -14,9 +16,47 @@ import com.fivemin.core.request.PreprocessedRequest
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.Deferred
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.net.URI
+
+class StubMockFactory {
+    companion object {
+        fun mockState(): SessionStartedState {
+            val state: SessionStartedState = mockk()
+            val res: Deferred<Either<Throwable, Any>> = mockk()
+
+            every {
+                state.addAlias(any())
+            } returns (Unit)
+
+            coEvery {
+                state.retryAsync(any<suspend (SessionInitState) -> Deferred<Either<Throwable, Any>>>())
+            } returns (res)
+
+            coEvery {
+                res.await()
+            } returns(mockk())
+
+            return state
+        }
+
+        fun mockInfo(): TaskInfo {
+            val provider = KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider())
+            val taskInfo: TaskInfo = mockk()
+
+            val createdTaskFac: CrawlerTaskFactory<Request> = mockk()
+            val createdTask: CrawlerTask1<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request, Request> = mockk()
+
+            every {
+                taskInfo.uniqueKeyProvider
+            } returns (provider)
+
+            return taskInfo
+        }
+    }
+}
 
 class AttributeMockFactory {
     companion object {
@@ -379,6 +419,17 @@ class DocumentMockFactory {
             }
 
             return ret
+        }
+
+        fun PreprocessedRequest<Request>.getCriticalBodyResponse(): ResponseData {
+            val bdy = mockk<ResponseData>()
+            val result = mockk<CriticalErrorBody>()
+
+            every {
+                bdy.responseBody
+            } returns(result)
+
+            return bdy
         }
 
         fun PreprocessedRequest<Request>.getSuccResponse(

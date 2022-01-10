@@ -4,7 +4,7 @@ import java.net.*
 
 class CustomCookieJar : CookieJar {
     private val cookiejar: CookieJar
-    private val manager: CookieManager
+    private val manager: CookieManager = CookieManager()
 
     val cookieStore: CookieStore
         get() {
@@ -12,7 +12,6 @@ class CustomCookieJar : CookieJar {
         }
 
     init {
-        manager = CookieManager()
         manager.setCookiePolicy(CookiePolicy.ACCEPT_ALL)
         cookiejar = JavaNetCookieJar(manager)
     }

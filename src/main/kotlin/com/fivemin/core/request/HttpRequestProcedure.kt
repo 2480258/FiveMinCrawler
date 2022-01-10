@@ -12,14 +12,14 @@ import com.fivemin.core.request.cookie.CustomCookieJar
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.coroutineScope
 
-class HttpRequestProcedure(info: PerformedRequesterInfo, config: HttpRequesterConfig, val adapter: RequesterAdapter) :
+class HttpRequestProcedure(info: PerformedRequesterInfo, config: RequesterConfig, private val adapter: RequesterAdapter) :
     CookiedRequester {
     override val cookieRepository: CookieRepository
     private val target: CookieResolveTarget
 
     init {
         cookieRepository = CookieRepositoryImpl(CustomCookieJar())
-        target = config.config.targetFactory.create(info, cookieRepository)
+        target = config.targetFactory.create(info, cookieRepository)
     }
 
     suspend fun request(request: Request): Deferred<Either<Throwable, ResponseBody>> {

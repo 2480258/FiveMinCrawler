@@ -11,6 +11,7 @@ import com.fivemin.core.engine.transaction.UriRegexPageCondition
 import com.fivemin.core.engine.transaction.prepareRequest.preParser.PreParserPage
 import com.fivemin.core.engine.transaction.prepareRequest.preParser.PreParserPageImpl
 import com.fivemin.core.engine.transaction.serialize.postParser.*
+import kotlinx.serialization.Transient
 import java.util.*
 
 @kotlinx.serialization.Serializable

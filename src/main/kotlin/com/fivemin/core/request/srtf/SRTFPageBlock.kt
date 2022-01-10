@@ -5,7 +5,7 @@ import com.fivemin.core.engine.PageName
 
 class SRTFPageBlock private constructor(private val name: Either<PageName, String>) {
     companion object {
-        val blocks: MutableMap<Either<PageName, String>, SRTFPageBlock> = mutableMapOf()
+        private var blocks: MutableMap<Either<PageName, String>, SRTFPageBlock> = mutableMapOf()
 
         fun create(name: Either<PageName, String>): SRTFPageBlock {
             if (!blocks.containsKey(name)) {
@@ -13,6 +13,10 @@ class SRTFPageBlock private constructor(private val name: Either<PageName, Strin
             }
 
             return blocks[name]!!
+        }
+
+        fun reset() {
+            blocks = mutableMapOf()
         }
     }
 
