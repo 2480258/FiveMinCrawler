@@ -11,10 +11,10 @@ class ReferrerExtractorStream(private val resp: ResponseData) {
         referrerNavigator = ParserNavigator("meta[name = referrer]")
     }
 
-    suspend fun extract(link: HtmlElement): String {
-        var r = link.getAttribute("referrerpolicy").fold({
-            link.getAttribute("rel").map {
-                if (it == "noreferrer") {
+    suspend fun extract(link: ParsedLink): String {
+        var r = link.referrerInfo.referrerPolicy.fold({
+            link.referrerInfo.rel.map {
+                if (it.contains("noreferrer")) {
                     Some("no-referrer")
                 } else {
                     none()

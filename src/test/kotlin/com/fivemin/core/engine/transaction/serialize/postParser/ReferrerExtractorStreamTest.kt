@@ -59,7 +59,7 @@ class ReferrerExtractorStreamTest {
                 var ret = it.ifSuccAsync({
                     var ret = it.body.ifHtmlAsync({
                         var ret = it.parseAsHtmlDocumentAsync {
-                            ref.extract(it.getElements(ParserNavigator("a")).last())
+                            ref.extract(ParsedLink(uriIt.gen(), ReferrerInfo(Some("no-referrer-when-downgrade"), none())))
                         }
 
                         ret
@@ -110,7 +110,7 @@ class ReferrerExtractorStreamTest {
                 var ret = it.ifSuccAsync({
                     var ret = it.body.ifHtmlAsync({
                         var ret = it.parseAsHtmlDocumentAsync {
-                            ref.extract(it.getElements(ParserNavigator("a")).first())
+                            ref.extract(ParsedLink(uriIt.gen(), ReferrerInfo(none(), none())))
                         }
 
                         ret
@@ -163,7 +163,7 @@ class ReferrerExtractorStreamTest {
                 var ret = it.ifSuccAsync({
                     var ret = it.body.ifHtmlAsync({
                         var ret = it.parseAsHtmlDocumentAsync {
-                            ref.extract(it.getElements(ParserNavigator("a")).first())
+                            ref.extract(ParsedLink(uriIt.gen(), ReferrerInfo(none(), none())))
                         }
 
                         ret

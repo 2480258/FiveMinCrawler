@@ -11,6 +11,7 @@ import com.fivemin.core.ElemIterator
 import com.fivemin.core.UriIterator
 import com.fivemin.core.engine.ParserNavigator
 import com.fivemin.core.engine.RequestType
+import com.fivemin.core.engine.transaction.serialize.postParser.linkExtract.LinkParserImpl
 import kotlinx.coroutines.runBlocking
 import org.testng.Assert.*
 import org.testng.annotations.AfterMethod
@@ -19,12 +20,12 @@ import org.testng.annotations.Test
 
 class LinkExtractImplTest {
 
-    var link = LinkExtractImpl()
+    var link = LinkExtractImpl(LinkParserImpl())
     var uriIt = ElemIterator(UriIterator())
 
     @BeforeMethod
     fun setUp() {
-        link = LinkExtractImpl()
+        link = LinkExtractImpl(LinkParserImpl())
         uriIt = ElemIterator(UriIterator())
     }
 

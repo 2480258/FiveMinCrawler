@@ -23,10 +23,10 @@ interface RequestFactory {
     suspend fun <Document : Request> get(trans: FinalizeRequestTransaction<Document>): Option<RequestLinkInfo>
 }
 
-class ExtAttrRequestFactory(private val attributeTargetName: String, private val selector: LinkSelector) :
+class ExtAttrRequestFactory(private val attributeTargetName: String, private val selector: LinkSelector, private val parser: LinkParser) :
     RequestFactory {
 
-    private val extractor: LinkExtractor = LinkExtractImpl()
+    private val extractor: LinkExtractor = LinkExtractImpl(parser)
 
     private fun create(info: Iterable<LinkExtractedInfo>, token: RequestToken, parentURI: URI): RequestLinkInfo {
         return RequestLinkInfo(
@@ -56,12 +56,13 @@ class ExtAttrRequestFactory(private val attributeTargetName: String, private val
 class LinkRequestFactory(
     private val attributeTargetName: String,
     private val selector: LinkSelector,
-    private val preDestPage: Option<PageName>
+    private val preDestPage: Option<PageName>,
+    private val parser: LinkParser
 ) : RequestFactory {
     private val extractor: LinkExtractor
 
     init {
-        extractor = LinkExtractImpl()
+        extractor = LinkExtractImpl(parser)
     }
 
     private fun create(info: Iterable<LinkExtractedInfo>, token: RequestToken, parentURI: URI): RequestLinkInfo {

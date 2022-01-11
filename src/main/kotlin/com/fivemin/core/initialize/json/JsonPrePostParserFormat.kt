@@ -11,6 +11,7 @@ import com.fivemin.core.engine.transaction.UriRegexPageCondition
 import com.fivemin.core.engine.transaction.prepareRequest.preParser.PreParserPage
 import com.fivemin.core.engine.transaction.prepareRequest.preParser.PreParserPageImpl
 import com.fivemin.core.engine.transaction.serialize.postParser.*
+import com.fivemin.core.engine.transaction.serialize.postParser.linkExtract.LinkParserImpl
 import kotlinx.serialization.Transient
 import java.util.*
 
@@ -135,14 +136,15 @@ data class JsonParserLinkAttributeFormat(
     }
 
     fun buildAsExt(): ExtAttrRequestFactory {
-        return ExtAttrRequestFactory(attributeName, LinkSelector(getNav(), getRegex()))
+        return ExtAttrRequestFactory(attributeName, LinkSelector(getNav(), getRegex()), LinkParserImpl())
     }
 
     fun buildAsLink(): LinkRequestFactory {
         return LinkRequestFactory(
             attributeName,
             LinkSelector(getNav(), getRegex()),
-            destPage.toOption().map { PageName(it) }
+            destPage.toOption().map { PageName(it) },
+            LinkParserImpl()
         )
     }
 }

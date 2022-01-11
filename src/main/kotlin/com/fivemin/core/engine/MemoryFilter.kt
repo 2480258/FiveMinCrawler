@@ -197,8 +197,8 @@ class TranslatableFilter(
     private val handle: RequestToken,
     private val tempPath: DirectoryIOToken
 ) : MemoryFilter {
-    private val MEMORY_BYTE_THRESOLD: Int = 8192
-    private val TRANSLATION_THRESOLD: Int = 10000
+    private val MEMORY_BYTE_THRESOLD: Int = 16000
+    private val TRANSLATION_THRESOLD: Int = 20000
 
     private var writeStream: MemoryWriter
 
