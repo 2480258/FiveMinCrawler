@@ -49,9 +49,15 @@ _가능한 한 빠르게 (5분 내에) 커스텀 가능하도록 설계되었습
 
 ```json
 {
-  "MaxRequestThread" : 3
+  "MaxRequestThread": 1,
+  "MaxPageLimit" : 100
 }
 ```
+
+| 설정 이름            |             기능              |
+|:-----------------|:---------------------------:|
+| MaxRequestThread | 얼마나 많은 웹 요청을 동시에 수행할지 결정합니다 |
+| MaxPageLimit     |   수행될 웹 요청의 최대 개수를 제한합니다    |
 
 현재는 이것 뿐입니다.... fivemin.config.json 에서 수정할 수 있습니다.
 

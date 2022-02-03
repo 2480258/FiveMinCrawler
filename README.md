@@ -1,8 +1,8 @@
 # 🕐Five-Minute Crawler - A Highly Customizable Crawler without Code
+
 _and can be customized in five minutes (maybe.... if you know html and other things XD)_
 
 **⚠This program is very experimental. Stuff will be break.**
-   
 
 [한국어 설명서(KO)](README_KO.md)
 
@@ -36,24 +36,32 @@ Firstly, if you have any questions, suggestions and others then please use issue
 
 ### Expected Questions and Answers
 
-- Q: Some of my requests are not performed. 
-- A: Request should not be performed if they have same URL (including redirects) or same [tag](GUIDE.md#Tag) which marked alias.
+- Q: Some of my requests are not performed.
+- A: Request should not be performed if they have same URL (including redirects) or same [tag](GUIDE.md#Tag) which
+  marked alias.
 
 
 - Q: Some of my contents are not saved.
-- A: Parsing is currently performed without JavaScript. Please verify your contents is still visible when turn JavaScript off.
-
+- A: Parsing is currently performed without JavaScript. Please verify your contents is still visible when turn
+  JavaScript off.
 
 ### So, How to Customize This Crawler?
+
 See [Customization Guide](/GUIDE.md).
 
 ### Extra Configuration
 
 ```json
 {
-  "MaxRequestThread" : 3
+  "MaxRequestThread": 1,
+  "MaxPageLimit" : 100
 }
 ```
+
+| Config Name      |                     Functions                     |
+|:-----------------|:-------------------------------------------------:|
+| MaxRequestThread | controls how many requests processed concurrently |
+| MaxPageLimit     |        limit how many page will be crawled        |
 
 Currently, that's all.... Can be modified at fivemin.config.json
 
@@ -65,7 +73,7 @@ Currently, that's all.... Can be modified at fivemin.config.json
 
 > [arrow](https://github.com/arrow-kt/arrow)
 >
-> [brotli](https://github.com/google/brotli) 
+> [brotli](https://github.com/google/brotli)
 >
 > [jsoup](https://github.com/jhy/jsoup)
 >
@@ -80,6 +88,6 @@ Currently, that's all.... Can be modified at fivemin.config.json
 > [mockk](https://github.com/mockk/mockk)
 >
 > [okhttp](https://github.com/square/okhttp)
-> 
+>
 > [slf4j](https://github.com/qos-ch/slf4j)
 >

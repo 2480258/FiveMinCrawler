@@ -35,6 +35,7 @@ class ConfigControllerImpl(jsonStr: String) : ConfigController {
             }
             return ret
         } else {
+            logger.info("get setting failed: [$settingName]")
             return none()
         }
     }

@@ -38,7 +38,7 @@ class RequesterAdapterImplTest {
     fun errRedirectRequestTest() {
 
         var req = HttpRequestImpl(
-            none(), URI("http://127.0.0.1:30001/redirect"), RequestType.LINK,
+            none(), URI("http://127.0.0.1:3000/redirect"), RequestType.LINK,
             PerRequestHeaderProfile(
                 RequestHeaderProfile().toOption(), none(), URI("https://localhost:12345").toOption(), URI("http://127.0.0.1:30001/redirect")
             ),
@@ -89,7 +89,7 @@ class RequesterAdapterImplTest {
     fun err404RequestTest() {
 
         var req = HttpRequestImpl(
-            none(), URI("http://127.0.0.1:30001/nowhere"), RequestType.LINK,
+            none(), URI("http://127.0.0.1:3000/nowhere"), RequestType.LINK,
             PerRequestHeaderProfile(
                 RequestHeaderProfile().toOption(), none(), URI("https://localhost:44376").toOption(), URI("https://localhost:44376/where")
             ),
@@ -114,7 +114,7 @@ class RequesterAdapterImplTest {
     fun succRequestTest() {
 
         var req = HttpRequestImpl(
-            none(), URI("http://127.0.0.1:30001/home"), RequestType.LINK,
+            none(), URI("http://127.0.0.1:3000/home"), RequestType.LINK,
             PerRequestHeaderProfile(
                 RequestHeaderProfile().toOption(), none(), URI("https://localhost:44376").toOption(), URI("https://localhost:44376")
             ),

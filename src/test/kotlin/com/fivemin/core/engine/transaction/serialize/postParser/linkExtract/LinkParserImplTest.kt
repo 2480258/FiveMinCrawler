@@ -44,7 +44,7 @@ class LinkParserImplTest {
     fun testParseReferrer() {
         runBlocking {
             var req = HttpRequestImpl(
-                none(), URI("http://127.0.0.1:30001/referrerattributetest"), RequestType.LINK,
+                none(), URI("http://127.0.0.1:3000/referrerattributetest"), RequestType.LINK,
                 PerRequestHeaderProfile(
                     RequestHeaderProfile().toOption(),
                     none(),

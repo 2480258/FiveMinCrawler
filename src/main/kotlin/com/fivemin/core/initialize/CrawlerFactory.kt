@@ -1,7 +1,6 @@
 package com.fivemin.core.initialize
 
-import arrow.core.Either
-import arrow.core.none
+import arrow.core.*
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.crawlingTask.*
 import com.fivemin.core.engine.session.ArchivedSessionSet
@@ -53,6 +52,9 @@ data class ParseOption(
 )
 
 class CrawlerFactory(private val virtualOption: VirtualOption) {
+    private val MAX_PAGE_LIMIT_KEY = "MaxPageLimit"
+    
+    
     private val provider = KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider())
     private val controller: ConfigController = virtualOption.controller
     private val directIO = virtualOption.directIO
@@ -161,8 +163,16 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     }
 
     private fun getDefaultSubPolicyCollection(): SubPolicyCollection {
+        val maxPages = controller.getSettings(MAX_PAGE_LIMIT_KEY).map {
+            it.toIntOrNull().toOption().map {
+                LimitMaxPageSubPolicy<Request>(it)
+            }
+        }.flatten()
+        
+        val additionalPrepareSubPolicy = listOf(maxPages).filterOption()
+        
         return SubPolicyCollection(
-            listOf(MarkDetachablePolicy(), DetachableSubPolicy(), AddTagAliasSubPolicy()),
+            listOf<TransactionSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request>>(MarkDetachablePolicy(), DetachableSubPolicy(), AddTagAliasSubPolicy()).plus(additionalPrepareSubPolicy),
             listOf(RedirectSubPolicy(), RetrySubPolicy(), ResponseDisposeSubPolicy()),
             listOf(),
             listOf()

@@ -40,7 +40,7 @@ class ReferrerExtractorStreamTest {
     fun referrerLinkMetaTest() {
         runBlocking {
             var req = HttpRequestImpl(
-                none(), URI("http://127.0.0.1:30001/referrertest"), RequestType.LINK,
+                none(), URI("http://127.0.0.1:3000/referrertest"), RequestType.LINK,
                 PerRequestHeaderProfile(
                     RequestHeaderProfile().toOption(),
                     none(),
@@ -91,7 +91,7 @@ class ReferrerExtractorStreamTest {
     fun referrerGlobalMetaTest() {
         runBlocking {
             var req = HttpRequestImpl(
-                none(), URI("http://127.0.0.1:30001/referrermetatest"), RequestType.LINK,
+                none(), URI("http://127.0.0.1:3000/referrermetatest"), RequestType.LINK,
                 PerRequestHeaderProfile(
                     RequestHeaderProfile().toOption(),
                     none(),
@@ -144,12 +144,12 @@ class ReferrerExtractorStreamTest {
     fun referrerHeaderTest() {
         runBlocking {
             var req = HttpRequestImpl(
-                none(), URI("http://127.0.0.1:30001/referrerheadertest"), RequestType.LINK,
+                none(), URI("http://127.0.0.1:3000/referrerheadertest"), RequestType.LINK,
                 PerRequestHeaderProfile(
                     RequestHeaderProfile().toOption(),
                     none(),
-                    URI("http://127.0.0.1:30001/referrertest").toOption(),
-                    URI("http://127.0.0.1:30001/referrertest")
+                    URI("http://127.0.0.1:3000/referrertest").toOption(),
+                    URI("http://127.0.0.1:3000/referrertest")
                 ),
                 TagRepositoryImpl()
             )
