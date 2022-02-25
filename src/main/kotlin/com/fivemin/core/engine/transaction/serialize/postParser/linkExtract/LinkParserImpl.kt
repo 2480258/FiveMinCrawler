@@ -60,7 +60,7 @@ class LinkParserImpl : LinkParser {
             getHrefAndSrc(it, host)
         }.flatten()
 
-        var uniqueUris = extractedLinks.distinctBy {
+        val uniqueUris = extractedLinks.distinctBy {
             it.absoluteUri
         }.filter { x ->
             selector.fold({ true }) {
@@ -77,13 +77,13 @@ class LinkParserImpl : LinkParser {
         elem: HtmlElement,
         host: URI
     ): Iterable<ParsedLink> {
-        var tag = elem.getElements(linkNavigator)
+        val tag = elem.getElements(linkNavigator)
 
-        var links = tag.map {
+        val links = tag.map {
             convert(host, it, HREF_ATTR)
         }.filterOption()
 
-        var srcs = tag.map {
+        val srcs = tag.map {
             convert(host, it, SRC_ATTR)
         }.filterOption()
 

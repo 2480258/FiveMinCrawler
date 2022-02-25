@@ -26,25 +26,37 @@ import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.ifFile
 import com.fivemin.core.engine.match
 
+/**
+ * Export adapter for binary files
+ *
+ * @param fileName A tag expression for file name.
+ * @param factory factory method class for creating export handle.
+ */
 class BinaryExportAdapter(private val fileName: TagExpression, private val factory: ExportHandleFactory) :
     ExportAdapter {
-    override fun parse(
+    
+    /**
+     * parses and save to binary file
+     *
+     * @param info lists of file for saving.
+     */
+    override fun parseAndExport(
         request: Request,
         info: Iterable<ExportAttributeInfo>
     ): Iterable<Either<Throwable, ExportHandle>> {
-        val ret = info.map<ExportAttributeInfo, Either<Throwable, ExportHandle>> { x ->
-            x.element.match<Either<Throwable, ExportHandle>>({ Either.Left(IllegalArgumentException()) }, { y ->
-                y.successInfo.body.ifFile<Either<Throwable, ExportHandle>>({ z ->
+        val results = info.map { x ->
+            x.element.match({ Either.Left(IllegalArgumentException()) }, { y -> //filters internal attributes. no binary export for those.
+                y.successInfo.body.ifFile({ z -> //if attribute is file, just move them.
                     Either.Right(factory.create(fileName.build(x.tagRepo), z.file))
                 }, { z ->
 
-                    z.openStreamAsByteAndDispose {
+                    z.openStreamAsByteAndDispose { //if attribute is in memory, write to file.
                         factory.create(fileName.build(x.tagRepo), it)
                     }
                 })
             })
         }
 
-        return ret
+        return results
     }
 }

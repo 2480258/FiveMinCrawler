@@ -45,16 +45,16 @@ class DetachableSubPolicy<Document : Request> :
     ): Deferred<Either<Throwable, PrepareTransaction<Document>>> {
         return coroutineScope {
             async {
-                val ret = if (dest.ifDocument({
+                val isWorkingSet = if (dest.ifDocument({
                     it.containerOption.workingSetMode == WorkingSetMode.Enabled
                 }, { false })
                 ) {
-                    var task = info.createTask<Document>()
+                    val task = info.createTask<Document>()
                         .get4<InitialTransaction<Document>, PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, ExportTransaction<Document>>(
                             dest.request.documentType
                         )
 
-                    var disp = state.ifDetachable {
+                    val detached = state.ifDetachable {
                         it.detach {
                             logger.debug(source.request, "trying to detach")
 
@@ -62,7 +62,7 @@ class DetachableSubPolicy<Document : Request> :
                         }
                     }
 
-                    if (disp.isNotEmpty()) {
+                    if (detached.isNotEmpty()) {
                         TaskDetachedException().left()
                     } else {
                         dest.right()
@@ -71,7 +71,7 @@ class DetachableSubPolicy<Document : Request> :
                     dest.right()
                 }
 
-                ret
+                isWorkingSet
             }
         }
     }

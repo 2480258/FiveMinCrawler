@@ -27,13 +27,28 @@ import com.fivemin.core.engine.Request
 import java.io.InputStream
 
 interface ExportAdapter {
-    fun parse(request: Request, info: Iterable<ExportAttributeInfo>): Iterable<Either<Throwable, ExportHandle>>
+    /**
+     * parse and export given ExportAttributeInfo.
+     */
+    fun parseAndExport(request: Request, info: Iterable<ExportAttributeInfo>): Iterable<Either<Throwable, ExportHandle>>
 }
 
+/**
+ * Abstract factory for export handle.
+ */
 interface ExportHandleFactory {
+    /**
+     * creates handle with inputstream.
+     */
     fun create(additionalPath: String, ret: InputStream): ExportHandle
-
+    
+    /**
+     * creates handle with string.
+     */
     fun create(additionalPath: String, ret: String): ExportHandle
-
+    
+    /**
+     * creates handle with pre-saved file.
+     */
     fun create(additionalPath: String, token: FileIOToken): ExportHandle
 }

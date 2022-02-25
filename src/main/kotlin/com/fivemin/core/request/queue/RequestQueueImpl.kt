@@ -50,7 +50,7 @@ class RequestQueueImpl(
 
     init {
         val workers = (0 until maxRequestThread).map {
-            Thread {
+            Thread { //TODO: Change to ThreadPool
                 runBlocking {
                     work()
                 }

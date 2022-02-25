@@ -63,7 +63,7 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
     }
 
     private fun convertAttributeToTag(attr: Iterable<DocumentAttribute>, connect: TagRepository): TagRepositoryImpl {
-        var ret = attr.map { x ->
+        val ret = attr.map { x ->
             Pair(
                 x.info.name,
                 x.item.map { y ->

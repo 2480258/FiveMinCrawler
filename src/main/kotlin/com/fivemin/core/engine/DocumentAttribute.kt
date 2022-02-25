@@ -65,7 +65,7 @@ class DocumentAttributeFactoryImpl : DocumentAttributeFactory {
     }
 
     override suspend fun getInternal(info: DocumentAttributeInfo, data: String): Either<Throwable, DocumentAttribute> {
-        var item = DocumentAttributeSingleItemImpl(create(data))
+        val item = DocumentAttributeSingleItemImpl(create(data))
         return DocumentAttributeImpl(item, info).right()
     }
 
@@ -78,7 +78,7 @@ class DocumentAttributeFactoryImpl : DocumentAttributeFactory {
             return getInternal(info, data.first())
         }
 
-        var items = DocumentAttributeArrayItemImpl(
+        val items = DocumentAttributeArrayItemImpl(
             data.map {
                 create(it)
             }
@@ -92,7 +92,7 @@ class DocumentAttributeFactoryImpl : DocumentAttributeFactory {
         data: FinalizeRequestTransaction<Document>
     ): Either<Throwable, DocumentAttribute> {
 
-        var item = create(data).map {
+        val item = create(data).map {
             DocumentAttributeSingleItemImpl(it)
         }
 
@@ -106,8 +106,8 @@ class DocumentAttributeFactoryImpl : DocumentAttributeFactory {
         data: Iterable<FinalizeRequestTransaction<Document>>
     ): Either<Throwable, DocumentAttribute> {
 
-        var ret = data.map {
-            var r = create(it)
+        val ret = data.map {
+            val r = create(it)
 
             r.swap().map { x ->
                 logger.warn(it.request.getDebugInfo() + " < can't extract attribute from due to: " + x)
@@ -116,14 +116,14 @@ class DocumentAttributeFactoryImpl : DocumentAttributeFactory {
             r.orNull().toOption()
         }.filterOption()
 
-        var item = DocumentAttributeArrayItemImpl(ret)
+        val item = DocumentAttributeArrayItemImpl(ret)
 
         if (!ret.any()) {
             return NoAttributeContentException().left()
         }
 
         if (ret.count() == 1) {
-            var single = DocumentAttributeSingleItemImpl(ret.first())
+            val single = DocumentAttributeSingleItemImpl(ret.first())
             return DocumentAttributeImpl(single, info).right()
         }
 

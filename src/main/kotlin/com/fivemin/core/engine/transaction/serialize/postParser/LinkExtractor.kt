@@ -47,10 +47,10 @@ class LinkExtractImpl(private val linkParser: LinkParser) : LinkExtractor {
         resp: ResponseData,
         sel: Option<LinkSelector>
     ): Either<Throwable, Iterable<LinkExtractedInfo>> {
-        return resp.responseBody.ifSuccAsync({
-            it.body.ifHtmlAsync({
-                it.parseAsHtmlDocumentAsync {
-                    val parsedLink = linkParser.parse(it, resp.responseBody.requestBody.currentUri, sel).map {
+        return resp.responseBody.ifSuccAsync({ successBody ->
+            successBody.body.ifHtmlAsync({ htmlMemoryData ->
+                htmlMemoryData.parseAsHtmlDocumentAsync { htmlParsable ->
+                    val parsedLink = linkParser.parse(htmlParsable, resp.responseBody.requestBody.currentUri, sel).map {
                         convert(it, ReferrerExtractorStream(resp))
                     }
 

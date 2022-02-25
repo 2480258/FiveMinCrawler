@@ -28,6 +28,9 @@ import com.fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.*
 import java.net.URI
 
+/**
+ * Subpolicy for filters redirect requests and performs them again.
+ */
 class RedirectSubPolicy<Document : Request> :
     TransactionSubPolicy<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document> {
 
@@ -43,15 +46,10 @@ class RedirectSubPolicy<Document : Request> :
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
         return coroutineScope {
             async {
-                dest.result.map { x ->
-                    x.responseBody.ifRedirectAsync({ y ->
-                        var loc = y.redirectDest
-
-                        if (!loc.isAbsolute) {
-                            loc = URI(x.responseBody.requestBody.currentUri.scheme + "://" + x.responseBody.requestBody.currentUri.authority + loc)
-                        }
-
-                        var doc: Document = source.request.copyWith(loc.toOption()) as Document
+                dest.result.map { responseData ->
+                    responseData.responseBody.ifRedirectAsync({ redirectResponseBody ->
+                        val redirectLoc = createsRedirectURL(redirectResponseBody, responseData)
+                        val doc: Document = source.request.copyWith(redirectLoc.toOption()) as Document //kotlin has no 'self type' so cast it.
 
                         withContext(Dispatchers.Default) {
                             state.getChildSession {
@@ -75,5 +73,18 @@ class RedirectSubPolicy<Document : Request> :
                 }.flatten()
             }
         }
+    }
+    
+    private fun createsRedirectURL(
+        responseBody: RedirectResponseBody,
+        responseData: ResponseData
+    ): URI {
+        var loc = responseBody.redirectDest
+    
+        if (!loc.isAbsolute) {
+            loc =
+                URI(responseData.responseBody.requestBody.currentUri.scheme + "://" + responseData.responseBody.requestBody.currentUri.authority + loc)
+        }
+        return loc
     }
 }

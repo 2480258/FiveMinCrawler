@@ -28,8 +28,6 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.transaction.prepareRequest.TaskDetachedException
 import kotlinx.coroutines.*
 
-class TaskResult<out T> constructor(val Result: Either<TaskError, T>)
-
 class TaskError constructor(val Error: Either<TaskCanceledException, Exception>)
 
 class TaskCanceledException : Exception()
@@ -47,20 +45,20 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
                 logger.debug(trans.request.getDebugInfo() + " < starting task")
                 coroutineScope {
                     async {
-                        var ret = either<Throwable, S2> {
-                            var p1 = policy.progressAsync(trans, info, it).await().bind()
+                        val result = either<Throwable, S2> {
+                            val p1 = policy.progressAsync(trans, info, it).await().bind()
 
                             p1
                         }
 
-                        ret.swap().map {
+                        result.swap().map {
                             if (it is TaskDetachedException) {
                             } else {
                                 logger.warn(trans.request, "got task error", it.toOption())
                             }
                         }
 
-                        ret
+                        result
                     }
                 }
             }
@@ -92,21 +90,21 @@ constructor(
                 coroutineScope {
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
-                        var ret = either<Throwable, S3> {
-                            var p1 = policy1.progressAsync(trans, info, state).await().bind()
-                            var p2 = policy2.progressAsync(p1, info, state).await().bind()
+                        val result = either<Throwable, S3> {
+                            val p1 = policy1.progressAsync(trans, info, state).await().bind()
+                            val p2 = policy2.progressAsync(p1, info, state).await().bind()
 
                             p2
                         }
 
-                        ret.swap().map {
+                        result.swap().map {
                             if (it is TaskDetachedException) {
                             } else {
                                 logger.warn(trans.request, "got task error", it.toOption())
                             }
                         }
 
-                        ret
+                        result
                     }
                 }
             }
@@ -140,22 +138,22 @@ constructor(
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
 
-                        var ret = either<Throwable, S4> {
-                            var p1 = policy1.progressAsync(trans, info, state).await().bind()
-                            var p2 = policy2.progressAsync(p1, info, state).await().bind()
-                            var p3 = policy3.progressAsync(p2, info, state).await().bind()
+                        val result = either<Throwable, S4> {
+                            val p1 = policy1.progressAsync(trans, info, state).await().bind()
+                            val p2 = policy2.progressAsync(p1, info, state).await().bind()
+                            val p3 = policy3.progressAsync(p2, info, state).await().bind()
 
                             p3
                         }
 
-                        ret.swap().map {
+                        result.swap().map {
                             if (it is TaskDetachedException) {
                             } else {
                                 logger.warn(trans.request, "got task error", it.toOption())
                             }
                         }
 
-                        ret
+                        result
                     }
                 }
             }
@@ -189,23 +187,23 @@ constructor(
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
 
-                        var ret = either<Throwable, S5> {
-                            var p1 = policy1.progressAsync(trans, info, state).await().bind()
-                            var p2 = policy2.progressAsync(p1, info, state).await().bind()
-                            var p3 = policy3.progressAsync(p2, info, state).await().bind()
-                            var p4 = policy4.progressAsync(p3, info, state).await().bind()
+                        val result = either<Throwable, S5> {
+                            val p1 = policy1.progressAsync(trans, info, state).await().bind()
+                            val p2 = policy2.progressAsync(p1, info, state).await().bind()
+                            val p3 = policy3.progressAsync(p2, info, state).await().bind()
+                            val p4 = policy4.progressAsync(p3, info, state).await().bind()
 
                             p4
                         }
 
-                        ret.swap().map {
+                        result.swap().map {
                             if (it is TaskDetachedException) {
                             } else {
                                 logger.warn(trans.request, "got task error", it.toOption())
                             }
                         }
 
-                        ret
+                        result
                     }
                 }
             }

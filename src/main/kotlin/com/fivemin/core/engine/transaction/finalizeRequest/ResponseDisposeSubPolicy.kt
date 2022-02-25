@@ -30,7 +30,7 @@ class ResponseDisposeSubPolicy<Document : Request> :
     TransactionSubPolicy<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document> {
 
     companion object {
-        private val logger = LoggerController.getLogger("SessionDetachable")
+        private val logger = LoggerController.getLogger("ResponseDisposeSubPolicy")
     }
 
     override suspend fun process(

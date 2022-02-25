@@ -41,6 +41,9 @@ suspend fun <T> SessionStartedState.ifDetachable(func: suspend (SessionDetachabl
     }
 }
 
+/**
+ * Saves session related data.
+ */
 data class SessionData constructor(
     val KeyRepo: UniqueKeyRepository,
     val SessionRepo: SessionRepository,
@@ -65,7 +68,11 @@ interface SessionAddableAlias : SessionState {
     companion object {
         private val logger = LoggerController.getLogger("SessionDetachable")
     }
-
+    
+    /**
+     * Add alias of request.
+     * Can throw if key is duplicated.
+     */
     fun addAlias(key: UniqueKey) {
         logger.debug(info.token.tokenNumber.toString() + " < Adding alias [" + key.toString() + "]")
         Data.KeyRepo.addAlias(info.token, key)
@@ -93,7 +100,7 @@ interface SessionRetryable : SessionState {
 
         val MaxRetryCount: Int = 3
     }
-
+    
     suspend fun <T> retryAsync(func: suspend (SessionInitState) -> Deferred<Either<Throwable, T>>): Deferred<Either<Throwable, T>> {
         if (Data.RetryCount >= MaxRetryCount) {
             return coroutineScope {
@@ -102,16 +109,14 @@ interface SessionRetryable : SessionState {
                 }
             }
         }
-
+        
         logger.info(this.info.token.tokenNumber.toString() + " < retrying")
-        var st = this as? SessionDetachable
-
-        var state = st.rightIfNotNull { }
+        val session = this as? SessionDetachable
+        
+        val state = session.rightIfNotNull { }
             .fold({ SessionDetachableInitStateImpl(info, Data) }, { SessionInitStateImpl(info, Data) })
-
-        var r = func(state)
-
-        return r
+    
+        return func(state)
     }
 }
 
@@ -120,10 +125,16 @@ interface SessionDetachable : SessionState {
     companion object {
         private val logger = LoggerController.getLogger("SessionDetachable")
     }
-
+    
+    /**
+     * Detaches and allows task to run from another thread(Global scope).
+     * Detach actions are not restrained by structured concurrency mechanism.
+     *
+     * If detaches, returns Either.Left<TaskDetachedException>
+     */
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun detach(func: suspend (SessionInitState) -> Option<Throwable>): Deferred<Option<Throwable>> {
-        var detached = Data.SessionRepo.create(info.token.toOption())
+        val detached = Data.SessionRepo.create(info.token.toOption())
         Data.KeyRepo.transferOwnership(info.token, detached.token)
 
         GlobalScope.launch {
@@ -145,7 +156,11 @@ interface SessionStartable : SessionState {
     companion object {
         private val logger = LoggerController.getLogger("SessionStartable")
     }
-
+    
+    /**
+     * Start session.
+     * Note that session allowed starting only once except retry.
+     */
     suspend fun <T> start(
         key: UniqueKey,
         func: suspend (SessionStartedState) -> Deferred<Either<Throwable, T>>
@@ -159,14 +174,14 @@ interface SessionStartable : SessionState {
                     }.map {
                         logger.debug(key.toString() + " < creating SessionStartable")
 
-                        var state = if (this@SessionStartable as? SessionDetachable != null) {
+                        val state = if (this@SessionStartable as? SessionDetachable != null) {
                             SessionDetachableStartedStateImpl(info, Data)
                         } else {
                             SessionStartedStateImpl(info, Data)
                         }
 
-                        var f = func(state).await()
-                        f
+                        val result = func(state).await()
+                        result
                     }.flatten()
                 }
             }
@@ -180,14 +195,17 @@ interface SessionChildGeneratable : SessionState {
     companion object {
         private val logger = LoggerController.getLogger("SessionChildGeneratable")
     }
-
+    
+    /**
+     * Creates child session
+     * child session is not detachable if parent is not.
+     */
     suspend fun <T> getChildSession(func: suspend (SessionInitState) -> Deferred<Either<Throwable, T>>): Deferred<Either<Throwable, T>> {
-
-        var detached = Data.SessionRepo.create(info.parent)
+        
+        val detached = Data.SessionRepo.create(info.parent)
         logger.debug(info.token.tokenNumber.toString() + " < creating child session")
-
-        var ret = func(SessionDetachableInitStateImpl(detached, Data))
-        return ret
+    
+        return func(SessionDetachableInitStateImpl(detached, Data))
     }
 }
 

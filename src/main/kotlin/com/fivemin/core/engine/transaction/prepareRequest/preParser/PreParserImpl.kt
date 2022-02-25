@@ -38,19 +38,19 @@ class PreParserImpl(
     }
 
     override fun <Document : Request> generateInfo(init: InitialTransaction<Document>): Option<PrepareTransaction<Document>> {
-        var ret = globalCondition.check(init).isMet
+        val globalConditionMet = globalCondition.check(init).isMet
 
-        return if (ret && init.request.requestType == RequestType.LINK) {
-            var ret = pages.map {
+        return if (globalConditionMet && init.request.requestType == RequestType.LINK) {
+            val parsedResult = pages.map {
                 Pair(it, it.makeTransaction(init))
             }
 
-            logPages(ret, init)
+            logPages(parsedResult, init)
 
-            ret.map {
+            parsedResult.map {
                 it.second
             }.filterOption().singleOrNone()
-        } else if (ret) {
+        } else if (globalConditionMet) {
             Some(PrepareRequestTransactionImpl(init, init.tags, attributeRequestOption))
         } else {
             none()

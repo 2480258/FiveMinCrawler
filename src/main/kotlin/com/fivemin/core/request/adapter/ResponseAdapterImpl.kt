@@ -32,6 +32,9 @@ import okhttp3.Response
 import java.net.URI
 import java.nio.charset.Charset
 
+/**
+ * Response Adapter for okhttp
+ */
 class ResponseAdapterImpl(
     private val performedRequesterInfo: PerformedRequesterInfo,
     private val factory: MemoryFilterFactory
@@ -55,7 +58,7 @@ class ResponseAdapterImpl(
     }
 
     private fun parseCharset(resp: Response): Option<Charset> {
-        return resp.headers["Content-Type"].toOption().map {
+        return resp.headers["Content-Type"].toOption().map { //Content-Type means decompress algorithm.
             it.toMediaTypeOrNull()?.charset().toOption()
         }.flatten()
     }
@@ -65,57 +68,61 @@ class ResponseAdapterImpl(
         resp: Response,
         req: Request
     ): Either<Throwable, ResponseBody> {
-        resp.use { resp ->
+        resp.use { response ->
             val httpTarget = original.target.toHttpUrlOrNull()
             if (httpTarget == null) {
                 IllegalArgumentException().left()
             }
-
-            if (resp.request.url != httpTarget && resp.body != null) {
-                return createWithReceived(original, resp, req).map { x ->
+            
+            //if original URL != response URL, then it should be redirected.
+            if (response.request.url != httpTarget && response.body != null) {
+                return createWithReceived(original, response, req).map { x ->
                     AutomaticRedirectResponseBodyImpl(
                         createRequestBody(original.target, req),
-                        resp.code,
-                        NetworkHeader(resp.headers.asIterable().toList()),
+                        response.code,
+                        NetworkHeader(response.headers.asIterable().toList()),
                         x
                     )
                 }
             }
 
-            if (resp.body != null && resp.code < 299 && resp.code > 199) {
+            //when successes.
+            if (response.body != null && response.code < 299 && response.code > 199) {
                 return createMemoryData(
-                    resp.body!!,
+                    response.body!!,
                     original,
-                    parseCharset(resp),
-                    resp.headers["Content-Encoding"].toOption()
-                ).fold({ HttpNoContentWithSuccessfulException(resp.request.url.toString()).left() }) { x ->
+                    parseCharset(response),
+                    response.headers["Content-Encoding"].toOption()
+                ).fold({ HttpNoContentWithSuccessfulException(response.request.url.toString()).left() }) { x ->
                     SuccessBodyImpl(
                         createRequestBody(original.target, req),
-                        resp.code,
-                        NetworkHeader(resp.headers.asIterable().toList()),
+                        response.code,
+                        NetworkHeader(response.headers.asIterable().toList()),
                         x,
-                        MediaType(resp.body!!.contentType()!!.type, resp.body!!.contentType()!!.subtype),
-                        ResponseTime(resp.sentRequestAtMillis, resp.receivedResponseAtMillis)
+                        MediaType(response.body!!.contentType()!!.type, response.body!!.contentType()!!.subtype),
+                        ResponseTime(response.sentRequestAtMillis, response.receivedResponseAtMillis)
                     ).right()
                 }
             }
 
-            if (resp.body != null && resp.code >= 300 && resp.code <= 399) {
-                return resp.headers["Location"].toOption()
-                    .fold({ HttpNoLocationHeaderWithRedirectCodeException(resp.request.url.toString()).left() }) { x ->
+            //redirects
+            if (response.body != null && response.code >= 300 && response.code <= 399) {
+                return response.headers["Location"].toOption()
+                    .fold({ HttpNoLocationHeaderWithRedirectCodeException(response.request.url.toString()).left() }) { x ->
                         RedirectResponseBodyImpl(
                             createRequestBody(original.target, req),
-                            resp.code,
-                            NetworkHeader(resp.headers.asIterable().toList()),
+                            response.code,
+                            NetworkHeader(response.headers.asIterable().toList()),
                             URI(x)
                         ).right()
                     }
             }
 
+            //other 1XX or 4XX or 5XX is considered error.
             return RecoverableErrorBodyImpl(
                 createRequestBody(original.target, req),
-                resp.code,
-                NetworkHeader(resp.headers.asIterable().toList())
+                response.code,
+                NetworkHeader(response.headers.asIterable().toList())
             ).right()
         }
     }
@@ -133,9 +140,9 @@ class ResponseAdapterImpl(
         var filter: MemoryFilter? = null
 
         try {
-            var ret = Either.catch {
-                var type = responseBody.contentType().toOption()
-                var total = if (responseBody.contentLength() != -1L) {
+            val result = Either.catch {
+                val type = responseBody.contentType().toOption()
+                val total = if (responseBody.contentLength() != -1L) {
                     Some(responseBody.contentLength())
                 } else {
                     none()
@@ -148,20 +155,20 @@ class ResponseAdapterImpl(
                 filter!!.flushAndExportAndDispose()
             }
 
-            ret.swap().map {
+            result.swap().map {
                 logger.warn(it)
             }
 
-            return ret.orNone()
+            return result.orNone()
         } finally {
             filter?.close()
         }
     }
 
     private fun handleStream(responseBody: okhttp3.ResponseBody, filter: MemoryFilter, decomp: Option<String>) {
-        var originalStream = responseBody.byteStream()
+        val originalStream = responseBody.byteStream()
 
-        var stream = decomp.fold({ originalStream }) {
+        val stream = decomp.fold({ originalStream }) {
             decompressor.decompress(it, originalStream)
         }
 

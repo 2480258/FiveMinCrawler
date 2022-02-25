@@ -1,0 +1,26 @@
+This product includes software from the arrow-kt project (Apache 2.0)
+* https://github.com/arrow-kt/arrow
+
+This product includes software from the kotlinx.coroutines project (Apache 2.0)
+* https://github.com/Kotlin/kotlinx.coroutines
+
+This product includes software from the okhttp project (Apache 2.0)
+* https://github.com/square/okhttp
+
+This product includes software from the kotlinx.serialization project (Apache 2.0)
+* https://github.com/Kotlin/kotlinx.serialization
+
+This product includes software from the jsoup project (MIT)
+* https://github.com/jhy/jsoup
+
+This product includes software from the kotlinx-cli project (Apache 2.0)
+* https://github.com/Kotlin/kotlinx-cli
+
+This product includes software from the kotlin-logging project (Apache 2.0)
+* https://github.com/MicroUtils/kotlin-logging
+
+This product includes software from the slf4j project (MIT)
+* https://github.com/qos-ch/slf4j
+
+This product includes software from the brotli project (MIT)
+* https://github.com/google/brotli

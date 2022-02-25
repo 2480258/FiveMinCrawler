@@ -23,6 +23,9 @@ package com.fivemin.core.export
 import arrow.core.Option
 import com.fivemin.core.engine.*
 
+/**
+ * Manages current export file duplication state.
+ */
 class ExportStateImpl(private val directIO: DirectIO, private val continueExportStateInfo: Option<ContinueExportStateInfo>) : ExportState {
     private val set: MutableSet<ExportInfo>
     private val DUP_STRING: String = " - (Dup)"

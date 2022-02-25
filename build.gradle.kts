@@ -19,15 +19,18 @@
  */
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+// turn-off defender before run
+// jpackage --name FiveMinCrawler --input bin --main-jar fivemincrawler-0.jar --win-console --type app-image --verbose --temp temp
 
 plugins {
     kotlin("jvm") version "1.6.10"
     kotlin("plugin.serialization") version "1.6.10"
+    id("org.panteleyev.jpackageplugin") version "1.3.1"
     application
 }
 
 group = "me.azure"
-version = "0"
+version = "0.1"
 
 var arrow_version = "1.0.1"
 
@@ -51,6 +54,16 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.12.1")
+}
+
+tasks.jar {
+    manifest {
+        attributes["Main-Class"] = "MainKt"
+    }
+    configurations["compileClasspath"].forEach { file: File ->
+        from(zipTree(file.absoluteFile))
+    }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 tasks.test {

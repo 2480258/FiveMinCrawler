@@ -36,6 +36,11 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
+/**
+ * RequesterAdapter for okhttp
+ *
+ * Uses cookie, doesn't follow any redirects.
+ */
 class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapterImpl: ResponseAdapterImpl, private val requesterHeaderProfile: RequestHeaderProfile) :
     RequesterAdapter {
     val client: OkHttpClient
@@ -45,7 +50,7 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
     }
 
     init {
-        var builder = OkHttpClient.Builder()
+        val builder = OkHttpClient.Builder()
 
         client = builder
             .cookieJar(cookieJar)
@@ -77,24 +82,24 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
             request.setHeader(requesterHeaderProfile)
         }
 
-        var ret = request.build()
+        val requesterBuilt = request.build()
 
         act(
             Either.catch {
-                logger.debug(ret.url.toString() + " < requesting")
-                client.newCall(ret).execute()
+                logger.debug(requesterBuilt.url.toString() + " < requesting")
+                client.newCall(requesterBuilt).execute()
             }.fold({
-                logger.info(ret.url.toString() + " < received")
+                logger.info(requesterBuilt.url.toString() + " < received")
                 logger.warn(it)
 
                 Either.catch {
-                    responseAdapterImpl.createWithError(uri, it.toOption(), ret)
+                    responseAdapterImpl.createWithError(uri, it.toOption(), requesterBuilt)
                 }.flatten()
             }, {
-                logger.info(ret.url.toString() + " < received")
+                logger.info(requesterBuilt.url.toString() + " < received")
 
                 Either.catch {
-                    responseAdapterImpl.createWithReceived(uri, it, ret)
+                    responseAdapterImpl.createWithReceived(uri, it, requesterBuilt)
                 }.flatten()
             })
         )
@@ -159,7 +164,7 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
         return this
     }
 
-    private fun OkHttpClient.Builder.bypassInvalidCA(): OkHttpClient.Builder {
+    private fun OkHttpClient.Builder.bypassInvalidCerificate(): OkHttpClient.Builder {
         val trust = arrayOf<TrustManager>(object : X509TrustManager {
             override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {
             }

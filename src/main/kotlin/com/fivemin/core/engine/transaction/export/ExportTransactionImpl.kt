@@ -31,7 +31,7 @@ class ExportTransactionImpl<Document : Request>(
 ) : ExportTransaction<Document> {
 
     companion object {
-        private val logger = LoggerController.getLogger("SerializeTransactionMovementImpl")
+        private val logger = LoggerController.getLogger("ExportTransactionImpl")
     }
 
     fun modifyTags(tags: TagRepository): Taggable {

@@ -26,6 +26,9 @@ import arrow.core.none
 import com.fivemin.core.request.*
 import java.net.URI
 
+/**
+ * Request parameters can be used for one-time.
+ */
 class PerRequestHeaderProfile(
     val requestHeaderProfile: Option<RequestHeaderProfile>,
     referrerPolicy: Option<String>,

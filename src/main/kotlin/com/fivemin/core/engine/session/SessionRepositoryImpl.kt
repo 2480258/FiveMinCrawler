@@ -30,25 +30,46 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
+/**
+ * Saves Set of Sessions.
+ * TODO: Performance Optimization Required.
+ */
 class SessionRepositoryImpl : SessionRepository, FinishObserver {
     private val hashSet: HashSet<SessionToken> = HashSet<SessionToken>()
     private val finish: CountDownLatch = CountDownLatch(1)
     private val lock: ReentrantLock = ReentrantLock()
 
     private var currentRemain: Int = 0
-
+    
+    
+    /**
+     * Factory Method for SessionInfo.
+     * @param parent SessionToken with requested this request. if 'root', set this none.
+     */
     override fun create(parent: Option<SessionToken>): SessionInfo {
         return SessionInfo(this, SessionToken.create().toOption())
     }
-
+    
+    /**
+     * Not Thread-Safe. Do not call with other methods.
+     * Returns collection of URL which added with onExportableFinish()
+     */
     override fun getDetachables(): Iterable<SessionToken> {
         return hashSet
     }
-
+    
+    /**
+     * Synchronized.
+     * Increase number of remain requests.
+     */
     override fun onStart() {
         lock.withLock { currentRemain++ }
     }
-
+    
+    /**
+     *  Synchronized.
+     *  Decreases number of remain requests.
+     */
     override fun onFinish(token: SessionToken) {
         lock.withLock {
             currentRemain--
@@ -56,7 +77,11 @@ class SessionRepositoryImpl : SessionRepository, FinishObserver {
                 finish.countDown()
         }
     }
-
+    
+    /**
+     * Synchronized.
+     * Decreases number of remain requests and add this token to the Resume File.
+     */
     override fun onExportableFinish(token: SessionToken) {
         lock.withLock {
             currentRemain--
@@ -65,7 +90,10 @@ class SessionRepositoryImpl : SessionRepository, FinishObserver {
                 finish.countDown()
         }
     }
-
+    
+    /**
+     * Blocks until all requests finishes.
+     */
     override fun waitFinish() {
         finish.await()
     }

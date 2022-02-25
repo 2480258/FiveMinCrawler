@@ -30,13 +30,13 @@ import java.util.*
 class TagBuilder <in Trans : Transaction<Document>, out Document : Request>
 (private val selector: Option<Iterable<TagSelector>>) {
     fun build(init: InitialTransaction<Request>): TagRepository {
-        var ret = selector.fold({ listOf() }, {
+        val selectors = selector.fold({ listOf() }, {
             it.map {
                 it.build(init.request.target)
             }
         }).filterOption()
 
-        return TagRepositoryImpl(ret.toOption(), init.tags.toOption())
+        return TagRepositoryImpl(selectors.toOption(), init.tags.toOption())
     }
 }
 data class TagSelector(val name: String, val regex: Regex, val flag: EnumSet<TagFlag>) {

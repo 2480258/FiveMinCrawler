@@ -30,32 +30,32 @@ import java.util.*
 
 class JsonExportAdapter(private val fileNameExp: TagExpression, private val exportHandleFactory: ExportHandleFactory) :
     ExportAdapter {
-    override fun parse(
+    override fun parseAndExport(
         request: Request,
         info: Iterable<ExportAttributeInfo>
     ): Iterable<Either<Throwable, ExportHandle>> {
 
-        var ret = info.map { x ->
+        val attributeTuple = info.map { x ->
             x.element.match({ y ->
-                Triple(x.tagRepo, x.info, y.body)
+                Triple(x.tagRepo, x.locator, y.body)
             }, { null })
         }
 
-        var tags = ret.filter {
+        val tagsFromAttributes = attributeTuple.filter {
             it != null && it.second.isList
         }.map { x ->
-            Tag(EnumSet.of(TagFlag.NONE), x!!.second.info.name, x.third)
+            Tag(EnumSet.of(TagFlag.NONE), x!!.second.info.name, x.third) //Make internal attribute to tags. It allows to users change file path by parsed results.
         }
 
-        var tagrepo = ret.map {
-            Triple(fileNameExp.build(TagRepositoryImpl(tags.toOption(), it!!.first.toOption())), it.second, it.third)
+        val addedTagrepo = attributeTuple.map {
+            Triple(fileNameExp.build(TagRepositoryImpl(tagsFromAttributes.toOption(), it!!.first.toOption())), it.second, it.third)
         }.groupBy {
             it.first
         }
 
-        return tagrepo.map {
+        return addedTagrepo.map {
             Either.catch {
-                exportHandleFactory.create(
+                exportHandleFactory.create( //creates json contents.
                     it.key,
                     convertToJson(
                         it.value.map {
@@ -70,20 +70,20 @@ class JsonExportAdapter(private val fileNameExp: TagExpression, private val expo
     private fun convertToJson(data: Iterable<Pair<ExportAttributeLocator, String>>): String {
         val json = Json {}
 
-        var single = data.filter {
+        val singleContents = data.filter {
             !it.first.isList
         }.associate {
             Pair(it.first.info.name, it.second)
         }
 
-        var multi = data.filter {
+        val multiContents = data.filter {
             it.first.isList
         }.groupBy {
             it.first.info.name
         }.asIterable().associate {
             Pair(
                 it.key,
-                it.value.sortedBy {
+                it.value.sortedBy { //sorts value by parsed results.
                     it.first.index.fold({ 0 }, { x -> x })
                 }.map {
                     it.second
@@ -91,11 +91,11 @@ class JsonExportAdapter(private val fileNameExp: TagExpression, private val expo
             )
         }
 
-        var multiMap = multi.map {
+        val multiMap = multiContents.map {
             Pair(it.key, json.encodeToJsonElement(serializer(Array<String>::class.java), it.value))
         }.toMap()
 
-        var singleMap = single.map {
+        val singleMap = singleContents.map {
             Pair(it.key, json.encodeToJsonElement(serializer(String::class.java), it.value))
         }.toMap()
 

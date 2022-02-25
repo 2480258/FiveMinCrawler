@@ -25,7 +25,14 @@ import com.fivemin.core.engine.DocumentAttributeElement
 import com.fivemin.core.engine.DocumentAttributeInfo
 import com.fivemin.core.engine.TagRepository
 
-data class ExportAttributeInfo(val info: ExportAttributeLocator, val element: DocumentAttributeElement, val tagRepo: TagRepository)
+/**
+ * Data to export.
+ *
+ * @param locator means where is attribute is.
+ * @param element means what to export.
+ * @param tagRepo tag repository for file name creation.
+ */
+data class ExportAttributeInfo(val locator: ExportAttributeLocator, val element: DocumentAttributeElement, val tagRepo: TagRepository)
 
 data class ExportAttributeLocator(val info: DocumentAttributeInfo, val index: Option<Int>) {
     val isList: Boolean = !index.isEmpty()

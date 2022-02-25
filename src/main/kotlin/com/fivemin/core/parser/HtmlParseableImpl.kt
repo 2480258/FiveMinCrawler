@@ -70,13 +70,13 @@ class HtmlElementImpl(
         get() = elem.text()
 
     override fun getAttribute(name: String): Option<String> {
-        var ret = elem.attr(name)
+        val attribute = elem.attr(name)
 
-        if (ret == "") {
+        if (attribute == "") {
             return none()
         }
 
-        return ret.toOption()
+        return attribute.toOption()
     }
 
     override fun getElements(nav: ParserNavigator): Iterable<HtmlElement> {

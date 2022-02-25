@@ -29,11 +29,17 @@ class FileInfoExportData(val token: FileIOToken) : ExportData {
     override var isSaved: Boolean = false
 
     init {
-        if (!token.exists()) {
+        if (!token.fileExists()) {
             throw IllegalArgumentException()
         }
     }
-
+    
+    /**
+     * Moves and rename file to output directory.
+     * Do not call this more than once; (obviously).
+     *
+     * Throws error if encounters filesystem error.
+     */
     override fun save(fullpath: FileIOToken): Either<Throwable, ExportResultToken> {
         if (isSaved) {
             throw IllegalArgumentException()

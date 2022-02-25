@@ -24,11 +24,18 @@ import arrow.core.*
 import arrow.core.filterOption
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
-import javax.swing.text.Document
 
 interface ExportPage {
     val pageName: String
+    
+    /**
+     * Checks can be exported by this Page.
+     */
     fun <Document : Request> isAcceptable(trans: SerializeTransaction<Document>): Boolean
+    
+    /**
+     * Export pages.
+     */
     fun <Document : Request> export(trans: SerializeTransaction<Document>): Iterable<ExportHandle>
 }
 
@@ -44,7 +51,7 @@ class ExportPageImpl(override val pageName: String, private val targetAttributeN
     }
 
     override fun <Document : Request> export(trans: SerializeTransaction<Document>): Iterable<ExportHandle> {
-        return adapter.parse(trans.request, parseInfo(trans)).map {
+        return adapter.parseAndExport(trans.request, parseInfo(trans)).map {
             it.swap().map {
                 logger.warn(trans.request, "is not exported due to: ", it.toOption())
             }
@@ -54,7 +61,7 @@ class ExportPageImpl(override val pageName: String, private val targetAttributeN
     }
 
     private fun <Document : Request> parseInfo(trans: SerializeTransaction<Document>): Iterable<ExportAttributeInfo> {
-        var ret = tagSelect(trans).map {
+        val ret = tagSelect(trans).map {
             Pair(it.info, buildTagAll(trans, it.info.name))
         }
 
@@ -72,7 +79,7 @@ class ExportPageImpl(override val pageName: String, private val targetAttributeN
     }
 
     private fun <Document : Request> buildTagAll(trans: SerializeTransaction<Document>, targetAttributeName: String): Map<DocumentAttributeElement, TagRepository> {
-        var ret = trans.attributes.single {
+        val ret = trans.attributes.single {
             it.info.name == targetAttributeName
         }
 

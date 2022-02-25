@@ -31,7 +31,7 @@ interface RequestContentInfoFactory<in Document : Request> {
 class RequestContentInfoFactoryImpl<Document : Request>(private val factories: Iterable<RequestFactory>) :
     RequestContentInfoFactory<Document> {
     override suspend fun get(trans: FinalizeRequestTransaction<Document>): RequestContentInfo {
-        var ret = factories.map {
+        val ret = factories.map {
             it.get(trans)
         }.filterOption()
 

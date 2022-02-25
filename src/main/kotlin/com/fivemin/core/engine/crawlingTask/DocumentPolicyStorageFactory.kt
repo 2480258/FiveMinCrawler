@@ -38,13 +38,19 @@ class DocumentPolicyStorageFactory(
     }
 }
 
+/**
+ * Stores TransactionPolicies.
+ */
 class DocumentTypePolicyStorage<Document : Request>(
     val prepare: PrepareRequestTransactionPolicy<Request>,
     val request: FinalizeRequestTransactionPolicy<Request>,
     val serialize: SerializeTransactionPolicy<Request>,
     val export: ExportTransactionPolicy<Request>
 ) {
-
+    /**
+     * Returns TransactionPolicy for consumers.
+     * Note that we should change this function if Transaction is added.
+     */
     inline fun <reified SrcTrans : Transaction<Document>, reified DstTrans : StrictTransaction<SrcTrans, Document>> find(): TransactionPolicy<SrcTrans, DstTrans, Document, Document> {
         var r = SrcTrans::class.qualifiedName?.lowercase()
 

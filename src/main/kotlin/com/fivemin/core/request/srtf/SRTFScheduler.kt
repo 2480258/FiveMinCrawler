@@ -54,14 +54,14 @@ class SRTFScheduler : DequeueOptimizationPolicy {
 
     override fun getScore(req: PreprocessedRequest<Request>): Double {
         lock.withLock {
-            var parent =
+            val parent =
                 if (req.request.info.detachState == DetachableState.WANT) none() else req.request.request.request.parent
 
-            var wshandle =
+            val wshandle =
                 documentBlockSet.getBlockBy(parent.getOrElse { req.request.request.request.token }).bottomMost
-            var lst = watchList[wshandle]!!.get()
+            val lst = watchList[wshandle]!!.get()
 
-            var fullcount = lst.sumOf {
+            val fullcount = lst.sumOf {
                 it.value.count
             }
 
@@ -69,13 +69,13 @@ class SRTFScheduler : DequeueOptimizationPolicy {
                 return memorization[wshandle]!!.first
             }
 
-            var nonEndpoint = lst.sumOf { // for non-Endpoint time (uncle page)
+            val nonEndpoint = lst.sumOf { // for non-Endpoint time (uncle page)
                 it.key.getEndpointTime() * it.value.count
             }
 
-            var endpoint = pageBlockSet.get(convertTo(req.request.request)).getEndpointTime() // for endpoint time (children page)
+            val endpoint = pageBlockSet.get(convertTo(req.request.request)).getEndpointTime() // for endpoint time (children page)
 
-            var expectedTime = nonEndpoint + endpoint
+            val expectedTime = nonEndpoint + endpoint
 
             if (!(memorization.containsKey(wshandle) && memorization[wshandle]?.second == fullcount)) {
                 if (!memorization.containsKey(wshandle)) {
@@ -109,14 +109,14 @@ class SRTFScheduler : DequeueOptimizationPolicy {
 
     fun atPrepareStage(trans: PrepareTransaction<Request>, detachable: Boolean) {
         lock.withLock {
-            var handle = trans.request.token
-            var parent = if (detachable) none() else trans.request.parent
+            val handle = trans.request.token
+            val parent = if (detachable) none() else trans.request.parent
 
-            var name = convertTo(trans)
+            val name = convertTo(trans)
 
-            var pageBlock = pageBlockSet.get(name)
+            val pageBlock = pageBlockSet.get(name)
 
-            var isUnique = documentBlockSet.tryAddBlock(
+            val isUnique = documentBlockSet.tryAddBlock(
                 handle,
                 parent,
                 pageBlock
@@ -130,7 +130,7 @@ class SRTFScheduler : DequeueOptimizationPolicy {
 
             if (!detachable) {
                 trans.request.parent.map {
-                    var parentBlock = documentBlockSet.getBlockBy(it).pageName
+                    val parentBlock = documentBlockSet.getBlockBy(it).pageName
 
                     if (isUnique) {
                         parentBlock.addSample(pageBlock)
@@ -143,10 +143,10 @@ class SRTFScheduler : DequeueOptimizationPolicy {
 
     fun atFinalizeStage(req: FinalizeRequestTransaction<Request>, detachable: Boolean) {
         lock.withLock {
-            var parent = if (detachable) none() else req.request.parent
+            val parent = if (detachable) none() else req.request.parent
 
-            var key = documentBlockSet.getBlockBy(parent.getOrElse { req.request.token }).bottomMost
-            var ret = pageBlockSet.get(convertTo(req.previous))
+            val key = documentBlockSet.getBlockBy(parent.getOrElse { req.request.token }).bottomMost
+            val ret = pageBlockSet.get(convertTo(req.previous))
 
             req.result.map {
                 it.responseBody.ifSucc({

@@ -60,7 +60,7 @@ class JsonExportAdapterTest {
         val single = AttributeMockFactory.getSingleStringAttr("test1", "value")
         val multi = AttributeMockFactory.getMultiSingleAttr("test2", listOf("value1", "value2"))
         
-        var ext = adapter.parse(
+        var ext = adapter.parseAndExport(
             DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK),
             multi.asMultiUpgrade(TagRepositoryImpl()).plus(single.asSingleUpgrade(TagRepositoryImpl()))
         )

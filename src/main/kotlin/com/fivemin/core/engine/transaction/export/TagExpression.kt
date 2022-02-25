@@ -22,8 +22,11 @@ package com.fivemin.core.engine.transaction.export
 
 import com.fivemin.core.engine.TagRepository
 
+/**
+ * Express string with some arguments.
+ */
 class TagExpression(private val originalString: String) {
-    private val regexTag: String = "&\\(([0-z]*)\\)"
+    private val regexTag: String = "&\\(([0-z]*)\\)" //$(name)
     private val regex: Regex = Regex(regexTag)
 
     fun build(tagRepo: TagRepository): String {
@@ -31,17 +34,17 @@ class TagExpression(private val originalString: String) {
     }
 
     private fun parse(macroStr: String, tagRepo: TagRepository): String {
-        val ret = regex.findAll(macroStr).toList()
+        val matches = regex.findAll(macroStr).toList()
 
         val macroMap = mutableMapOf<String, String>()
 
         var str: String = macroStr
 
-        ret.forEach {
+        matches.forEach {
             if (it.value.length > 3) {
                 val qry = it.value.subSequence(2, it.value.length - 1)
 
-                if (tagRepo.contains(qry.toString()) && !qry.contains('\\')) {
+                if (tagRepo.contains(qry.toString()) && !qry.contains('\\')) { //if $[\path_to_somewhere]. ignore it.
                     macroMap[qry.toString()] = tagRepo[qry.toString()].value
                 }
             }

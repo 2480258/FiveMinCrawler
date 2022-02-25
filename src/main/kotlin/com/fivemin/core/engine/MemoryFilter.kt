@@ -28,6 +28,10 @@ import java.nio.charset.Charset
 
 interface MemoryWriter : MemoryFilter
 
+/**
+ * Temp data saver.
+ * Saves written data at disk
+ */
 class DiskWriterImpl constructor(private val token: RequestToken, private val tempPath: DirectoryIOToken) : MemoryWriter {
     override var length: Int = 0
     override var isDisposed: Boolean = false
@@ -70,6 +74,10 @@ class DiskWriterImpl constructor(private val token: RequestToken, private val te
     }
 }
 
+/**
+ * Temp data saver.
+ * Saves written data to RAM.
+ */
 class MemoryWriterImpl : MemoryWriter {
     private val writer: ByteArrayOutputStream = ByteArrayOutputStream()
     fun migrateMeToAndDisposeThis(dest: DiskWriterImpl) {
@@ -116,6 +124,9 @@ class ArrayMemoryData constructor(private val data: ByteArray) : MemoryData {
     }
 }
 
+/**
+ * Decorator of memory writer
+ */
 interface MemoryFilter : AutoCloseable {
     val length: Int
 
@@ -131,6 +142,12 @@ interface StringFilter : MemoryFilter {
     val encoding: Charset
 }
 
+/**
+ * Decorator of memory writer
+ * Supports string decodes.
+ *
+ * Recognizes UTF8, UTF32BE, UTF32LE, UTF16BE, UTF16LE via Byte-Order-Mark
+ */
 class StringFilterImpl constructor(private val filter: MemoryFilter, private var _encoding: Option<Charset>) : StringFilter {
 
     override val encoding: Charset
@@ -147,7 +164,7 @@ class StringFilterImpl constructor(private val filter: MemoryFilter, private var
         Charsets.UTF_16BE to byteArrayOf(0xFE.toByte(), 0xFF.toByte()),
         Charsets.UTF_16LE to byteArrayOf(0xFF.toByte(), 0xFE.toByte())
     )
-    private val MAX_BOM_LENGTH = 10
+    private val MAX_BOM_LENGTH = 10 //how much byte needed to be copied over for BOM recognitions?
     override var isCompleted: Boolean = false
         get() = filter.isCompleted
 
@@ -189,6 +206,10 @@ class StringFilterImpl constructor(private val filter: MemoryFilter, private var
     }
 }
 
+/**
+ * Decorator of memory writer
+ * Supports HTML parser.
+ */
 class HtmlFilterImpl constructor(private val filter: StringFilter, private val factory: HtmlDocumentFactory) : MemoryFilter {
     override var isCompleted: Boolean = false
         get() = filter.isCompleted
@@ -212,6 +233,14 @@ class HtmlFilterImpl constructor(private val filter: StringFilter, private val f
     }
 }
 
+/**
+ * Memory writer which changes location to be saved.
+ * If expectSize > 16KiB or current data > 20KiB, it changes location to disk.
+ *
+ * @param expectSize Expected size of data
+ * @param handle RequestToken to decide temp file name
+ * @param tempPath root path for saving those.
+ */
 class TranslatableFilter(
     private val expectSize: Option<Long>,
     private val handle: RequestToken,

@@ -43,11 +43,11 @@ class PreParserPageImpl(
 ) : PreParserPage {
 
     companion object {
-        private val logger = LoggerController.getLogger("PostParserContentPageImpl")
+        private val logger = LoggerController.getLogger("PreParserPageImpl")
     }
 
     override fun <Document : Request> makeTransaction(init: InitialTransaction<Document>): Option<PrepareTransaction<Document>> {
-        var ret = if (isPageNamePreDefined(init)) {
+        val isPreDefined = if (isPageNamePreDefined(init)) {
             checkPreDefined(init)
         } else if (condition.check(init).isMet) {
             Some(buildTrans(init))
@@ -55,11 +55,11 @@ class PreParserPageImpl(
             none()
         }
 
-        ret.map {
+        isPreDefined.map {
             logPageName(init, it)
         }
 
-        return ret
+        return isPreDefined
     }
 
     private fun logPageName(init: InitialTransaction<Request>, opt: PrepareDocumentRequestTransactionImpl<Request>) {

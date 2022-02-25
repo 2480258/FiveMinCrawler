@@ -25,6 +25,9 @@ import com.fivemin.core.engine.ExportHandle
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.SerializeTransaction
 
+/**
+ * Distributes Transactions to pages.
+ */
 interface ExportParser {
     fun <Document : Request> parse(trans: SerializeTransaction<Document>): Iterable<ExportHandle>
 }
@@ -32,7 +35,7 @@ interface ExportParser {
 class ExportParserImpl(private val pages: Iterable<ExportPage>) : ExportParser {
 
     companion object {
-        private val logger = LoggerController.getLogger("AddTagAliasSubPolicy")
+        private val logger = LoggerController.getLogger("ExportParserImpl")
     }
 
     override fun <Document : Request> parse(trans: SerializeTransaction<Document>): Iterable<ExportHandle> {

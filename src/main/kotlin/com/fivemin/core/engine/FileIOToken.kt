@@ -30,17 +30,26 @@ import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.StandardCopyOption
 
+/**
+ * Represent Directory path.
+ */
 class DirectoryIOToken constructor(private val additionalPath: String) {
     val Path: File
-
+    
+    /**
+     * Create DirectoryIOToken
+     * All forbidden chars and names(NTFS) are filtered.
+     *
+     * Throws if file path is given. Use FileIOToken instead.
+     */
     init {
-        var f = File(additionalPath)
+        val f = File(additionalPath)
         var path = additionalPath
 
         if (f.isRooted) {
 
-            var drive = additionalPath.subSequence(0 until 3).toString()
-            var left = additionalPath.subSequence(3 until additionalPath.length).toString()
+            val drive = additionalPath.subSequence(0 until 3).toString()
+            val left = additionalPath.subSequence(3 until additionalPath.length).toString()
 
             path = drive + checkPathName(left)
         }
@@ -51,7 +60,11 @@ class DirectoryIOToken constructor(private val additionalPath: String) {
             throw InvalidPathException(path, "is file")
         }
     }
-
+    
+    /**
+     * Add directory to path
+     * C:\abc\ => C:\abc\additional_directory
+     */
     fun withAdditionalPathDirectory(additional: DirectoryIOToken): DirectoryIOToken {
         if (additional.Path.isFile || additional.Path.isAbsolute || additional.Path.isRooted) {
             throw IllegalArgumentException()
@@ -59,18 +72,22 @@ class DirectoryIOToken constructor(private val additionalPath: String) {
 
         return DirectoryIOToken(appendPath(Path.absolutePath, additional.additionalPath))
     }
-
+    
+    /**
+     * Add file name to path
+     * C:\abc\ => C:\abc\file.txt
+     */
     fun withAdditionalPathFile(additional: String): FileIOToken {
-        var f = File(Path, additional)
+        val f = File(Path, additional)
 
         if (f.isDirectory) {
             throw IllegalArgumentException()
         }
 
-        var file = FileName(f.name)
+        val file = FileName(f.name)
 
         if (f.parent.isNotEmpty()) {
-            var dir = DirectoryIOToken(f.parent)
+            val dir = DirectoryIOToken(f.parent)
             return FileIOToken(dir, file)
         }
 
@@ -172,12 +189,18 @@ data class FileName constructor(private val filename: String) {
     }
 }
 
+/**
+ * Represent File
+ *
+ * @param InitPath Absolute path DirectoryIOToken
+ * @param name File name
+ */
 data class FileIOToken constructor(private val InitPath: DirectoryIOToken, private val name: FileName) {
     private val directoryPart: DirectoryIOToken
     val fileName: FileName
 
     private val result: File
-
+    
     init {
         if (!InitPath.Path.isAbsolute) {
             throw IllegalArgumentException()
@@ -189,10 +212,14 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
         result = File(directoryPart.Path, fileName.name.name)
     }
 
-    fun exists(): Boolean {
+    fun fileExists(): Boolean {
         return result.exists()
     }
-
+    
+    /**
+     * Add suffix name for file. extensions are considered.
+     * abc.txt => abc - (Dup).txt
+     */
     fun addSuffix(suffix: String): FileIOToken {
         return withDifferentName(fileName.name.nameWithoutExtension + suffix)
     }
@@ -207,7 +234,10 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
             Files.createDirectories(directoryPart.Path.toPath())
         }
     }
-
+    
+    /**
+     * Opens file stream which users should manually close them.
+     */
     fun unsafeOpenFileStream(): Either<Throwable, FileOutputStream> {
         ensureDirectory()
 
@@ -215,7 +245,10 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
             return Either.Right(FileOutputStream(result))
         }
     }
-
+    
+    /**
+     * Opens file write stream. closes itself if lambda finished.
+     */
     fun openFileWriteStream(func: (FileOutputStream) -> Unit) {
         ensureDirectory()
         var os: FileOutputStream? = null
@@ -226,7 +259,10 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
             os?.close()
         }
     }
-
+    
+    /**
+     * Opens file read stream. closes itself if lambda finished.
+     */
     fun <T> openFileReadStream(func: (FileInputStream) -> T): Either<Throwable, T> {
         ensureDirectory()
         return Either.catch { ->
@@ -244,10 +280,15 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
     fun remove() {
         Files.delete(result.toPath())
     }
-
-    fun moveFileToPath(token: FileIOToken) {
+    
+    /**
+     * Moves file to here from source (Dest is this file path).
+     *
+     * @param source Files which want to move.
+     */
+    fun moveFileToPath(source: FileIOToken) {
         ensureDirectory()
 
-        Files.move(token.result.toPath(), result.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        Files.move(source.result.toPath(), result.toPath(), StandardCopyOption.REPLACE_EXISTING)
     }
 }

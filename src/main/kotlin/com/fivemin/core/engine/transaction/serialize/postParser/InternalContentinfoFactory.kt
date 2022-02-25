@@ -54,15 +54,15 @@ class InternalContentInfoFactoryImpl<Document : Request>(
 
     override suspend fun get(trans: FinalizeRequestTransaction<Document>): Option<List<InternalContentInfo>> {
         return coroutineScope {
-            var ret = trans.result.map { y ->
-                y.responseBody.ifSuccAsync({ z ->
-                    z.body.ifFile({ // remove temp file because anyway it should be read
+            val ret = trans.result.map { responseData ->
+                responseData.responseBody.ifSuccAsync({ successBody ->
+                    successBody.body.ifFile({ // remove temp file because anyway it should be read before.
                         it.file.remove()
                     }, { })
 
-                    z.body.ifHtml({ a ->
+                    successBody.body.ifHtml({ htmlMemoryData ->
                         factories.map { x ->
-                            InternalContentInfo(x.attributeName, textExtractor.parse(a, x.nav, x.selectionMode).toList())
+                            InternalContentInfo(x.attributeName, textExtractor.parse(htmlMemoryData, x.nav, x.selectionMode).toList())
                         }
                     }, { listOf() })
                 }, { listOf() })

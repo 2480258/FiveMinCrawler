@@ -34,7 +34,11 @@ interface Request : Taggable {
     val target: URI
     val requestType: RequestType
     val documentType: DocumentType
-
+    
+    /**
+     * Copies request data to new request with modification.
+     * Note that type of copy is same with source.
+     */
     fun copyWith(newTarget: Option<URI> = none(), tags: Option<TagRepository> = none()): Request
 
     fun getDebugInfo(): String {

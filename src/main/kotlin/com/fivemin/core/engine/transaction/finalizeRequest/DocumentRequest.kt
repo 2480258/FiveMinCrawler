@@ -24,6 +24,9 @@ import com.fivemin.core.engine.DetachableState
 import com.fivemin.core.engine.PrepareTransaction
 import com.fivemin.core.engine.Request
 
+/**
+ * Represents Request of crawler.
+ */
 interface DocumentRequest<out Document : Request> {
     val request: PrepareTransaction<Document>
 

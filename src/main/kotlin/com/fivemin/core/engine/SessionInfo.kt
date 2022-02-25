@@ -46,7 +46,11 @@ constructor(
     init {
         finish.onStart()
     }
-
+    
+    /**
+     * Counts number of task.
+     * Program won't finish until every registered task is done.
+     */
     suspend fun <T> doRegisteredTask(func: suspend () -> T): T {
         try {
             reenterent++

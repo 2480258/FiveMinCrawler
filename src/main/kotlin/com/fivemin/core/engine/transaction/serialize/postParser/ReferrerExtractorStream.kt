@@ -32,7 +32,7 @@ class ReferrerExtractorStream(private val resp: ResponseData) {
     }
 
     suspend fun extract(link: ParsedLink): String {
-        var r = link.referrerInfo.referrerPolicy.fold({
+        val r = link.referrerInfo.referrerPolicy.fold({
             link.referrerInfo.rel.map {
                 if (it.contains("noreferrer")) {
                     Some("no-referrer")
@@ -46,9 +46,12 @@ class ReferrerExtractorStream(private val resp: ResponseData) {
 
         return r.getOrElse { parseGlobal().getOrElse { parseHeader().getOrElse { "strict-origin-when-cross-origin" } } }
     }
-
+    
+    /**
+     * Parses referrer from HTTP Header
+     */
     private fun parseHeader(): Option<String> {
-        var body = resp.responseBody
+        val body = resp.responseBody
 
         if (body is HttpResponseReceivedBody) {
             return body.responseHeader.header.singleOrNull {
@@ -58,13 +61,16 @@ class ReferrerExtractorStream(private val resp: ResponseData) {
 
         return none()
     }
-
+    
+    /**
+     * Parses referrer from meta
+     */
     private suspend fun parseGlobal():
         Option<String> {
         return resp.responseBody.ifSuccAsync({ x ->
-            var ret = x.body.ifHtml({
-                it.parseAsHtmlDocument {
-                    it.getElement(referrerNavigator)
+            val ret = x.body.ifHtml({ htmlMemoryData ->
+                htmlMemoryData.parseAsHtmlDocument { htmlParsable ->
+                    htmlParsable.getElement(referrerNavigator)
                 }
             }, {
                 none<HtmlElement>().right()

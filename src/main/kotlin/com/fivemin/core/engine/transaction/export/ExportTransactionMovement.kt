@@ -43,7 +43,7 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
         return coroutineScope {
             async {
                 logger.debug(source.request, "exporting transaction")
-                var ret = parser.parse(source)
+                val ret = parser.parse(source)
 
                 Either.catch {
                     ExportTransactionImpl(source.request, source.tags, saveResult(ret))
@@ -56,7 +56,7 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
         return handles.map { x ->
             state.create(x)
         }.map {
-            var ret = it.save()
+            val ret = it.save()
 
             ret.mapLeft { x ->
                 logger.warn(it.info.token.fileName.name.name + " < not exported due to: " + x.message)

@@ -2,7 +2,7 @@
 
 _and can be customized in five minutes (maybe.... if you know html and other things XD)_
 
-**⚠This program is very experimental. Stuff will be break.**
+**⚠This program is very experimental. Stuff will be break. Use At Your Risk. Before use, please read LICENSE**
 
 [한국어 설명서(KO)](README_KO.md)
 
@@ -18,6 +18,8 @@ With this feature, you can make a crawler for specific site very fast.
 - Effectively parses downloaded HTML powered by [jsoup](https://github.com/jhy/jsoup)
 - Saves parsed and downloaded things (web pages, images, and others) as you want (directory, file names and format)
 - Skips downloading pages if you did before (only applies pages that you want)
+- Perfectly handles referrer header
+- Supports multi-threading
 
 ## Getting Started
 
@@ -67,7 +69,21 @@ Currently, that's all.... Can be modified at fivemin.config.json
 
 ## Limitations
 
+- Poor performance and memory usage, but will improve this. 
+
 - No JavaScript support, but planned (with Selenium)
+
+## Build and Test Instruction (Optional)
+
+This project uses gradle. so just,
+> gradlew
+
+Some unit tests of this project utilize external web server.
+
+If you want to run these tests, please refer to [this repository](https://github.com/2480258/fivemin-test-pages).
+
+
+
 
 ## Used Libraries
 

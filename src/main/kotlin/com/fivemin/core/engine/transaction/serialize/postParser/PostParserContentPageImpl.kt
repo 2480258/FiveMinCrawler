@@ -50,17 +50,17 @@ class PostParserContentPageImpl<Document : Request>(
             async {
                 req.previous.ifDocumentAsync({
                     if (it.parseOption.name == pageCondition) {
-                        var intes = processIntAttribute(req)
-                        var attrs = processExtAttributes(req, info, state)
-                        var links = processLinks(req, info, state)
+                        val internals = processIntAttribute(req)
+                        val externals = processExtAttributes(req, info, state)
+                        val links = processLinks(req, info, state)
 
                         links.toList().awaitAll() // wait until all child link downloaded
 
-                        var finished = attrs.map { y ->
+                        val finished = externals.map { y ->
                             y.await()
                         }.filterOption()
 
-                        var ret = intes.fold({ finished }) { x ->
+                        val ret = internals.fold({ finished }) { x ->
                             finished.plus(x)
                         }
 
@@ -95,24 +95,24 @@ class PostParserContentPageImpl<Document : Request>(
         info: TaskInfo,
         state: SessionStartedState
     ): Iterable<Deferred<Option<DocumentAttribute>>> {
-        var attr = attrInfoFactory.get(req)
+        val attr = attrInfoFactory.get(req)
 
-        return attr.linkInfo.map { x ->
-            var ret = x.requests.map { y ->
-                var task = info.createTask<HttpRequest>().get2<
+        return attr.linkInfo.map { requestLinkInfo ->
+            val ret = requestLinkInfo.requests.map { httpRequest ->
+                val task = info.createTask<HttpRequest>().get2<
                     InitialTransaction<HttpRequest>,
                     PrepareTransaction<HttpRequest>,
                     FinalizeRequestTransaction<HttpRequest>>(DocumentType.NATIVE_HTTP)
 
                 state.getChildSession {
-                    task.start(InitialTransactionImpl(x.option, TagRepositoryImpl(), y), info, it)
+                    task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), httpRequest), info, it)
                 }
             }
 
             if (ret.any()) {
-                finalizeAttribute(x, ret).toOption()
+                finalizeAttribute(requestLinkInfo, ret).toOption()
             } else {
-                logger.warn(req.request.getDebugInfo() + " < " + x.name + " < has no content; ignoring")
+                logger.warn(req.request.getDebugInfo() + " < " + requestLinkInfo.name + " < has no content; ignoring")
                 none()
             }
         }.filterOption()
@@ -124,8 +124,8 @@ class PostParserContentPageImpl<Document : Request>(
     ): Deferred<Option<DocumentAttribute>> {
         return coroutineScope {
             async {
-                var finished = ret.toList().awaitAll().map {
-                    var downloaded = it
+                val finished = ret.toList().awaitAll().map {
+                    val downloaded = it
 
                     downloaded.swap().map {
                         logger.warn(it)
@@ -151,10 +151,10 @@ class PostParserContentPageImpl<Document : Request>(
         info: TaskInfo,
         state: SessionStartedState
     ): Iterable<Deferred<Either<Throwable, ExportTransaction<HttpRequest>>>> {
-        var links = linkInfoFactory.get(request)
+        val links = linkInfoFactory.get(request)
         return links.linkInfo.map { x ->
-            var ret = x.requests.map { y ->
-                var task = info.createTask<HttpRequest>().get4<
+            val ret = x.requests.map { y ->
+                val task = info.createTask<HttpRequest>().get4<
                     InitialTransaction<HttpRequest>,
                     PrepareTransaction<HttpRequest>,
                     FinalizeRequestTransaction<HttpRequest>,

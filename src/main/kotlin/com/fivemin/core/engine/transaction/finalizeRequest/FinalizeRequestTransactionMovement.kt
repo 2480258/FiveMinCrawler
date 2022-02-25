@@ -47,7 +47,7 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
             async {
                 logger.debug(source.request, "finalizing request transaction")
 
-                val r = ret.await()
+                val r = ret.await() //waits asynchronously until request is done.
                 FinalizeRequestTransactionImpl<Document>(r, source.tags, source).right()
             }
         }

@@ -27,7 +27,10 @@ data class RequestToken private constructor(val tokenNumber: Int) {
     companion object {
         var LastUsed: Int = -1
         val lock = ReentrantLock()
-
+    
+        /**
+         * Creates unique token for request object.
+         */
         fun create(): RequestToken {
             return lock.withLock {
                 LastUsed++

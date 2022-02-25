@@ -34,7 +34,10 @@ class SpecialAttributeTagFactory {
     interface SpecialTagFactory {
         fun <Document : Request> create(trans: SerializeTransaction<Document>, locator: AttributeLocator): Tag
     }
-
+    
+    /**
+     * Creates NAME tags with attribute name.
+     */
     class NameSpecialTagFactory : SpecialTagFactory {
         override fun <Document : Request> create(
             trans: SerializeTransaction<Document>,
@@ -43,7 +46,10 @@ class SpecialAttributeTagFactory {
             return Tag(EnumSet.of(TagFlag.NONE), "name", locator.attributeName)
         }
     }
-
+    
+    /**
+     * Creates INC tags with parsed results' indices.
+     */
     class IncSpecialTagFactory : SpecialTagFactory {
         override fun <Document : Request> create(
             trans: SerializeTransaction<Document>,
@@ -60,14 +66,18 @@ class SpecialAttributeTagFactory {
                 strcount = 1
             }
 
-            var ccount = strcount + 1
+            val ccount = strcount + 1
 
-            var ret = ("%0$ccount" + "d").format(locator.attributeIndex)
+            val ret = ("%0$ccount" + "d").format(locator.attributeIndex)
+            //always creates one more zeros than number of digits. It helps windows sorts well.
 
             return Tag(EnumSet.of(TagFlag.NONE), "inc", ret)
         }
     }
-
+    
+    /**
+     * Creates LASTSEG tags with last segments of URL.
+     */
     class LastSegSpecialTagFactory : SpecialTagFactory {
         val FallBackName: String = "Data"
         override fun <Document : Request> create(
@@ -80,10 +90,10 @@ class SpecialAttributeTagFactory {
                     it.info.name == locator.attributeName
                 }.item.elementAt(locator.attributeIndex).match(
                     {
-                        getLastSeg(trans.request.target)
+                        getLastSeg(trans.request.target) //if attribute content is internal, use parent request's URL.
                     },
                     {
-                        getLastSeg(it.target)
+                        getLastSeg(it.target) //or uses itself.
                     }
                 )
             )
@@ -99,7 +109,10 @@ class SpecialAttributeTagFactory {
             return ext
         }
     }
-
+    
+    /**
+     * Creates EXT tags with URL extension.
+     */
     class ExtSpecialTagFactory : SpecialTagFactory {
         override fun <Document : Request> create(
             trans: SerializeTransaction<Document>,
@@ -126,7 +139,7 @@ class SpecialAttributeTagFactory {
         listOf(ExtSpecialTagFactory(), LastSegSpecialTagFactory(), IncSpecialTagFactory(), NameSpecialTagFactory())
 
     fun <Document : Request> build(trans: SerializeTransaction<Document>, locator: AttributeLocator): TagRepository {
-        var ret = factories.map {
+        val ret = factories.map {
             it.create(trans, locator)
         }
 

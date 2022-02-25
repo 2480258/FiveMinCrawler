@@ -86,7 +86,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
         createFactory(virtualOption.dequeue, virtualOption.subPolicyCollection)
 
     suspend fun start(uri: URI): Either<Throwable, ExportTransaction<Request>> {
-        var task = taskFactory.getFactory<Request>()
+        val task = taskFactory.getFactory<Request>()
             .get4<
                 InitialTransaction<Request>,
                 PrepareTransaction<Request>,
@@ -127,9 +127,9 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
         dequeue: DequeueOptimizationPolicy,
         additional: SubPolicyCollection
     ): CrawlerTaskFactoryFactory {
-        var def = getDefaultSubPolicyCollection()
+        val def = getDefaultSubPolicyCollection()
 
-        var merged = SubPolicyCollection(
+        val merged = SubPolicyCollection(
             def.preprocess.plus(additional.preprocess),
             def.request.plus(additional.request),
             def.serialize.plus(additional.serialize),

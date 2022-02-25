@@ -26,7 +26,11 @@ data class Tag(val flag: EnumSet<TagFlag>, val name: String, val value: String) 
     private fun checkFlag(ref: TagFlag): Boolean {
         return flag.contains(ref)
     }
-
+    
+    /**
+     * Returns if tag is alias.
+     * This means tags is used to check conflict with URL.
+     */
     val isAlias: Boolean
         get() {
             return checkFlag(TagFlag.ALIAS)

@@ -29,13 +29,19 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
+/**
+ * Subpolicy for marking wheather this document is detachable.
+ */
 class MarkDetachablePolicy<Document : Request> :
     TransactionSubPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document> {
 
     companion object {
         private val logger = LoggerController.getLogger("SessionDetachable")
     }
-
+    
+    /**
+     * Marks detachable on SessionState. Returns given transaction without any changes.
+     */
     override suspend fun process(
         source: InitialTransaction<Document>,
         dest: PrepareTransaction<Document>,

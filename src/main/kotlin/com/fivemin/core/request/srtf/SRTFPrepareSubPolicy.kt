@@ -42,19 +42,19 @@ class SRTFPrepareSubPolicy(private val sc: SRTFScheduler) : TransactionSubPolicy
     ): Deferred<Either<Throwable, PrepareTransaction<Request>>> {
         return coroutineScope {
             async {
-                var det = state.isDetachable == DetachableState.WANT
+                val detachablity = state.isDetachable == DetachableState.WANT
 
-                var ret = Either.catch {
-                    sc.atPrepareStage(dest, det)
+                val result = Either.catch {
+                    sc.atPrepareStage(dest, detachablity)
 
                     dest
                 }
 
-                ret.swap().map {
+                result.swap().map {
                     logger.warn(it)
                 }
 
-                ret
+                result
             }
         }
     }

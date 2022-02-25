@@ -26,10 +26,18 @@ import java.io.InputStream
 import java.util.zip.GZIPInputStream
 import java.util.zip.InflaterInputStream
 
+/**
+ * Decompresses streams with given content type.
+ */
 interface Decompressor {
     fun decompress(contentType: String, stream: InputStream): InputStream
 }
 
+/**
+ * Decompresses streams with given content type.
+ *
+ * Supported: br for Brotli, gzip for GZIP, deflate for Deflate
+ */
 class DecompressorImpl : Decompressor {
     val decoderMap =
         mapOf("br" to DecompressMethod.BR, "gzip" to DecompressMethod.GZIP, "deflate" to DecompressMethod.DEFLATE)

@@ -30,11 +30,18 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import java.util.concurrent.atomic.AtomicInteger
 
+/**
+ * Subpolicy for limiting enitre crawling pages.
+ */
 class LimitMaxPageSubPolicy<Document : Request> (private val maxPageNum: Int) :
     TransactionSubPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document>{
     
     val pageCount : AtomicInteger = AtomicInteger(0)
     
+    /**
+     * Increase page count. if count is equals or exceeds, returns ExceedsMaxPageException.
+     * Call only once for one document.
+     */
     override suspend fun process(
         source: InitialTransaction<Document>,
         dest: PrepareTransaction<Document>,

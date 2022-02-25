@@ -45,7 +45,7 @@ abstract class AbstractPolicy<
     protected abstract fun getMovement(factory: MovementFactory<Document>): TransactionMovement<SrcTrans, DstTrans, Document>
 
     override suspend fun progressAsync(
-        source: SrcTrans,
+        trans: SrcTrans,
         info: TaskInfo,
         state: SessionStartedState
     ): Deferred<Either<Throwable, DstTrans>> {
@@ -53,21 +53,21 @@ abstract class AbstractPolicy<
             async {
                 Either.catch {
                     val movement = getMovement(movementFactory)
-                    val firstret = movement.move(source, info, state)
+                    val taskResult = movement.move(trans, info, state)
 
-                    var ret = option.subPolicies.fold(firstret) { acc, transactionSubPolicy ->
+                    val spResult = option.subPolicies.fold(taskResult) { acc, transactionSubPolicy ->
                         coroutineScope {
                             async {
-                                var aq = acc.await()
+                                val dstTrans = acc.await()
 
-                                aq.map {
-                                    transactionSubPolicy.process(source, it, info, state).await()
+                                dstTrans.map {
+                                    transactionSubPolicy.process(trans, it, info, state).await()
                                 }.flatten()
                             } // https://typelevel.org/cats/datatypes/Either.html
                         }
                     }
 
-                    ret.await()
+                    spResult.await()
                 }.flatten()
             }
         }

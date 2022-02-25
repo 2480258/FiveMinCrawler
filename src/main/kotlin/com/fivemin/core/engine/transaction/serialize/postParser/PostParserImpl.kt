@@ -38,15 +38,15 @@ class PostParserImpl(private val pages: List<PostParserContentPage<Request>>) : 
         state: SessionStartedState
     ): Either<Throwable, PostParseInfo> {
         return Either.catch {
-            var ret = pages.map {
+            val extractedAttributes = pages.map {
                 it.extract(request, info, state).await()
             }.filterOption()
 
-            var q = ret.singleOrNone {
+            val results = extractedAttributes.singleOrNone {
                 it.any()
             }.getOrElse { listOf() }
 
-            PostParseInfo(q.toList())
+            PostParseInfo(results.toList())
         }
     }
 }

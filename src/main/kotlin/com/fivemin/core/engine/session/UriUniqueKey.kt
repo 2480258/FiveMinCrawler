@@ -23,6 +23,9 @@ package com.fivemin.core.engine.session
 import com.fivemin.core.engine.UniqueKey
 import java.net.URI
 
+/**
+ * Represent UniqueKey for URL.
+ */
 class UriUniqueKey constructor(private val value: URI) : UniqueKey() {
     override fun equals(other: Any?): Boolean {
         if (other != null && other is UniqueKey) {
@@ -46,5 +49,9 @@ class UriUniqueKey constructor(private val value: URI) : UniqueKey() {
 
     override fun toStr(): String {
         return value.toString()
+    }
+    
+    override fun hashCode(): Int {
+        return hash()
     }
 }

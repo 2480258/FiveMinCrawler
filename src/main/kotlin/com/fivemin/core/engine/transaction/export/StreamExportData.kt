@@ -33,7 +33,7 @@ class StreamExportData(private val data: InputStream) : ExportData {
     override fun save(token: FileIOToken): Either<Throwable, ExportResultToken> {
         return Either.catch {
             data.use { data ->
-                if (isSaved || token.exists()) {
+                if (isSaved || token.fileExists()) {
                     IllegalArgumentException().left()
                 }
 
