@@ -2,7 +2,8 @@
 
 We can change the behavior of the crawler by changing JSON and giving its path as a parameter (-p)
 
-**Please read with [Boilerplate](debugWeb.json) for better understandings. You may want to start to customize with this file because copying and pasting this one allows faster customization.**
+**Please read with [Boilerplate](https://2480258.github.io/fivemin-generator-front/) for better understandings.
+You may want to start to customize with this [sample](jsonReadUnitTest.json) because copying and pasting this one allows faster customization.**
 
 ## Notations
 
