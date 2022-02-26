@@ -4,6 +4,8 @@ _and can be customized in five minutes (maybe.... if you know html and other thi
 
 **⚠This program is very experimental. Stuff will be break. Use At Your Risk. Before use, please read LICENSE**
 
+**If you have any questions, please ask it freely in [issues](https://github.com/2480258/FiveMinCrawler/issues) tab.**
+
 [한국어 설명서(KO)](README_KO.md)
 
 ## What is this?

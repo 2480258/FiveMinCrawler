@@ -2,7 +2,9 @@
 
 JSON 파일을 수정하고 이를 파라미터 경로 (-p) 로 지정함에 따라 크롤러의 동작을 변경할 수 있습니다.
 
-**보다 빠른 이해를 위해서 [Boilerplate](debugWeb.json) 와 함께 읽어주세요. 추가적으로 커스터마이징을 할 때도 이 파일을 복사해서 수정할 경우 좀 더 빠릅니다.**
+**[Boilerplate](https://2480258.github.io/fivemin-generator-front/) 를 함께 읽어주십시오.
+
+**만약 질문이 있다면 [이슈](https://github.com/2480258/FiveMinCrawler/issues) 탭에 자유롭게 작성해주세요.**
 
 ## 용어
 
