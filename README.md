@@ -27,6 +27,10 @@ With this feature, you can make a crawler for specific site very fast.
 
 Firstly, if you have any questions, suggestions and others then please use issue tab.
 
+## Usage
+
+> FiveMinCrawler.exe -u [URL] -p [ParameterPath]
+
 ### Command-line Options
 
     -u                         Starting URL that needed to be crawled

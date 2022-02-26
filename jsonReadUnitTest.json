@@ -27,13 +27,13 @@
   "parseFormat":{
     "bookName":"Debug",
     "globalCondition":{
-      "uriRegex":"127.0.0.1:30001"
+      "uriRegex":"127.0.0.1:3000"
     },
     "pages":[
       {
         "pageName":"redirect",
         "condition":{
-          "uriRegex":"127.0.0.1:30001/redirect"
+          "uriRegex":"127.0.0.1:3000/redirect"
         },
         "internalAttributes":[
           {

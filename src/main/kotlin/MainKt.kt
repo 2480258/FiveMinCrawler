@@ -79,7 +79,7 @@ class MainKt {
 
                 logger.info("Starting crawler")
 
-                if (uri == null) {
+                if (uri == null || paramPath == null) {
                     logger.error("please check your arguments.... exiting.")
                     return
                 }
