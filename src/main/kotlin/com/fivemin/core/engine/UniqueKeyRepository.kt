@@ -21,6 +21,9 @@
 package com.fivemin.core.engine
 
 interface UniqueKeyRepository {
-    fun addAlias(token: SessionToken, key: UniqueKey)
-    fun transferOwnership(src: SessionToken, dest: SessionToken)
+    fun addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken
+    
+    fun addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken
+    
+    fun addUniqueKey(key: UniqueKey): UniqueKeyToken
 }

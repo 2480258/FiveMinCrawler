@@ -18,10 +18,27 @@
  *
  */
 
-package com.fivemin.core.engine
+package com.fivemin.core.engine.session
 
-import arrow.core.*
+import com.fivemin.core.engine.UniqueKey
+import java.io.InputStream
+import java.io.OutputStream
 
-interface SessionRepository {
-    fun create(parent: Option<SessionToken>): SessionInfo
+interface BloomFilter {
+    fun mightContains(element: UniqueKey) : Boolean
+    
+    /**
+    * Return True if insertion is success, Return false if duplicated element (might) is already included.
+    * */
+    fun put(element: UniqueKey): Boolean
+    
+    fun exportTo(): OutputStream
+}
+
+interface BloomFilterFactory {
+    fun createEmpty() : BloomFilter
+}
+
+interface SerializedBloomFilter {
+    fun create() : BloomFilter
 }

@@ -24,8 +24,6 @@ import arrow.core.*
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.crawlingTask.*
 import com.fivemin.core.engine.session.ArchivedSessionSet
-import com.fivemin.core.engine.session.SessionRepositoryImpl
-import com.fivemin.core.engine.session.UniqueKeyRepositoryImpl
 import com.fivemin.core.engine.transaction.*
 import com.fivemin.core.engine.transaction.export.ExportParser
 import com.fivemin.core.engine.transaction.export.ExportTransactionPolicy
@@ -112,7 +110,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
                 TaskInfo(provider, taskFactory),
                 SessionInitStateImpl(
                     SessionInfo(sessionRepository, none()),
-                    SessionData(uniqueKeyRepository, sessionRepository, 0)
+                    SessionData(uniqueKeyRepository, sessionRepository)
                 )
             ).await()
         }

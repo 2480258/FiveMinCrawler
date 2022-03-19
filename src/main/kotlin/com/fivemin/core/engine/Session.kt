@@ -25,14 +25,6 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.transaction.prepareRequest.TaskDetachedException
 import kotlinx.coroutines.*
 
-suspend fun <T> SessionInitState.ifDetachable(func: suspend (SessionDetachableInitState) -> T): Option<T> {
-    return if (this is SessionDetachableInitState) {
-        Some(func(this))
-    } else {
-        none()
-    }
-}
-
 suspend fun <T> SessionStartedState.ifDetachable(func: suspend (SessionDetachableStartedState) -> T): Option<T> {
     return if (this is SessionDetachableStartedState) {
         Some(func(this))
@@ -46,9 +38,10 @@ suspend fun <T> SessionStartedState.ifDetachable(func: suspend (SessionDetachabl
  */
 data class SessionData constructor(
     val KeyRepo: UniqueKeyRepository,
-    val SessionRepo: SessionRepository,
-    val RetryCount: Int
-)
+    val SessionRepo: SessionRepository
+) {
+    val tokens = mutableMapOf<UniqueKey, UniqueKeyToken>()
+}
 
 enum class ProgressState {
     STARTED, FINISHED
@@ -60,10 +53,10 @@ enum class DetachableState {
 
 interface SessionState {
     val info: SessionInfo
-    val Data: SessionData
+    val data: SessionData
 }
 
-interface SessionAddableAlias : SessionState {
+interface SessionAddableAlias : SessionMarkDetachable {
 
     companion object {
         private val logger = LoggerController.getLogger("SessionDetachable")
@@ -75,17 +68,32 @@ interface SessionAddableAlias : SessionState {
      */
     fun addAlias(key: UniqueKey) {
         logger.debug(info.token.tokenNumber.toString() + " < Adding alias [" + key.toString() + "]")
-        Data.KeyRepo.addAlias(info.token, key)
+        
+        data.tokens[key].toOption().fold({
+            addAliasInternal(key)
+        }, {
+            it.addDuplicationCountThrows()
+        })
+    }
+    
+    private fun addAliasInternal(key: UniqueKey) {
+        val token = when (isDetachable) {
+            DetachableState.WANT -> data.KeyRepo.addUniqueKeyWithDetachableThrows(key)
+            DetachableState.HATE -> data.KeyRepo.addUniqueKeyWithNotDetachableThrows(key)
+            DetachableState.NOTMODIFIED -> data.KeyRepo.addUniqueKey(key)
+        }
+    
+        data.tokens[key] = token
     }
 }
 
 interface SessionMarkDetachable : SessionState {
     fun setDetachable() {
-        info.setDetachable()
+        info.setDetachable(data.tokens.values.asIterable())
     }
 
     fun setNonDetachable() {
-        info.setNonDetachable()
+        info.setNonDetachable(data.tokens.values.asIterable())
     }
 
     val isDetachable: DetachableState
@@ -97,24 +105,14 @@ interface SessionMarkDetachable : SessionState {
 interface SessionRetryable : SessionState {
     companion object {
         private val logger = LoggerController.getLogger("SessionRetryable")
-
-        val MaxRetryCount: Int = 3
     }
     
     suspend fun <T> retryAsync(func: suspend (SessionInitState) -> Deferred<Either<Throwable, T>>): Deferred<Either<Throwable, T>> {
-        if (Data.RetryCount >= MaxRetryCount) {
-            return coroutineScope {
-                async {
-                    TaskCanceledException().left()
-                }
-            }
-        }
-        
         logger.info(this.info.token.tokenNumber.toString() + " < retrying")
         val session = this as? SessionDetachable
         
         val state = session.rightIfNotNull { }
-            .fold({ SessionDetachableInitStateImpl(info, Data) }, { SessionInitStateImpl(info, Data) })
+            .fold({ SessionDetachableInitStateImpl(info, data) }, { SessionInitStateImpl(info, data) })
     
         return func(state)
     }
@@ -134,12 +132,11 @@ interface SessionDetachable : SessionState {
      */
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun detach(func: suspend (SessionInitState) -> Option<Throwable>): Deferred<Option<Throwable>> {
-        val detached = Data.SessionRepo.create(info.token.toOption())
-        Data.KeyRepo.transferOwnership(info.token, detached.token)
-
+        val detached = data.SessionRepo.create(info.token.toOption())
+        
         GlobalScope.launch {
             logger.info(info.token.tokenNumber.toString() + " < detached")
-            func(SessionInitStateImpl(detached, Data))
+            func(SessionInitStateImpl(detached, data))
             logger.debug(info.token.tokenNumber.toString() + " < detach job finished")
         }
 
@@ -151,7 +148,7 @@ interface SessionDetachable : SessionState {
     }
 }
 
-interface SessionStartable : SessionState {
+interface SessionStartable : SessionAddableAlias {
 
     companion object {
         private val logger = LoggerController.getLogger("SessionStartable")
@@ -170,14 +167,14 @@ interface SessionStartable : SessionState {
             async {
                 info.doRegisteredTask {
                     Either.catch {
-                        Data.KeyRepo.addAlias(info.token, key)
+                        addAlias(key)
                     }.map {
                         logger.debug(key.toString() + " < creating SessionStartable")
 
                         val state = if (this@SessionStartable as? SessionDetachable != null) {
-                            SessionDetachableStartedStateImpl(info, Data)
+                            SessionDetachableStartedStateImpl(info, data)
                         } else {
-                            SessionStartedStateImpl(info, Data)
+                            SessionStartedStateImpl(info, data)
                         }
 
                         val result = func(state).await()
@@ -202,10 +199,10 @@ interface SessionChildGeneratable : SessionState {
      */
     suspend fun <T> getChildSession(func: suspend (SessionInitState) -> Deferred<Either<Throwable, T>>): Deferred<Either<Throwable, T>> {
         
-        val detached = Data.SessionRepo.create(info.parent)
+        val detached = data.SessionRepo.create(info.parent)
         logger.debug(info.token.tokenNumber.toString() + " < creating child session")
     
-        return func(SessionDetachableInitStateImpl(detached, Data))
+        return func(SessionDetachableInitStateImpl(detached, data))
     }
 }
 
@@ -217,16 +214,16 @@ interface SessionStartedState : SessionRetryable, SessionChildGeneratable, Sessi
 
 interface SessionDetachableStartedState : SessionStartedState, SessionDetachable, SessionDetachRetryable
 
-data class SessionInitStateImpl constructor(override val info: SessionInfo, override val Data: SessionData) :
+data class SessionInitStateImpl constructor(override val info: SessionInfo, override val data: SessionData) :
     SessionInitState
 
-data class SessionStartedStateImpl constructor(override val info: SessionInfo, override val Data: SessionData) :
+data class SessionStartedStateImpl constructor(override val info: SessionInfo, override val data: SessionData) :
     SessionStartedState
 
-data class SessionDetachableInitStateImpl constructor(override val info: SessionInfo, override val Data: SessionData) :
+data class SessionDetachableInitStateImpl constructor(override val info: SessionInfo, override val data: SessionData) :
     SessionDetachableInitState
 
 data class SessionDetachableStartedStateImpl constructor(
     override val info: SessionInfo,
-    override val Data: SessionData
+    override val data: SessionData
 ) : SessionDetachableStartedState
