@@ -24,14 +24,11 @@ import arrow.core.Option
 import arrow.core.toOption
 import com.fivemin.core.DuplicateKeyException
 import com.fivemin.core.engine.*
-import java.io.InputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
-import kotlin.concurrent.withLock
 import kotlin.concurrent.write
 
 
@@ -71,10 +68,10 @@ class TemporaryUniqueKeyRepository {
 
 class BloomFilterUniqueKeyRepository constructor(
     factory: BloomFilterFactory,
-    serialized: Option<SerializedBloomFilter>
+    serialized: Option<SerializableAMQ>
 ) : UniqueKeyRepository, SessionRepository, FinishObserver, DetachObserver {
-    private val notDetachableFilter: BloomFilter
-    private val detachableFilter: BloomFilter
+    private val notDetachableFilter: SerializableAMQ
+    private val detachableFilter: SerializableAMQ
     private val temporaryUniqueKeyRepository = TemporaryUniqueKeyRepository()
     
     private val uniqueKeyTokenFactory = UniqueKeyTokenFactory()
@@ -87,7 +84,7 @@ class BloomFilterUniqueKeyRepository constructor(
     init {
         notDetachableFilter = factory.createEmpty()
         detachableFilter = serialized.fold({ factory.createEmpty() }, {
-            it.create()
+            it
         })
     }
     
@@ -136,6 +133,12 @@ class BloomFilterUniqueKeyRepository constructor(
         }
     }
     
+    override fun export(): SerializableAMQ {
+        return rwLock.read {
+            detachableFilter
+        }
+    }
+    
     private fun conveyToDetachable(token: UniqueKeyToken) {
         conveyTo(detachableFilter, token)
     }
@@ -145,7 +148,7 @@ class BloomFilterUniqueKeyRepository constructor(
         conveyTo(notDetachableFilter, token)
     }
     
-    private fun addTo(bf: BloomFilter, key: UniqueKey): UniqueKeyToken {
+    private fun addTo(bf: SerializableAMQ, key: UniqueKey): UniqueKeyToken {
         val token = uniqueKeyTokenFactory.create(key)
     
         return rwLock.read {
@@ -163,7 +166,7 @@ class BloomFilterUniqueKeyRepository constructor(
         }
     }
     
-    private fun conveyTo(bf: BloomFilter, token: UniqueKeyToken) {
+    private fun conveyTo(bf: SerializableAMQ, token: UniqueKeyToken) {
         rwLock.write {
             val key = temporaryUniqueKeyRepository.deleteUniqueKey(token)
             key.fold({ throw KeyNotFoundException() }, {

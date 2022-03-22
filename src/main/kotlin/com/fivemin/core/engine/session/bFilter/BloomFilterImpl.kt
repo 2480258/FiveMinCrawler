@@ -20,16 +20,28 @@
 
 package com.fivemin.core.engine.session.bFilter
 
+import arrow.core.Either
+import com.fivemin.core.engine.FileIOToken
+import com.fivemin.core.engine.SerializableAMQ
 import com.fivemin.core.engine.UniqueKey
-import com.fivemin.core.engine.session.BloomFilter
 import com.fivemin.core.engine.session.BloomFilterFactory
-import com.fivemin.core.engine.session.SerializedBloomFilter
+import com.fivemin.core.engine.session.SerializedBloomFilterFactory
 import com.google.common.hash.Funnels
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ByteArraySerializer
+import kotlinx.serialization.descriptors.*
+import kotlinx.serialization.encoding.AbstractEncoder
+import kotlinx.serialization.encoding.CompositeEncoder
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.modules.EmptySerializersModule
+import kotlinx.serialization.modules.SerializersModule
+import java.io.DataOutput
 import java.io.InputStream
 import java.io.OutputStream
 
 
-class BloomFilterImpl : BloomFilter {
+class BloomFilterImpl : SerializableAMQ {
     constructor(input: InputStream) {
         filter = com.google.common.hash.BloomFilter.readFrom(input, Funnels.stringFunnel(Charsets.UTF_8))
     }
@@ -49,19 +61,20 @@ class BloomFilterImpl : BloomFilter {
         return filter.put(element.toString())
     }
     
-    override fun exportTo(): OutputStream {
-        return filter.writeTo()
+    override fun exportTo(output: OutputStream) {
+        return filter.writeTo(output)
     }
 }
 
 class BloomFilterFactoryImpl : BloomFilterFactory {
-    override fun createEmpty(): BloomFilter {
+    override fun createEmpty(): SerializableAMQ {
         return BloomFilterImpl()
     }
 }
 
-class SerializedBloomFilterImpl(private val input: InputStream) : SerializedBloomFilter {
-    override fun create(): BloomFilter {
-        return BloomFilterImpl(input)
+class SerializedBloomFilterFactoryImpl : SerializedBloomFilterFactory {
+    override fun createWithInput(inputStream: InputStream): SerializableAMQ {
+        return BloomFilterImpl(inputStream)
     }
+    
 }

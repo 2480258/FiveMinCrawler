@@ -33,15 +33,41 @@ suspend fun <T> SessionStartedState.ifDetachable(func: suspend (SessionDetachabl
     }
 }
 
+class LocalUniqueKeyTokenRepo {
+    private val tokens = mutableMapOf<UniqueKey, UniqueKeyToken>()
+    val tokenValues : Iterable<UniqueKeyToken>
+    get() {
+        return tokens.values.asIterable()
+    }
+    
+    fun add(key: UniqueKey, token: UniqueKeyToken) {
+        if(!tokens.contains(key)) {
+            tokens[key] = token
+        } else {
+            throw IllegalAccessException("tried to add key already exists")
+        }
+    }
+    
+    fun update(key: UniqueKey) {
+        if(tokens.contains(key)) {
+            tokens[key]!!.addDuplicationCountThrows()
+        } else {
+            throw IllegalAccessException("tried to update key not exists")
+        }
+    }
+    
+    fun contains(key: UniqueKey): Boolean{
+        return tokens.contains(key)
+    }
+}
+
 /**
  * Saves session related data.
  */
 data class SessionData constructor(
     val KeyRepo: UniqueKeyRepository,
     val SessionRepo: SessionRepository
-) {
-    val tokens = mutableMapOf<UniqueKey, UniqueKeyToken>()
-}
+)
 
 enum class ProgressState {
     STARTED, FINISHED
@@ -54,6 +80,7 @@ enum class DetachableState {
 interface SessionState {
     val info: SessionInfo
     val data: SessionData
+    val localTokenRepo: LocalUniqueKeyTokenRepo
 }
 
 interface SessionAddableAlias : SessionMarkDetachable {
@@ -64,36 +91,35 @@ interface SessionAddableAlias : SessionMarkDetachable {
     
     /**
      * Add alias of request.
-     * Can throw if key is duplicated.
+     * Can throw if key is duplicated more than max retry.
      */
     fun addAlias(key: UniqueKey) {
         logger.debug(info.token.tokenNumber.toString() + " < Adding alias [" + key.toString() + "]")
         
-        data.tokens[key].toOption().fold({
-            addAliasInternal(key)
-        }, {
-            it.addDuplicationCountThrows()
-        })
+        if(!localTokenRepo.contains(key)) {
+            val token = addAliasInternal(key)
+            localTokenRepo.add(key, token)
+        } else {
+            localTokenRepo.update(key)
+        }
     }
     
-    private fun addAliasInternal(key: UniqueKey) {
-        val token = when (isDetachable) {
+    private fun addAliasInternal(key: UniqueKey): UniqueKeyToken {
+        return when (isDetachable) {
             DetachableState.WANT -> data.KeyRepo.addUniqueKeyWithDetachableThrows(key)
             DetachableState.HATE -> data.KeyRepo.addUniqueKeyWithNotDetachableThrows(key)
             DetachableState.NOTMODIFIED -> data.KeyRepo.addUniqueKey(key)
         }
-    
-        data.tokens[key] = token
     }
 }
 
 interface SessionMarkDetachable : SessionState {
     fun setDetachable() {
-        info.setDetachable(data.tokens.values.asIterable())
+        info.setDetachable(localTokenRepo.tokenValues)
     }
 
     fun setNonDetachable() {
-        info.setNonDetachable(data.tokens.values.asIterable())
+        info.setNonDetachable(localTokenRepo.tokenValues)
     }
 
     val isDetachable: DetachableState
@@ -112,7 +138,7 @@ interface SessionRetryable : SessionState {
         val session = this as? SessionDetachable
         
         val state = session.rightIfNotNull { }
-            .fold({ SessionDetachableInitStateImpl(info, data) }, { SessionInitStateImpl(info, data) })
+            .fold({ SessionDetachableInitStateImpl(info, data, localTokenRepo) }, { SessionInitStateImpl(info, data, localTokenRepo) })
     
         return func(state)
     }
@@ -136,7 +162,7 @@ interface SessionDetachable : SessionState {
         
         GlobalScope.launch {
             logger.info(info.token.tokenNumber.toString() + " < detached")
-            func(SessionInitStateImpl(detached, data))
+            func(SessionInitStateImpl(detached, data, LocalUniqueKeyTokenRepo()))
             logger.debug(info.token.tokenNumber.toString() + " < detach job finished")
         }
 
@@ -172,9 +198,9 @@ interface SessionStartable : SessionAddableAlias {
                         logger.debug(key.toString() + " < creating SessionStartable")
 
                         val state = if (this@SessionStartable as? SessionDetachable != null) {
-                            SessionDetachableStartedStateImpl(info, data)
+                            SessionDetachableStartedStateImpl(info, data, localTokenRepo)
                         } else {
-                            SessionStartedStateImpl(info, data)
+                            SessionStartedStateImpl(info, data, localTokenRepo)
                         }
 
                         val result = func(state).await()
@@ -202,7 +228,7 @@ interface SessionChildGeneratable : SessionState {
         val detached = data.SessionRepo.create(info.parent)
         logger.debug(info.token.tokenNumber.toString() + " < creating child session")
     
-        return func(SessionDetachableInitStateImpl(detached, data))
+        return func(SessionDetachableInitStateImpl(detached, data, LocalUniqueKeyTokenRepo()))
     }
 }
 
@@ -214,16 +240,20 @@ interface SessionStartedState : SessionRetryable, SessionChildGeneratable, Sessi
 
 interface SessionDetachableStartedState : SessionStartedState, SessionDetachable, SessionDetachRetryable
 
-data class SessionInitStateImpl constructor(override val info: SessionInfo, override val data: SessionData) :
+data class SessionInitStateImpl constructor(override val info: SessionInfo, override val data: SessionData,
+                                            override val localTokenRepo: LocalUniqueKeyTokenRepo) :
     SessionInitState
 
-data class SessionStartedStateImpl constructor(override val info: SessionInfo, override val data: SessionData) :
+data class SessionStartedStateImpl constructor(override val info: SessionInfo, override val data: SessionData,
+                                               override val localTokenRepo: LocalUniqueKeyTokenRepo) :
     SessionStartedState
 
-data class SessionDetachableInitStateImpl constructor(override val info: SessionInfo, override val data: SessionData) :
+data class SessionDetachableInitStateImpl constructor(override val info: SessionInfo, override val data: SessionData,
+                                                      override val localTokenRepo: LocalUniqueKeyTokenRepo) :
     SessionDetachableInitState
 
 data class SessionDetachableStartedStateImpl constructor(
     override val info: SessionInfo,
-    override val data: SessionData
+    override val data: SessionData,
+    override val localTokenRepo: LocalUniqueKeyTokenRepo
 ) : SessionDetachableStartedState

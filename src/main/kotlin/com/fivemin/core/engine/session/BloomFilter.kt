@@ -20,25 +20,21 @@
 
 package com.fivemin.core.engine.session
 
+import arrow.core.Either
+import com.fivemin.core.engine.SerializableAMQ
 import com.fivemin.core.engine.UniqueKey
 import java.io.InputStream
 import java.io.OutputStream
 
-interface BloomFilter {
-    fun mightContains(element: UniqueKey) : Boolean
-    
-    /**
-    * Return True if insertion is success, Return false if duplicated element (might) is already included.
-    * */
-    fun put(element: UniqueKey): Boolean
-    
-    fun exportTo(): OutputStream
-}
+
 
 interface BloomFilterFactory {
-    fun createEmpty() : BloomFilter
+    fun createEmpty() : SerializableAMQ
+    
 }
 
-interface SerializedBloomFilter {
-    fun create() : BloomFilter
+interface SerializedBloomFilterFactory {
+    fun createWithInput(inputStream: InputStream) : SerializableAMQ
 }
+
+//TODO: ISP에 따라 Save(io: FileIOToken)을 별도의 인터페이스로 하고, Name결정 방식과 분리할 것

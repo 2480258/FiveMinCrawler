@@ -19,39 +19,3 @@
  */
 
 package com.fivemin.core.engine.session
-
-import com.fivemin.core.engine.UniqueKey
-import kotlinx.serialization.Serializable
-
-
-/**
- * Saves a set of ArchivedSession.
- * Note: A Session means one request and its normal, retry, redirect and other(started by this) request URL.
- */
-@Serializable
-data class ArchivedSessionSet constructor(private val set: List<ArchivedSession>) {
-    /**
-     * Check if UniqueKey is in this set. O(N).
-     * TODO: Performance Optimization Required.
-     */
-    fun isConflict(key: UniqueKey): Boolean {
-        return set.any { it -> it.isConflict(key) }
-    }
-}
-
-/**
- * Saves a set of UniqueKey.
- * Note: A Session means one request and its normal, retry, redirect and other(started by this) request URL.
- */
-@Serializable
-data class ArchivedSession constructor(private val set: List<UniqueKey>) {
-    /**
-     * Check if UniqueKey is in this set. O(N).
-     * TODO: Performance Optimization Required.
-     */
-    fun isConflict(key: UniqueKey): Boolean {
-        return set.any {
-            it.equals(key)
-        }
-    }
-}

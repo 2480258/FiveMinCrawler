@@ -23,7 +23,8 @@ package com.fivemin.core.initialize
 import arrow.core.*
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.crawlingTask.*
-import com.fivemin.core.engine.session.ArchivedSessionSet
+import com.fivemin.core.engine.session.BloomFilterUniqueKeyRepository
+import com.fivemin.core.engine.session.bFilter.BloomFilterFactoryImpl
 import com.fivemin.core.engine.transaction.*
 import com.fivemin.core.engine.transaction.export.ExportParser
 import com.fivemin.core.engine.transaction.export.ExportTransactionPolicy
@@ -43,7 +44,7 @@ import java.net.URI
 
 @Serializable
 data class ResumeOption(
-    val archivedSessionSet: ArchivedSessionSet
+    val archivedSessionSet: SerializableAMQ
 )
 
 data class SubPolicyCollection(
@@ -77,9 +78,8 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     private val controller: ConfigController = virtualOption.controller
     private val directIO = virtualOption.directIO
     private val exportState = ExportStateImpl(directIO, none())
-    private val sessionRepository = SessionRepositoryImpl()
-    private val uniqueKeyRepository = UniqueKeyRepositoryImpl(virtualOption.resumeOption.map { it.archivedSessionSet })
-
+    private val sessionUniqueKeyFilter = BloomFilterUniqueKeyRepository(BloomFilterFactoryImpl(), virtualOption.resumeOption.map { it.archivedSessionSet })
+    
     private val taskFactory: CrawlerTaskFactoryFactory =
         createFactory(virtualOption.dequeue, virtualOption.subPolicyCollection)
 
@@ -109,16 +109,17 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
                 ),
                 TaskInfo(provider, taskFactory),
                 SessionInitStateImpl(
-                    SessionInfo(sessionRepository, none()),
-                    SessionData(uniqueKeyRepository, sessionRepository)
+                    SessionInfo(sessionUniqueKeyFilter, none(), sessionUniqueKeyFilter),
+                    SessionData(sessionUniqueKeyFilter, sessionUniqueKeyFilter),
+                    LocalUniqueKeyTokenRepo()
                 )
             ).await()
         }
     }
 
     fun waitForFinish(): ResumeOption {
-        sessionRepository.waitFinish()
-        return ResumeOption(uniqueKeyRepository.export(sessionRepository.getDetachables()))
+        sessionUniqueKeyFilter.waitFinish()
+        return ResumeOption(sessionUniqueKeyFilter.export())
     }
 
     private fun createFactory(

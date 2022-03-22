@@ -22,10 +22,14 @@ package com.fivemin.core.initialize
 
 import arrow.core.Either
 import com.fivemin.core.LoggerController
+import com.fivemin.core.engine.FileIOToken
+import com.fivemin.core.engine.session.BloomFilterFactory
+import com.fivemin.core.engine.session.SerializedBloomFilterFactory
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.encodeToByteArray
 import kotlinx.serialization.protobuf.ProtoBuf
+import java.io.File
 import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.*
@@ -37,18 +41,27 @@ class ResumeDataFactory {
     }
 
     @OptIn(ExperimentalSerializationApi::class)
-    fun get(by: ByteArray): Either<Throwable, ResumeOption> {
-        return Either.catch {
-            val ret = ProtoBuf.decodeFromByteArray<ResumeOption>(by)
-
-            ret
+    fun get(file: File, factory: SerializedBloomFilterFactory): Either<Throwable, ResumeOption> {
+        val stream = file.inputStream()
+        
+        try {
+            return Either.catch{
+                ResumeOption(factory.createWithInput(stream))
+            }
+        } finally {
+            stream.close()
         }
     }
 
     @OptIn(ExperimentalSerializationApi::class)
-    fun save(option: ResumeOption): ByteArray {
-        logger.info("Serializing resume file")
-        return ProtoBuf.encodeToByteArray(option)
+    fun save(option: ResumeOption): (FileIOToken) -> Unit {
+        
+        return {
+            logger.info("Serializing resume file")
+            it.openFileWriteStream {
+                option.archivedSessionSet.exportTo(it)
+            }
+        }
     }
 }
 
