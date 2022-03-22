@@ -28,7 +28,10 @@ import com.fivemin.core.StringIterator
 import com.fivemin.core.UriIterator
 import com.fivemin.core.engine.SessionToken
 import com.fivemin.core.engine.UniqueKey
+import com.fivemin.core.engine.session.bFilter.BloomFilterImpl
 import com.fivemin.core.engine.transaction.StringUniqueKey
+import io.mockk.every
+import io.mockk.mockk
 import org.testng.annotations.Test
 
 import org.testng.Assert.*
@@ -44,55 +47,85 @@ class UniqueKeyIterator : IteratorElemFactory<UniqueKey> {
 
 class UniqueKeyRepositoryImplTest {
 
-    lateinit var r: UniqueKeyRepositoryImpl
+    lateinit var r: BloomFilterUniqueKeyRepository
     var it = ElemIterator(UniqueKeyIterator())
 
     @BeforeMethod
     fun before() {
+        val mock: BloomFilterFactory = mockk()
+        
+        every {
+            mock.createEmpty()
+        } returns (BloomFilterImpl(100, 0.00000001))
+        
+        r = BloomFilterUniqueKeyRepository(mock, none())
+        
         it = ElemIterator(UniqueKeyIterator())
-        r = UniqueKeyRepositoryImpl(none())
     }
 
     @Test
-    fun testPreset() {
-        var arch = ArchivedSessionSet(listOf(ArchivedSession(listOf(it.gen()))))
-        r = UniqueKeyRepositoryImpl(arch.toOption())
-
+    fun testAddAliasWithNetural() {
+        r.addUniqueKey(it.gen())
+        
         assertThrows {
-            r.addAlias(SessionToken.create(), it[0]!!)
+            r.addUniqueKey(it[0]!!)
         }
     }
-
+    
     @Test
-    fun testAddAlias() {
-        var fi = r.addAlias(SessionToken.create(), it.gen())
+    fun testAddAliasWithNeturalWithDetached() {
+        r.addUniqueKeyWithDetachableThrows(it.gen())
+        
         assertThrows {
-            var re = r.addAlias(SessionToken.create(), it[0]!!)
+            r.addUniqueKey(it[0]!!)
         }
     }
-
-
+    
     @Test
-    fun testMaxSelfAlias() {
-        var src = SessionToken.create()
-
-        r.addAlias(src, it.gen())
-        r.addAlias(src, it[0]!!)
-        r.addAlias(src, it[0]!!)
-
+    fun testAddAliasWithNeturalWithNotDetached() {
+        r.addUniqueKeyWithNotDetachableThrows(it.gen())
+        
         assertThrows {
-            r.addAlias(src, it[0]!!)
+            r.addUniqueKey(it[0]!!)
         }
     }
-
-
+    
     @Test
-    fun testTransferOwnership() {
-        var src = SessionToken.create()
-        var dest = SessionToken.create()
-
-        r.addAlias(src, it.gen())
-        r.transferOwnership(src, dest)
-        r.addAlias(dest, it[0]!!)
+    fun testAddAliasWithNotDetached() {
+        r.addUniqueKey(it.gen())
+        
+        assertThrows {
+            r.addUniqueKeyWithNotDetachableThrows(it[0]!!)
+        }
+    }
+    
+    @Test
+    fun testAddAliasWithDetached() {
+        r.addUniqueKey(it.gen())
+        
+        assertThrows {
+            r.addUniqueKeyWithDetachableThrows(it[0]!!)
+        }
+    }
+    
+    @Test
+    fun testConveyToDetached() {
+        val token = r.addUniqueKey(it.gen())
+        r.notifyMarkedDetachable(listOf(token))
+        
+        assertThrows {
+            r.addUniqueKey(it[0]!!)
+        }
+    }
+    
+    
+    @Test
+    fun testConveyToNotDetached() {
+        val token = r.addUniqueKey(it.gen())
+        r.notifyMarkedNotDetachable(listOf(token))
+        
+        assertThrows {
+            r.addUniqueKey(it[0]!!)
+        }
     }
 }

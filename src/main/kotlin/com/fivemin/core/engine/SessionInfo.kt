@@ -39,7 +39,7 @@ data class UniqueKeyToken constructor(val tokenNumber: Int) {
     
     var retryCount = 0
     fun addDuplicationCountThrows() {
-        if(retryCount++ >= MaxRetry) {
+        if(++retryCount >= MaxRetry) {
             throw RetryCountMaxedException()
         }
     }

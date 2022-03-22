@@ -133,10 +133,11 @@ class BloomFilterUniqueKeyRepository constructor(
         }
     }
     
+    /**
+     * Not Thread-Safe. Call it only if crawling is finished.
+     */
     override fun export(): SerializableAMQ {
-        return rwLock.read {
-            detachableFilter
-        }
+        return detachableFilter
     }
     
     private fun conveyToDetachable(token: UniqueKeyToken) {
@@ -179,7 +180,7 @@ class BloomFilterUniqueKeyRepository constructor(
     
     private fun checkDuplicated(key: UniqueKey) {
         rwLock.read {
-            if(!detachableFilter.mightContains(key) || notDetachableFilter.mightContains(key) || temporaryUniqueKeyRepository.contains(key)) {
+            if(detachableFilter.mightContains(key) || notDetachableFilter.mightContains(key) || temporaryUniqueKeyRepository.contains(key)) {
                 throw DuplicateKeyException()
             }
         }

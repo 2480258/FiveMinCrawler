@@ -29,8 +29,9 @@ import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactory
 import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactoryCollector
-import com.fivemin.core.engine.session.SessionRepositoryImpl
-import com.fivemin.core.engine.session.UniqueKeyRepositoryImpl
+import com.fivemin.core.engine.session.BloomFilterFactory
+import com.fivemin.core.engine.session.BloomFilterUniqueKeyRepository
+import com.fivemin.core.engine.session.bFilter.BloomFilterImpl
 import com.fivemin.core.engine.transaction.AbstractPolicyOption
 import com.fivemin.core.engine.transaction.StringUniqueKeyProvider
 import com.fivemin.core.engine.transaction.UriUniqueKeyProvider
@@ -51,9 +52,16 @@ import kotlinx.coroutines.coroutineScope
 class TaskMockFactory {
     companion object {
         fun <T> createSessionStarted() : SessionStartedState {
-
-            var sessRepo = SessionRepositoryImpl()
-            val sess : SessionStartedState = SessionStartedStateImpl(SessionInfo(sessRepo, none()), SessionData(UniqueKeyRepositoryImpl(none()), sessRepo, 3))
+            val mock: BloomFilterFactory = mockk()
+    
+            every {
+                mock.createEmpty()
+            } returns (BloomFilterImpl(100, 0.00000001))
+    
+            var sessRepo = BloomFilterUniqueKeyRepository(mock, none())
+    
+    
+            val sess : SessionStartedState = SessionStartedStateImpl(SessionInfo(sessRepo, none(), sessRepo), SessionData(sessRepo, sessRepo), LocalUniqueKeyTokenRepo())
 
             return sess
         }
