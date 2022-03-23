@@ -23,6 +23,7 @@ package com.fivemin.core.engine.session
 import arrow.core.Option
 import arrow.core.toOption
 import com.fivemin.core.DuplicateKeyException
+import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
@@ -81,6 +82,10 @@ class BloomFilterUniqueKeyRepository constructor(
     
     private val rwLock = ReentrantReadWriteLock()
     
+    companion object {
+        private val logger = LoggerController.getLogger("BloomFilterUniqueKeyRepository")
+    }
+    
     init {
         notDetachableFilter = factory.createEmpty()
         detachableFilter = serialized.fold({ factory.createEmpty() }, {
@@ -111,19 +116,27 @@ class BloomFilterUniqueKeyRepository constructor(
     }
     
     override fun create(parent: Option<SessionToken>): SessionInfo {
-        return SessionInfo(this, parent, this)
+        return SessionInfo(this, this)
     }
     
     override fun addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken {
-        return addTo(detachableFilter, key)
+        val token =  addTo(detachableFilter, key)
+        logger.debug("$key < $token < added uniquekey with detachable")
+    
+        return token
     }
     
     override fun addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken {
-        return addTo(notDetachableFilter, key)
+        val token =  addTo(notDetachableFilter, key)
+        logger.debug("$key < $token < added uniquekey with not detachable")
+    
+        return token
     }
     
     override fun addUniqueKey(key: UniqueKey): UniqueKeyToken {
-        return rwLock.read {
+        logger.debug("$key < added uniquekey with temparatory")
+        
+        val token = rwLock.read {
             checkDuplicated(key)
             
             rwLock.write {
@@ -131,6 +144,9 @@ class BloomFilterUniqueKeyRepository constructor(
                 temporaryUniqueKeyRepository.addUniqueKey(key)
             }
         }
+        logger.debug("$key < $token < added uniquekey with temparatory")
+    
+        return token
     }
     
     /**
@@ -141,11 +157,14 @@ class BloomFilterUniqueKeyRepository constructor(
     }
     
     private fun conveyToDetachable(token: UniqueKeyToken) {
+        logger.debug("$token < converys to detachable")
+        
         conveyTo(detachableFilter, token)
     }
     
     
     private fun conveyToNotDetachable(token: UniqueKeyToken) {
+        logger.debug("$token < converys to not detachable")
         conveyTo(notDetachableFilter, token)
     }
     
@@ -170,11 +189,11 @@ class BloomFilterUniqueKeyRepository constructor(
     private fun conveyTo(bf: SerializableAMQ, token: UniqueKeyToken) {
         rwLock.write {
             val key = temporaryUniqueKeyRepository.deleteUniqueKey(token)
-            key.fold({ throw KeyNotFoundException() }, {
+            key.map {
                 if (!bf.put(it)) {
                     throw DuplicateKeyException() //if thrown, it may be indicate inconsistancy error; TODO: Notify users that.
                 }
-            })
+            }
         }
     }
     

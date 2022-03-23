@@ -61,7 +61,7 @@ class TaskMockFactory {
             var sessRepo = BloomFilterUniqueKeyRepository(mock, none())
     
     
-            val sess : SessionStartedState = SessionStartedStateImpl(SessionInfo(sessRepo, none(), sessRepo), SessionData(sessRepo, sessRepo), LocalUniqueKeyTokenRepo())
+            val sess : SessionStartedState = SessionStartedStateImpl(SessionInfo(sessRepo, sessRepo), SessionData(sessRepo, sessRepo), SessionContext(LocalUniqueKeyTokenRepo(), none()))
 
             return sess
         }

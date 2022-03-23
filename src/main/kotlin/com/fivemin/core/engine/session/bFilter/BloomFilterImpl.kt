@@ -46,8 +46,8 @@ class BloomFilterImpl : SerializableAMQ {
         filter = com.google.common.hash.BloomFilter.readFrom(input, Funnels.stringFunnel(Charsets.UTF_8))
     }
     
-    constructor(expectedInsertion: Int = 100000000, falsePositives: Double = 0.000001) {
-        filter = com.google.common.hash.BloomFilter.create(Funnels.stringFunnel(Charsets.UTF_8), expectedInsertion, falsePositives) //It will take 342MB
+    constructor(expectedInsertion: Int = 10000000, falsePositives: Double = 0.000001) {
+        filter = com.google.common.hash.BloomFilter.create(Funnels.stringFunnel(Charsets.UTF_8), expectedInsertion, falsePositives) //It will take 34.2MB
     }
     
     val filter : com.google.common.hash.BloomFilter<String>

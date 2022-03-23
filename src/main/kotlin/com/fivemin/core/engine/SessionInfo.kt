@@ -70,8 +70,6 @@ interface DetachObserver {
 class SessionInfo
 constructor(
     private val finish: FinishObserver,
-    val parent: Option<SessionToken>,
-    
     private val detach: DetachObserver
 ) {
     
@@ -117,6 +115,10 @@ constructor(
         
         progress = ProgressState.FINISHED
         finish.onFinish(token)
+        
+        if(isDetachable == DetachableState.NOTMODIFIED) {
+            logger.error("${token} < is not marked as nether detachable nor not detachable. this session information will not be saved in resume file")
+        }
     }
     
     fun setDetachable(tokens: Iterable<UniqueKeyToken>) {
@@ -129,7 +131,6 @@ constructor(
     }
     
     fun setNonDetachable(tokens: Iterable<UniqueKeyToken>) {
-        
         if (progress != ProgressState.STARTED) {
             throw IllegalStateException()
         }

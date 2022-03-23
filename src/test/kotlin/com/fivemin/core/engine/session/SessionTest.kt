@@ -22,6 +22,8 @@ package com.fivemin.core.engine.session
 
 import com.fivemin.core.ElemIterator
 import com.fivemin.core.engine.LocalUniqueKeyTokenRepo
+import com.fivemin.core.engine.SessionDetachableStartedStateImpl
+import com.fivemin.core.engine.SessionInfo
 import org.testng.Assert.assertThrows
 import org.testng.annotations.BeforeMethod
 import org.testng.annotations.BeforeTest

@@ -109,9 +109,9 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
                 ),
                 TaskInfo(provider, taskFactory),
                 SessionInitStateImpl(
-                    SessionInfo(sessionUniqueKeyFilter, none(), sessionUniqueKeyFilter),
+                    SessionInfo(sessionUniqueKeyFilter, sessionUniqueKeyFilter),
                     SessionData(sessionUniqueKeyFilter, sessionUniqueKeyFilter),
-                    LocalUniqueKeyTokenRepo()
+                    SessionContext(LocalUniqueKeyTokenRepo(), none())
                 )
             ).await()
         }
