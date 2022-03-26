@@ -31,6 +31,8 @@ interface SerializableAMQ {
     fun put(element: UniqueKey): Boolean
     
     fun exportTo(outputStream: OutputStream)
+    
+    fun copy(): SerializableAMQ
 }
 
 interface UniqueKeyRepository {

@@ -42,6 +42,10 @@ import java.io.OutputStream
 
 
 class BloomFilterImpl : SerializableAMQ {
+    private constructor(bfilter: com.google.common.hash.BloomFilter<String>) {
+        filter = bfilter
+    }
+    
     constructor(input: InputStream) {
         filter = com.google.common.hash.BloomFilter.readFrom(input, Funnels.stringFunnel(Charsets.UTF_8))
     }
@@ -63,6 +67,10 @@ class BloomFilterImpl : SerializableAMQ {
     
     override fun exportTo(output: OutputStream) {
         return filter.writeTo(output)
+    }
+    
+    override fun copy(): SerializableAMQ {
+        return BloomFilterImpl(filter.copy())
     }
 }
 

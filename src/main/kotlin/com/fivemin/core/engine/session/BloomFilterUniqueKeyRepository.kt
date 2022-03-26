@@ -87,10 +87,11 @@ class BloomFilterUniqueKeyRepository constructor(
     }
     
     init {
-        notDetachableFilter = factory.createEmpty()
         detachableFilter = serialized.fold({ factory.createEmpty() }, {
             it
         })
+        
+        notDetachableFilter = detachableFilter.copy()
     }
     
     override fun onStart() {
@@ -120,30 +121,40 @@ class BloomFilterUniqueKeyRepository constructor(
     }
     
     override fun addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken {
-        val token =  addTo(detachableFilter, key)
+        val token = uniqueKeyTokenFactory.create(key)
+        if(notDetachableFilter.put(key)) {
+            if(!detachableFilter.put(key)) { //BloomFilter.put() works atomically, so in this line it is guaranteed that this is not a duplicated key.
+                throw DuplicateKeyException()
+            }
+        } else {
+            throw DuplicateKeyException()
+        }
+        
         logger.debug("$key < $token < added uniquekey with detachable")
-    
+        
         return token
     }
     
     override fun addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken {
-        val token =  addTo(notDetachableFilter, key)
-        logger.debug("$key < $token < added uniquekey with not detachable")
+        val token = uniqueKeyTokenFactory.create(key)
+        if(!notDetachableFilter.put(key)) {
+            throw DuplicateKeyException()
+        }
     
+        logger.debug("$key < $token < added uniquekey with not detachable")
+        
         return token
     }
     
     override fun addUniqueKey(key: UniqueKey): UniqueKeyToken {
-        logger.debug("$key < added uniquekey with temparatory")
-        
-        val token = rwLock.read {
-            checkDuplicated(key)
-            
-            rwLock.write {
-                checkDuplicated(key)
-                temporaryUniqueKeyRepository.addUniqueKey(key)
-            }
+        val token = uniqueKeyTokenFactory.create(key)
+        if(notDetachableFilter.put(key)) {
+            //BloomFilter.put() works atomically, so in this line it is guaranteed that this is not a duplicated key.
+            temporaryUniqueKeyRepository.addUniqueKey(key) //thread-safe
+        } else {
+            throw DuplicateKeyException()
         }
+    
         logger.debug("$key < $token < added uniquekey with temparatory")
     
         return token
@@ -157,52 +168,20 @@ class BloomFilterUniqueKeyRepository constructor(
     }
     
     private fun conveyToDetachable(token: UniqueKeyToken) {
-        logger.debug("$token < converys to detachable")
+        val key = temporaryUniqueKeyRepository.deleteUniqueKey(token) //thread-safe
+        key.map { //no race condition with duplicated key; already filtered
+            if(!detachableFilter.put(it)) { //should be not happen except false positive.
+                throw DuplicateKeyException()
+            }
+        }
         
-        conveyTo(detachableFilter, token)
+        logger.debug("$token < converys to detachable")
     }
     
     
     private fun conveyToNotDetachable(token: UniqueKeyToken) {
+        temporaryUniqueKeyRepository.deleteUniqueKey(token) //thread-safe
         logger.debug("$token < converys to not detachable")
-        conveyTo(notDetachableFilter, token)
-    }
-    
-    private fun addTo(bf: SerializableAMQ, key: UniqueKey): UniqueKeyToken {
-        val token = uniqueKeyTokenFactory.create(key)
-    
-        return rwLock.read {
-            checkDuplicated(key)
-        
-            rwLock.write {
-                checkDuplicated(key) //https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.concurrent/java.util.concurrent.locks.-reentrant-read-write-lock/write.html
-            
-                if (!bf.put(key)) { //False means key is already added
-                    throw DuplicateKeyException()
-                }
-            
-                token
-            }
-        }
-    }
-    
-    private fun conveyTo(bf: SerializableAMQ, token: UniqueKeyToken) {
-        rwLock.write {
-            val key = temporaryUniqueKeyRepository.deleteUniqueKey(token)
-            key.map {
-                if (!bf.put(it)) {
-                    throw DuplicateKeyException() //if thrown, it may be indicate inconsistancy error; TODO: Notify users that.
-                }
-            }
-        }
-    }
-    
-    private fun checkDuplicated(key: UniqueKey) {
-        rwLock.read {
-            if(detachableFilter.mightContains(key) || notDetachableFilter.mightContains(key) || temporaryUniqueKeyRepository.contains(key)) {
-                throw DuplicateKeyException()
-            }
-        }
     }
     
     override fun notifyMarkedDetachable(tokens: Iterable<UniqueKeyToken>) {
