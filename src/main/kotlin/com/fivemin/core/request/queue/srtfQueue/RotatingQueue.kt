@@ -20,8 +20,11 @@
 
 package com.fivemin.core.request.queue.srtfQueue
 
+import arrow.core.firstOrNone
+import arrow.core.flatten
 import arrow.core.singleOrNone
 import arrow.core.toOption
+import com.fivemin.core.DuplicateKeyException
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.PriorityBlockingQueue
@@ -29,7 +32,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
-import kotlin.collections.LinkedHashMap
 import kotlin.concurrent.read
 import kotlin.concurrent.withLock
 import kotlin.concurrent.write
@@ -37,13 +39,9 @@ import kotlin.concurrent.write
 interface RotatingQueue<Score : Comparable<Score>, UniversalKey, Value> {
     fun dequeue(): Value
     
-    fun enqueue(key: UniversalKey, value: Value)
+    fun enqueue(key: UniversalKey, value: Value, score: Score)
     
-    fun update(originalKey: UniversalKey, newKey: Score)
-}
-
-interface CalculateScore<Score : Comparable<Score>, Value> {
-    fun getScore(value: Value): Score
+    fun update(originalKey: UniversalKey, score: Score)
 }
 
 class RotatingQueueNode<UniversalKey, Value> constructor(val key: UniversalKey) {
@@ -67,7 +65,7 @@ class RotatingQueueNode<UniversalKey, Value> constructor(val key: UniversalKey) 
 }
 //https://www.boost.org/sgi/stl/StrictWeakOrdering.html
 
-class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> constructor(val score: CalculateScore<Score, Value>) :
+class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
     RotatingQueue<Score, UniversalKey, Value> {
     
     
@@ -75,35 +73,62 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> construc
     private val data =
         Collections.synchronizedSortedMap(TreeMap<Score, LinkedList<RotatingQueueNode<UniversalKey, Value>>>())
     
-    private val queueRwLock = ReentrantReadWriteLock()
-    
     private val lock = ReentrantLock()
     private val condition: Condition = lock.newCondition()
     
+    /**
+     * Test purpose.
+     */
+    public val queueSize: Int get() = lock.withLock { data.size }
+    
+    /**
+     * Test purpose.
+     */
+    public val listSize: Int
+        get() = lock.withLock {
+            data.map {
+                it.value.map {
+                    it.size
+                }
+            }.flatten().sum()
+        }
+    
+    /**
+     * Test purpose.
+     */
+    public val tableSize: Int get() = lock.withLock { table.size }
+    
+    
     override fun dequeue(): Value {
-        return dequeue_internal()
-    }
-    
-    private fun waitFirstQueue() {
-        condition.await()
-    }
-    
-    private fun releaseWait() {
-        synchronized(lock) {
-            condition.signal()
+        try {
+            lock.lock()
+            return dequeue_internal()
+        } finally {
+            lock.unlock()
         }
     }
     
+    private fun waitFirstQueue() {
+        while (data.isEmpty()) {
+            condition.await()
+        }
+    }
+    
+    private fun releaseWait() {
+        condition.signalAll()
+    }
+    
     private fun get_queue(): RotatingQueueNode<UniversalKey, Value> {
-        return queueRwLock.read {
-            data[data.firstKey()]
-        }.toOption().fold({
+        if (data.size == 0) {
+            waitFirstQueue()
+            get_queue()
+        }
+        
+        return data[data.firstKey()].toOption().fold({
             waitFirstQueue()
             get_queue()
         }, {
-            synchronized(it) {
-                it.first()
-            }
+            it.first()
         })
     }
     
@@ -113,9 +138,7 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> construc
     }
     
     private fun elem_from_queue(firstQueue: RotatingQueueNode<UniversalKey, Value>): Value {
-        return queueRwLock.read {
-            firstQueue.poll()
-        }.toOption().fold({
+        return firstQueue.poll().toOption().fold({
             replaceHead()
             dequeue_internal()
         }) {
@@ -128,62 +151,104 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> construc
      * Nothing happens with non-empty queue
      */
     private fun replaceHead() {
-        queueRwLock.read { //pre-checks without write lock.
-            val firstQueue = data[data.firstKey()] ?: return
-            if (firstQueue.isNotEmpty()) return
+        if (data.size == 0) return
+        if (isFirstQueueEmpty()) return
+        
+        val fKey = data.firstKey()
+        val listElem = data[fKey]!!
+        if (listElem.first().size == 0) {
+            val removed = listElem.removeFirst().key!!
+            table.remove(removed)
         }
         
-        queueRwLock.write {
-            val firstQueue = data[data.firstKey()] ?: return
-            if (firstQueue.isEmpty()) {
-                val fKey = data.firstKey()
-                val listElem = data[fKey]!!
-                
-                synchronized(listElem) {
-                    if (listElem.first().size == 0) {
-                        listElem.removeFirst()
-                    }
-                    
-                    if (listElem.size == 0) {
-                        data.remove(fKey)!!
-                    }
+        if (listElem.size == 0) {
+            data.remove(fKey)!!
+        }
+    }
+    
+    /**
+     * Check for replacement. Read lock required for queue.
+     */
+    private fun isFirstQueueEmpty(): Boolean {
+        if (data.size == 0) return false
+        
+        val firstQueue = data[data.firstKey()] ?: return true
+        synchronized(firstQueue) {
+            firstQueue.firstOrNone().fold({ return true }) {
+                if (it.size != 0) {
+                    return true
                 }
             }
         }
+        return false
     }
     
-    override fun enqueue(key: UniversalKey, value: Value) {
-        val sc = score.getScore(value)
-    
-        val dataList = queueRwLock.write {
-            val tableKey = table.getOrPut(key) { sc }!! //why is this nullable?
-            
-            data.getOrPut(tableKey) { LinkedList() }!!
-        }
-        
-        synchronized(dataList) {
-            val dataElem = dataList.singleOrNone {
-                it.key == key
-            }.fold({
-                val ret = RotatingQueueNode<UniversalKey, Value>(key)
-                dataList.add(ret)
-                
-                ret
-            }) {
-                it
-            }
-            
-            dataElem.offer(value)
-            releaseWait()
+    override fun enqueue(key: UniversalKey, value: Value, score: Score) {
+        try {
+            lock.lock()
+            enqueue_internal(key, value, score)
+        } finally {
+            lock.unlock()
         }
     }
     
-    override fun update(originalKey: UniversalKey, newKey: Score) {
-        val tableKey = table[originalKey]!!
+    private fun enqueue_internal(key: UniversalKey, value: Value, score: Score) {
+        //if (table.containsKey(key)) throw DuplicateKeyException()
         
-        queueRwLock.write {
-            val removed = data.remove(tableKey)
-            data.put(newKey, removed)
+        val dataList = ensureKeyExists(key, score)
+        val dataElem = dataList.singleOrNone {
+            it.key == key
+        }.fold({
+            val ret = RotatingQueueNode<UniversalKey, Value>(key)
+            dataList.add(ret)
+            
+            ret
+        }) {
+            it
         }
+        dataElem.offer(value)
+        
+        releaseWait()
+        
+    }
+    
+    private fun ensureKeyExists(key: UniversalKey, score: Score): LinkedList<RotatingQueueNode<UniversalKey, Value>> {
+        val tableKey = table.getOrPut(key) { score }!! //why is this nullable?
+        
+        return data.getOrPut(tableKey) { LinkedList() }!!
+    }
+    
+    
+    override fun update(originalKey: UniversalKey, score: Score) {
+        try {
+            lock.lock()
+            update_internal(originalKey, score)
+        } finally {
+            lock.unlock()
+        }
+    }
+    
+    private fun update_internal(originalKey: UniversalKey, score: Score) {
+        val tableKey = table.remove(originalKey!!)!! //why is this nullable?
+        val source = data[tableKey]!!
+        
+        if (tableKey == score) return
+        
+        val wantToMove = source.single {
+            it.key == originalKey
+        }
+        
+        source.removeIf {
+            it.key == originalKey
+        }
+        
+        if (source.isEmpty()) {
+            data.remove(tableKey)
+        }
+        
+        val destList = ensureKeyExists(originalKey, score)
+        destList.add(wantToMove)
+        
+        releaseWait()
     }
 }
