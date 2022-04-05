@@ -20,9 +20,11 @@
 
 package com.fivemin.core.request.queue
 
+import arrow.core.Option
 import com.fivemin.core.engine.Request
 import com.fivemin.core.request.PreprocessedRequest
+import kotlin.time.Duration
 
 interface DequeueOptimizationPolicy {
-    fun getScore(req: PreprocessedRequest<Request>): Double
+    suspend fun getScore(req: PreprocessedRequest<Request>): Option<Duration>
 }

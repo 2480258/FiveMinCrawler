@@ -25,5 +25,5 @@ interface DequeueDecisionFactory {
 }
 
 enum class DequeueDecision {
-    ALLOW, DELAY, DENY
+    ALLOW, DENY
 }

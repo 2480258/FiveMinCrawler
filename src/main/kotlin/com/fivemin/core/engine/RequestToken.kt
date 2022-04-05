@@ -23,7 +23,7 @@ package com.fivemin.core.engine
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-data class RequestToken private constructor(val tokenNumber: Int) {
+data class RequestToken private constructor(val tokenNumber: Int): Comparable<RequestToken> {
     companion object {
         var LastUsed: Int = -1
         val lock = ReentrantLock()
@@ -37,5 +37,10 @@ data class RequestToken private constructor(val tokenNumber: Int) {
                 return RequestToken(LastUsed)
             }
         }
+    }
+    
+    //provided total ordering for performance
+    override fun compareTo(other: RequestToken): Int {
+        return tokenNumber.compareTo(other.tokenNumber)
     }
 }
