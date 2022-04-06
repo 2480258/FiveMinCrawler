@@ -34,17 +34,19 @@ import kotlin.time.ExperimentalTime
 
 
 interface SRTFKeyExtractor {
-    fun extractWorkingSetKey(req: PreprocessedRequest<Request>): RequestToken
+    suspend fun extractWorkingSetKey(req: PreprocessedRequest<Request>): RequestToken
 }
 
 class WSQueue constructor(
     private val optimizationPolicy: SRTFOptimizationPolicy,
-    private val srtfKeyExtractor: SRTFKeyExtractor
+    private val srtfKeyExtractor: SRTFKeyExtractor,
+    private val srtfPageFactory: SRTFPageDescriptorFactory,
+    private val maxRequestThread: Int = 3
 ) : RequestQueue {
     private val rotatingQueue = RotatingQueueImpl<Double, RequestToken, EnqueuedRequest<Request>>()
     
     
-    private val maxRequestThread: Int = 3
+    
     
     companion object {
         private val logger = LoggerController.getLogger("WSQueue")
@@ -66,6 +68,8 @@ class WSQueue constructor(
     
     @OptIn(ExperimentalTime::class)
     private suspend fun enqueueInternal(doc: PreprocessedRequest<Request>, info: EnqueueRequestInfo) {
+        optimizationPolicy.update(doc.request.request, srtfPageFactory.convertTo(doc.request.request))
+        
         rotatingQueue.enqueue(
             srtfKeyExtractor.extractWorkingSetKey(doc), EnqueuedRequest(doc, info),
             optimizationPolicy.getScore(doc).fold(
@@ -95,6 +99,11 @@ class WSQueue constructor(
         val item: Option<EnqueuedRequest<Request>> = removeFirstFromQueue()
         
         item.map {
+            optimizationPolicy.removeDescriptor(
+                it.request.request.request.request.token,
+                srtfPageFactory.convertTo(it.request.request.request)
+            )
+            
             when (it.request.info.dequeue.get()) {
                 DequeueDecision.ALLOW -> {
                     it.info.callBack(DequeuedRequest(it.request, DequeuedRequestInfo()).right())

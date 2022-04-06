@@ -184,7 +184,7 @@ class RotatingQueueNodeTest {
                         )
                         //println("update finished: " + (i * 100) + j)
                     } catch (e: Exception) {
-                        println(e.toString())
+                        //println(e.toString())
                     }
                 }
             }

@@ -20,23 +20,23 @@
 
 package com.fivemin.core.initialize
 
-import com.fivemin.core.request.srtf.SRTFExportSubPolicy
-import com.fivemin.core.request.srtf.SRTFFinalizeSubPolicy
-import com.fivemin.core.request.srtf.SRTFPrepareSubPolicy
-import com.fivemin.core.request.srtf.SRTFScheduler
+import com.fivemin.core.request.queue.srtfQueue.*
 
-class SRTFOption(val scheduler: SRTFScheduler, val prepare: SRTFPrepareSubPolicy, val finalize: SRTFFinalizeSubPolicy, val export: SRTFExportSubPolicy) {
+class SRTFOption(val deq: SRTFOptimizationPolicy, val keyEx: SRTFKeyExtractor, val descriptFac: SRTFPageDescriptorFactory, val timingRepo: SRTFTimingRepository) {
     val policies: SubPolicyCollection
-
+    
     init {
-        policies = SubPolicyCollection(listOf(prepare), listOf(finalize), listOf(), listOf(export))
+        policies = SubPolicyCollection(listOf(), listOf(SRTFLogSubPolicy(timingRepo, descriptFac)), listOf(), listOf(SRTFCleanupSubPolicy(deq)))
     }
 }
 
 class SRTFFactory {
     fun create(): SRTFOption {
-        var sc = SRTFScheduler()
-
-        return SRTFOption(sc, SRTFPrepareSubPolicy(sc), SRTFFinalizeSubPolicy(sc), SRTFExportSubPolicy(sc))
+        val timing = SRTFTimingRepositoryImpl()
+        val opt = SRTFOptimizationPolicyImpl(timing)
+        val keyEx = opt
+        val descript = SRTFPageDescriptorFactoryImpl()
+        
+        return SRTFOption(opt, keyEx, descript, timing)
     }
 }

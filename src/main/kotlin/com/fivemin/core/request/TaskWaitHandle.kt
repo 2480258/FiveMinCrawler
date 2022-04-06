@@ -49,6 +49,22 @@ class TaskWaitHandle<T> {
             }
         }
     }
+    
+    suspend fun runAsync(act: suspend () -> Unit): Deferred<T> {
+        return coroutineScope {
+            async {
+                semaphore.acquire()
+                
+                try {
+                    act()
+                } finally {
+                    semaphore.acquire()
+                }
+                
+                result!!
+            }
+        }
+    }
 
     fun registerResult(_result: T) {
         logger.debug("registerResult: " + semaphore.hashCode())

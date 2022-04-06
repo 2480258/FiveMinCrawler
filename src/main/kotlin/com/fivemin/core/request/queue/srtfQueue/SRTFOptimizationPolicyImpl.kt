@@ -24,48 +24,70 @@ import arrow.core.Option
 import arrow.core.Some
 import arrow.core.computations.option
 import arrow.core.toOption
-import com.fivemin.core.engine.DetachableState
-import com.fivemin.core.engine.Request
-import com.fivemin.core.engine.RequestToken
+import com.fivemin.core.engine.*
 import com.fivemin.core.request.PreprocessedRequest
 import com.fivemin.core.request.queue.DequeueOptimizationPolicy
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.*
+import java.net.URI
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.collections.HashMap
 import kotlin.concurrent.withLock
 import kotlin.time.Duration
 
-interface SRTFOptimizationPolicy: DequeueOptimizationPolicy {
-    suspend fun update(token: RequestToken, descriptor: SRTFPageDescriptor)
+interface SRTFOptimizationPolicy : DequeueOptimizationPolicy {
+    suspend fun update(req: PrepareTransaction<Request>, descriptor: SRTFPageDescriptor)
     
     suspend fun removeToken(token: RequestToken)
     
     suspend fun removeDescriptor(token: RequestToken, descriptor: SRTFPageDescriptor)
 }
 
-class SRTFOptimizationPolicyImpl(private val timingRepository: SRTFTimingRepository) : SRTFOptimizationPolicy {
+interface SRTFPageDescriptorFactory {
+    fun convertTo(trans: PrepareTransaction<Request>): SRTFPageDescriptor
+}
+
+class SRTFPageDescriptorFactoryImpl : SRTFPageDescriptorFactory {
+    override fun convertTo(trans: PrepareTransaction<Request>): SRTFPageDescriptor {
+        return trans.ifDocument({
+            SRTFPageDescriptor(it.parseOption.name)
+        }, {
+            SRTFPageDescriptor(getUriExtension(it.request.target))
+        })
+    }
+    
+    private fun getUriExtension(u: URI): String {
+        val q = (u.query ?: "")
+        
+        if (!q.contains('.')) {
+            return ""
+        }
+        
+        return q.substring(q.lastIndexOf('.') + 1)
+    }
+}
+
+class SRTFOptimizationPolicyImpl(private val timingRepository: SRTFTimingRepository) : SRTFOptimizationPolicy, SRTFKeyExtractor {
     private val wsMap = HashMap<RequestToken, WorkingSetList>()
-    private val parentMap = HashMap<RequestToken, TreeSet<RequestToken>>() //RequestToken can be ordered.
-    private val childMap = HashMap<RequestToken, RequestToken>()
+    private val childMap = HashMap<RequestToken, RequestToken>() //key: parentToken, value: workingSet
     
     private val lock = Mutex()
     
     private suspend fun addAsWorkingSet_ReturnsWorkingSet(currentToken: RequestToken): Option<RequestToken> {
-        parentMap[currentToken] = TreeSet()
+        childMap[currentToken] = currentToken
         
         return Some(currentToken)
     }
     
-    private suspend fun addParentMap_ReturnsWorkingSet(currentToken: RequestToken, parent: Option<RequestToken>): Option<RequestToken> {
+    private suspend fun addParentMap_ReturnsWorkingSet(
+        currentToken: RequestToken,
+        parent: Option<RequestToken>
+    ): Option<RequestToken> {
         return option {
             val ptt = parent.bind()
             val ws = childMap[ptt].toOption().bind()
-            val pt = parentMap[ws].toOption().bind()
             
-            pt.add(currentToken)
             childMap[currentToken] = ws
             
             ws
@@ -81,24 +103,35 @@ class SRTFOptimizationPolicyImpl(private val timingRepository: SRTFTimingReposit
         }
     }
     
-    override suspend fun update(token: RequestToken, descriptor: SRTFPageDescriptor) {
+    /**
+     * Update SRTF Info.
+     * If add page descriptor to workingset's remaining time.
+     */
+    override suspend fun update(req: PrepareTransaction<Request>, descriptor: SRTFPageDescriptor) {
         lock.withLock {
-            wsMap[token].toOption().map {
-                it.addPage(descriptor)
+            val workingSet = req.ifDocumentAsync({
+                if (it.containerOption.workingSetMode == WorkingSetMode.Enabled) {
+                    addAsWorkingSet_ReturnsWorkingSet(req.request.token)
+                }
+        
+                addParentMap_ReturnsWorkingSet(req.request.token, req.request.parent)
+            }, {
+                addParentMap_ReturnsWorkingSet(req.request.token, req.request.parent)
+            })
+            
+            option {
+                val ws = workingSet.bind()
+                val wsList = wsMap[ws].toOption().bind()
+                
+                wsList.addPage(descriptor)
             }
         }
     }
     
-    override suspend fun removeToken(token: RequestToken) {
+    override suspend fun removeToken(token: RequestToken) { //TODO: Fix to remove all children nodes.
         lock.withLock {
             wsMap.remove(token)
-            childMap[token].toOption().map { ws ->
-                parentMap[ws].toOption().map {
-                    it.remove(token)
-                }
-            }
-            
-            childMap.remove(token)
+            childMap.remove(token) //the only case parent is finished working set. so it's stable.
         }
     }
     
@@ -115,8 +148,18 @@ class SRTFOptimizationPolicyImpl(private val timingRepository: SRTFTimingReposit
             val ws = if (req.request.info.detachState == DetachableState.WANT)
                 addAsWorkingSet_ReturnsWorkingSet(req.request.request.request.token)
             else addParentMap_ReturnsWorkingSet(req.request.request.request.token, req.request.request.request.parent)
-    
+            
             calculate(ws)
+        }
+    }
+    
+    override suspend fun extractWorkingSetKey(req: PreprocessedRequest<Request>): RequestToken {
+        return lock.withLock {
+            val ws = if (req.request.info.detachState == DetachableState.WANT)
+                addAsWorkingSet_ReturnsWorkingSet(req.request.request.request.token)
+            else addParentMap_ReturnsWorkingSet(req.request.request.request.token, req.request.request.request.parent)
+            
+            ws.fold({ req.request.request.request.token }, { it })
         }
     }
     
@@ -141,14 +184,15 @@ class WorkingSetList {
      */
     fun substractPage(descriptor: SRTFPageDescriptor) {
         lock.withLock {
-            val ret = pageMap[descriptor].toOption().map { //On none() case, it can't be happened but leave it as is for failsafe.
-                it.updateAndGet {
-                    Math.min(it - 1, 0)
+            val ret = pageMap[descriptor].toOption()
+                .map { //On none() case, it can't be happened but leave it as is for failsafe.
+                    it.updateAndGet {
+                        Math.min(it - 1, 0)
+                    }
                 }
-            }
             
             ret.map {
-                if(it == 0) {
+                if (it == 0) {
                     pageMap.remove(descriptor)
                 }
             }

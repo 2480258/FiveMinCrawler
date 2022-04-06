@@ -37,7 +37,10 @@ import com.fivemin.core.engine.transaction.serialize.SerializeTransactionPolicy
 import com.fivemin.core.export.ExportStateImpl
 import com.fivemin.core.request.*
 import com.fivemin.core.request.queue.DequeueOptimizationPolicy
-import com.fivemin.core.request.queue.RequestQueueImpl
+import com.fivemin.core.request.queue.srtfQueue.SRTFKeyExtractor
+import com.fivemin.core.request.queue.srtfQueue.SRTFOptimizationPolicy
+import com.fivemin.core.request.queue.srtfQueue.SRTFPageDescriptorFactory
+import com.fivemin.core.request.queue.srtfQueue.WSQueue
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
 import java.net.URI
@@ -70,6 +73,10 @@ data class ParseOption(
     val requesterSelector: RequesterSelector
 )
 
+data class CrawlerObjects constructor(val deq: SRTFOptimizationPolicy, val keyEx: SRTFKeyExtractor, val descriptFac: SRTFPageDescriptorFactory){
+
+}
+
 class CrawlerFactory(private val virtualOption: VirtualOption) {
     private val MAX_PAGE_LIMIT_KEY = "MaxPageLimit"
     
@@ -81,7 +88,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     private val sessionUniqueKeyFilter = BloomFilterUniqueKeyRepository(BloomFilterFactoryImpl(), virtualOption.resumeOption.map { it.archivedSessionSet })
     
     private val taskFactory: CrawlerTaskFactoryFactory =
-        createFactory(virtualOption.dequeue, virtualOption.subPolicyCollection)
+        createFactory(virtualOption.obj, virtualOption.subPolicyCollection)
 
     suspend fun start(uri: URI): Either<Throwable, ExportTransaction<Request>> {
         val task = taskFactory.getFactory<Request>()
@@ -123,7 +130,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     }
 
     private fun createFactory(
-        dequeue: DequeueOptimizationPolicy,
+        obj: CrawlerObjects,
         additional: SubPolicyCollection
     ): CrawlerTaskFactoryFactory {
         val def = getDefaultSubPolicyCollection()
@@ -135,14 +142,14 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
             def.export.plus(additional.export)
         )
 
-        return CrawlerTaskFactoryFactoryImpl(DocumentPolicyStorageFactoryCollector(getDefaultPolicy(dequeue, merged)))
+        return CrawlerTaskFactoryFactoryImpl(DocumentPolicyStorageFactoryCollector(getDefaultPolicy(obj, merged)))
     }
 
     private fun getDefaultPolicy(
-        deq: DequeueOptimizationPolicy,
+        obj: CrawlerObjects,
         subpol: SubPolicyCollection
     ): DocumentPolicyStorageFactory {
-        val movefac = getDefaultMovementFactory(deq)
+        val movefac = getDefaultMovementFactory(obj.deq, obj.keyEx, obj.descriptFac)
 
         val prepare = PrepareRequestTransactionPolicy(AbstractPolicyOption(subpol.preprocess), movefac)
         val request = FinalizeRequestTransactionPolicy(AbstractPolicyOption(subpol.request), movefac)
@@ -152,31 +159,31 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
         return DocumentPolicyStorageFactory(prepare, request, serialize, export)
     }
 
-    private fun getDefaultMovementFactory(deq: DequeueOptimizationPolicy): MovementFactory<Request> {
+    private fun getDefaultMovementFactory(deq: SRTFOptimizationPolicy, keyEx: SRTFKeyExtractor, descriptFac: SRTFPageDescriptorFactory): MovementFactory<Request> {
         return MovementFactoryImpl(
             virtualOption.parseOption.preParser,
-            RequestWaiter(getRequestTaskFactory(deq)),
+            RequestWaiter(getRequestTaskFactory(deq, keyEx, descriptFac)),
             virtualOption.parseOption.exportParser,
             exportState,
             virtualOption.parseOption.postParser
         )
     }
 
-    private fun getRequestQueue(deq: DequeueOptimizationPolicy): RequestQueue {
+    private fun getRequestQueue(deq: SRTFOptimizationPolicy, keyEx: SRTFKeyExtractor, descriptFac: SRTFPageDescriptorFactory): RequestQueue {
         val count = controller.getSettings("MaxRequestThread").map { it.toInt() }.fold({ 1 }, { it })
 
         if (count < 1) {
             throw IllegalArgumentException("MaxRequestThread is below 1")
         }
 
-        return RequestQueueImpl(deq, count)
+        return WSQueue(deq, keyEx, descriptFac, count)
     }
 
-    private fun getRequestTaskFactory(deq: DequeueOptimizationPolicy): RequesterTaskFactory {
+    private fun getRequestTaskFactory(deq: SRTFOptimizationPolicy, keyEx: SRTFKeyExtractor, descriptFac: SRTFPageDescriptorFactory): RequesterTaskFactory {
         return RequesterTaskFactoryImpl(
             RequestTaskOption(
                 virtualOption.parseOption.requesterSelector,
-                getRequestQueue(deq)
+                getRequestQueue(deq, keyEx, descriptFac)
             )
         )
     }

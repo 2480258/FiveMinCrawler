@@ -24,6 +24,9 @@ import arrow.core.Option
 import com.fivemin.core.request.NetworkHeader
 import java.lang.Exception
 import java.net.URI
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.milliseconds
 
 inline fun <Return, reified ExpectBodyType> ResponseBody.ifType(
     crossinline corr: (ExpectBodyType) -> Return,
@@ -136,8 +139,9 @@ suspend fun <Return> ResponseBody.ifRecoverableErrAsync(
 data class PerformedRequesterInfo(val engine: RequesterEngineInfo, val slot: RequesterSlotInfo)
 
 data class ResponseTime(val sentMS: Long, val receivedMS: Long) {
-    val duration: Long
-        get() = sentMS + receivedMS
+    @OptIn(ExperimentalTime::class)
+    val duration: Duration
+        get() = Duration.milliseconds(Math.max(0, receivedMS - sentMS))
 }
 
 interface ResponseData {

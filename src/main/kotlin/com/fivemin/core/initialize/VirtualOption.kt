@@ -30,6 +30,9 @@ import com.fivemin.core.engine.session.bFilter.SerializedBloomFilterFactoryImpl
 import com.fivemin.core.export.ConfigControllerImpl
 import com.fivemin.core.initialize.json.JsonParserOptionFactory
 import com.fivemin.core.request.queue.DequeueOptimizationPolicy
+import com.fivemin.core.request.queue.srtfQueue.SRTFOptimizationPolicyImpl
+import com.fivemin.core.request.queue.srtfQueue.SRTFPageDescriptorFactoryImpl
+import com.fivemin.core.request.queue.srtfQueue.SRTFTimingRepositoryImpl
 import java.io.File
 import java.net.URI
 
@@ -39,7 +42,7 @@ data class VirtualOption(
     val directIO: DirectIO,
     val resumeOption: Option<ResumeOption>,
     val subPolicyCollection: SubPolicyCollection,
-    val dequeue: DequeueOptimizationPolicy
+    val obj: CrawlerObjects
 )
 
 class StartTaskOption(
@@ -51,7 +54,7 @@ class StartTaskOption(
 ) {
     
     companion object {
-        private val logger = LoggerController.getLogger("PostParserContentPageImpl")
+        private val logger = LoggerController.getLogger("StartTaskOption")
     }
     
     private val resume: ResumeDataFactory = ResumeDataFactory()
@@ -92,7 +95,7 @@ class StartTaskOption(
         var io = DirectIOImpl(config, rootPath)
         var fac = JsonParserOptionFactory(file.readText(), listOf(), io) // TODO MEF
         
-        return VirtualOption(fac.option, config, io, getResumeOption(), srtf.policies, srtf.scheduler)
+        return VirtualOption(fac.option, config, io, getResumeOption(), srtf.policies, CrawlerObjects(srtf.deq, srtf.keyEx, srtf.descriptFac))
     }
     
     private fun getResumeOption(): Option<ResumeOption> {

@@ -71,7 +71,7 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
     
     private val table = ConcurrentHashMap<UniversalKey, Score>()
     private val data =
-        Collections.synchronizedSortedMap(TreeMap<Score, LinkedList<RotatingQueueNode<UniversalKey, Value>>>())
+        Collections.synchronizedSortedMap(TreeMap<Score, TreeMap<UniversalKey, RotatingQueueNode<UniversalKey, Value>>>())
     
     private val lock = ReentrantLock()
     private val condition: Condition = lock.newCondition()
@@ -88,7 +88,7 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
         get() = lock.withLock {
             data.map {
                 it.value.map {
-                    it.size
+                    it.value.size
                 }
             }.flatten().sum()
         }
@@ -128,7 +128,7 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
             waitFirstQueue()
             get_queue()
         }, {
-            it.first()
+            it.firstEntry().value
         })
     }
     
@@ -156,8 +156,8 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
         
         val fKey = data.firstKey()
         val listElem = data[fKey]!!
-        if (listElem.first().size == 0) {
-            val removed = listElem.removeFirst().key!!
+        if (listElem.firstEntry().value.size == 0) {
+            val removed = listElem.remove(listElem.firstKey())!!.key!!
             table.remove(removed)
         }
         
@@ -174,11 +174,8 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
         
         val firstQueue = data[data.firstKey()] ?: return true
         synchronized(firstQueue) {
-            firstQueue.firstOrNone().fold({ return true }) {
-                if (it.size != 0) {
-                    return true
-                }
-            }
+            if (firstQueue.size == 0) return true
+            if (firstQueue.firstEntry().value.size != 0) return true
         }
         return false
     }
@@ -196,11 +193,9 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
         //if (table.containsKey(key)) throw DuplicateKeyException()
         
         val dataList = ensureKeyExists(key, score)
-        val dataElem = dataList.singleOrNone {
-            it.key == key
-        }.fold({
+        val dataElem = dataList[key].toOption().fold({
             val ret = RotatingQueueNode<UniversalKey, Value>(key)
-            dataList.add(ret)
+            dataList[key] = ret
             
             ret
         }) {
@@ -212,10 +207,10 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
         
     }
     
-    private fun ensureKeyExists(key: UniversalKey, score: Score): LinkedList<RotatingQueueNode<UniversalKey, Value>> {
+    private fun ensureKeyExists(key: UniversalKey, score: Score): TreeMap<UniversalKey, RotatingQueueNode<UniversalKey, Value>> {
         val tableKey = table.getOrPut(key) { score }!! //why is this nullable?
         
-        return data.getOrPut(tableKey) { LinkedList() }!!
+        return data.getOrPut(tableKey) { TreeMap() }!!
     }
     
     
@@ -234,20 +229,16 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
         
         if (tableKey == score) return
         
-        val wantToMove = source.single {
-            it.key == originalKey
-        }
+        val wantToMove = source[originalKey]!!
         
-        source.removeIf {
-            it.key == originalKey
-        }
+        source.remove(originalKey)
         
         if (source.isEmpty()) {
             data.remove(tableKey)
         }
         
         val destList = ensureKeyExists(originalKey, score)
-        destList.add(wantToMove)
+        destList[originalKey] = wantToMove
         
         releaseWait()
     }
