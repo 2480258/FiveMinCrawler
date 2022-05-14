@@ -143,6 +143,19 @@ class RotatingQueueNodeTest {
     }
     
     @Test
+    fun testDuplicationKeyUpdate() {
+        queue.enqueue(4, 4, 4)
+        queue.enqueue(3, 3, 1)
+        queue.enqueue(3, 2, 4)
+        queue.enqueue(1, 1, 4)
+    
+        queue.update(3, 3)
+    
+        assertEquals(queue.dequeue(), 2)
+        assertEquals(queue.dequeue(), 3)
+    }
+    
+    @Test
     fun testPoll() {
         runBlocking {
             GlobalScope.launch { assertEquals(queue.dequeue(), 1) }

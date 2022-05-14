@@ -36,7 +36,7 @@ interface SRTFTimingRepository {
 }
 
 class SRTFTimingRepositoryImpl : SRTFTimingRepository {
-    val map = ConcurrentHashMap<SRTFPageDescriptor, Average>()
+    private val map = ConcurrentHashMap<SRTFPageDescriptor, Average>()
     
     /**
      * Returns average timing of given SRTFPageDescriptor. If descriptor not found, returns zero.

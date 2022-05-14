@@ -69,15 +69,20 @@ class WSQueue constructor(
     @OptIn(ExperimentalTime::class)
     private suspend fun enqueueInternal(doc: PreprocessedRequest<Request>, info: EnqueueRequestInfo) {
         optimizationPolicy.update(doc.request.request, srtfPageFactory.convertTo(doc.request.request))
+    
+        val wsKey = srtfKeyExtractor.extractWorkingSetKey(doc)
+        val score = optimizationPolicy.getScore(doc).fold(
+            { 0.1 }, //We can't do anything so download fastly.
+            {
+                it.toDouble(DurationUnit.MILLISECONDS)
+            })
         
         rotatingQueue.enqueue(
-            srtfKeyExtractor.extractWorkingSetKey(doc), EnqueuedRequest(doc, info),
-            optimizationPolicy.getScore(doc).fold(
-                { 0.1 }, //We can't do anything so download fastly.
-                {
-                    it.toDouble(DurationUnit.MILLISECONDS)
-                })
+            wsKey, EnqueuedRequest(doc, info),
+            score //ignored if same wsKey is already inserted
         )
+        
+        rotatingQueue.update(wsKey, score) //make sure keep updated
     }
     
     override suspend fun enqueue(doc: PreprocessedRequest<Request>, info: EnqueueRequestInfo) {

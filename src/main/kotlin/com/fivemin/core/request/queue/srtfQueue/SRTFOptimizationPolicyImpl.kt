@@ -128,7 +128,7 @@ class SRTFOptimizationPolicyImpl(private val timingRepository: SRTFTimingReposit
         }
     }
     
-    override suspend fun removeToken(token: RequestToken) { //TODO: Fix to remove all children nodes.
+    override suspend fun removeToken(token: RequestToken) {
         lock.withLock {
             wsMap.remove(token)
             childMap.remove(token) //the only case parent is finished working set. so it's stable.

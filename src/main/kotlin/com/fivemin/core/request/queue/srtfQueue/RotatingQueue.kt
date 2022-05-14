@@ -180,6 +180,12 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
         return false
     }
     
+    /**
+     * Enqueues data
+     * Key: specific hashcode for value(s)(for update)
+     * Score: select order to dequeue. if same universalkey already inserted, uses previously given score.
+     * Value: what to dequeue.
+     */
     override fun enqueue(key: UniversalKey, value: Value, score: Score) {
         try {
             lock.lock()
