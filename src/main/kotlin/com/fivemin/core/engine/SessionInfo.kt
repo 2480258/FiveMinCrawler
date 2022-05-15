@@ -28,7 +28,7 @@ import kotlin.concurrent.withLock
 
 const val MaxRetry = 3
 
-data class UniqueKeyToken constructor(val tokenNumber: Int) {
+data class UniqueKeyToken constructor(val tokenNumber: ULong) {
     /**
      * https://kotlinlang.org/docs/data-classes.html#properties-declared-in-the-class-body
      *
@@ -53,7 +53,8 @@ data class UniqueKeyToken constructor(val tokenNumber: Int) {
     }
     
     override fun hashCode(): Int {
-        return tokenNumber
+        //cast? TODO: Log this.
+        return tokenNumber.toInt()
     }
     
     override fun toString(): String {

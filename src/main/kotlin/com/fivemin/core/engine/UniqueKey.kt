@@ -29,6 +29,8 @@ abstract class UniqueKey {
 
     protected abstract fun hash(): Int
 
+    protected abstract fun longHash(): ULong
+    
     protected abstract fun toStr(): String
 
     override fun toString(): String {
@@ -45,5 +47,9 @@ abstract class UniqueKey {
 
     override fun hashCode(): Int {
         return hash()
+    }
+    
+    fun longHashCode(): ULong {
+        return longHash()
     }
 }

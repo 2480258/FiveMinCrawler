@@ -42,6 +42,12 @@ data class StringUniqueKey(val src: String) : UniqueKey() {
     override fun toStr(): String {
         return src
     }
+    
+    override fun longHash(): ULong {
+        val up = src.hashCode().toULong() shl 32
+        val down = src.reversed().hashCode().toULong() shl 32 shr 32
+        return up or down
+    }
 }
 
 @Serializable(with = UniqueKeySerializer::class)
@@ -60,6 +66,12 @@ data class UriUniqueKey(val uri: URI) : UniqueKey() {
 
     override fun toStr(): String {
         return uri.toString()
+    }
+    
+    override fun longHash(): ULong {
+        val up = uri.hashCode().toULong() shl 32
+        val down = uri.toString().reversed().hashCode().toULong() shl 32 shr 32
+        return up or down
     }
 }
 

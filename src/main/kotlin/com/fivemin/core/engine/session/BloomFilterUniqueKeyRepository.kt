@@ -35,7 +35,7 @@ import kotlin.concurrent.write
 
 class UniqueKeyTokenFactory {
     fun create(key: UniqueKey): UniqueKeyToken {
-        return UniqueKeyToken(key.hashCode())
+        return UniqueKeyToken(key.longHashCode())
     }
 }
 
@@ -44,18 +44,23 @@ class KeyNotFoundException() : Exception() {
 }
 
 class TemporaryUniqueKeyRepository {
-    private val hashMap = ConcurrentHashMap<UniqueKeyToken, UniqueKey>()
+    private val hashMap = ConcurrentHashMap<ULong, UniqueKey>()
     private val uniqueKeyTokenFactory = UniqueKeyTokenFactory()
+    
+    val size: Int
+    get() {
+        return hashMap.size
+    }
     
     fun addUniqueKey(key: UniqueKey): UniqueKeyToken {
         val token = uniqueKeyTokenFactory.create(key)
-        hashMap[token] = key
+        hashMap[token.tokenNumber] = key
         
         return token
     }
     
     fun deleteUniqueKey(token: UniqueKeyToken): Option<UniqueKey> {
-        return hashMap.remove(token).toOption()
+        return hashMap.remove(token.tokenNumber).toOption()
     }
     
     fun contains(token: UniqueKeyToken): Boolean {
@@ -194,5 +199,26 @@ class BloomFilterUniqueKeyRepository constructor(
         tokens.forEach {
             conveyToNotDetachable(it)
         }
+    }
+    
+    /**
+     * Test purpose.
+     */
+    fun containsDetachable(key: UniqueKey): Boolean {
+        return detachableFilter.mightContains(key)
+    }
+    
+    /**
+     * Test purpose.
+     */
+    fun containsNotDetachable(key: UniqueKey): Boolean {
+        return notDetachableFilter.mightContains(key)
+    }
+    
+    /**
+     * Test purpose.
+     */
+    fun isTempStorageContains() : Boolean{
+        return temporaryUniqueKeyRepository.size == 0
     }
 }

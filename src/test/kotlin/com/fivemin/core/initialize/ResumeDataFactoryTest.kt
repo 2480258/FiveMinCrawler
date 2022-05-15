@@ -22,7 +22,6 @@ package com.fivemin.core.initialize
 
 import com.fivemin.core.ElemIterator
 import com.fivemin.core.UriIterator
-import com.fivemin.core.engine.session.UriUniqueKey
 import com.fivemin.core.engine.transaction.StringUniqueKey
 import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.encodeToByteArray
