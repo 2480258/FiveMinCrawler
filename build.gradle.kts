@@ -105,6 +105,9 @@ dependencies {
     implementation("org.brotli:dec:0.1.2")
     implementation("com.google.guava:guava:31.1-jre")
     
+    //Database Support
+    implementation("com.querydsl:querydsl-sql:5.0.0")
+    implementation("org.xerial:sqlite-jdbc:3.36.0.3")
     
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.12.1")

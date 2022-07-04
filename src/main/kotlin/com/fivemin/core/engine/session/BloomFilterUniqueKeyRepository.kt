@@ -29,8 +29,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantReadWriteLock
-import kotlin.concurrent.read
-import kotlin.concurrent.write
 
 
 class UniqueKeyTokenFactory {
@@ -218,7 +216,7 @@ class BloomFilterUniqueKeyRepository constructor(
     /**
      * Test purpose.
      */
-    fun isTempStorageContains() : Boolean{
+    fun isTempStorageEmpty() : Boolean{
         return temporaryUniqueKeyRepository.size == 0
     }
 }
