@@ -31,7 +31,7 @@ class ElemIterator<T>(val factory: IteratorElemFactory<T>) {
     fun gen(): T {
         return lock.withLock {
             var t = factory.getNext()
-            //list.add(t)
+            list.add(t)
             
             return t
         }
