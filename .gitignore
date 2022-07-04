@@ -4,3 +4,5 @@ build/*
 buildOutputCleanup.lock
 outputFiles.bin
 13.tmp
+FiveMinTest/build/*
+FiveMinTest/.gradle/*
