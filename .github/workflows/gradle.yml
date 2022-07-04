@@ -28,6 +28,8 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '18'
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
     - name: Run Test Server
       run: ./gradlew :FiveMinTest:bootRun
     - name: Build with Gradle
