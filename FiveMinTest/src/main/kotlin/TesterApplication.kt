@@ -18,7 +18,14 @@
  *
  */
 
+package com.fiveminTester
 
-rootProject.name = "FiveMinCrawler"
-include("FiveMinTest")
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.runApplication
 
+@SpringBootApplication
+class TesterApplication
+
+fun main(args: Array<String>) {
+    runApplication<TesterApplication>(*args)
+}
