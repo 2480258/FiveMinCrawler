@@ -28,6 +28,7 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '18'
+        cache: gradle
     - name: Make gradlew executable
       run: chmod +x ./gradlew
     - name: Run Test Server
@@ -41,4 +42,4 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: log
-        path: file:///home/runner/work/FiveMinCrawler/FiveMinCrawler/build/reports/tests/test/index.html
+        path: /build/reports/tests/test/index.html
