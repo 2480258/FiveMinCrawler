@@ -45,7 +45,7 @@ class JsonExportAdapterTest {
         
         every {
             directIO.getToken(any())
-        } returns (DirectoryIOToken(System.getProperty("user.dir") + "\\TrashBin"))
+        } returns (DirectoryIOToken(System.getProperty("user.dir")))
         
         return directIO
     }
@@ -73,9 +73,9 @@ class JsonExportAdapterTest {
             }
         }
         
-        val path = Paths.get(System.getProperty("user.dir"), "TrashBin", "111")
+        val path = Paths.get(System.getProperty("user.dir"), "111")
         assertEquals(Files.readString(path), "{\"test1\":\"value\",\"test2\":[\"value1\",\"value2\"]}")
         
-        File(System.getProperty("user.dir") + "\\TrashBin\\111").delete()
+        File(Paths.get(System.getProperty("user.dir"),"111").toString()).delete()
     }
 }
