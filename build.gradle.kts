@@ -19,6 +19,7 @@
  */
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 // turn-off defender before run
 // jpackage --name FiveMinCrawler --input bin --main-jar fivemincrawler-0.jar --win-console --type app-image --verbose --temp temp
 
@@ -70,6 +71,13 @@ tasks.jar {
 
 tasks.test {
     useTestNG()
+    testLogging {
+        showStandardStreams = true
+        showCauses = true
+        showExceptions = true
+        showStackTraces = true
+        exceptionFormat = TestExceptionFormat.FULL
+    }
 }
 
 tasks.withType<KotlinCompile> {
