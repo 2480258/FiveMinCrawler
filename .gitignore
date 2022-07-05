@@ -6,3 +6,4 @@ outputFiles.bin
 13.tmp
 FiveMinTest/build/*
 FiveMinTest/.gradle/*
+/jacoco
