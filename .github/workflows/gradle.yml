@@ -43,7 +43,6 @@ jobs:
       with:
         name: log
         path: /home/runner/work/FiveMinCrawler/FiveMinCrawler/build/reports/jacoco/test/jacocoTestReport.xml
-    - uses: actions/checkout@master
     - name: List
       run: ls -al
     - uses: codecov/codecov-action@v3
