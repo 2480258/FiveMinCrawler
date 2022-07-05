@@ -44,6 +44,8 @@ jobs:
         name: log
         path: /home/runner/work/FiveMinCrawler/FiveMinCrawler/build/reports/jacoco/test/jacocoTestReport.xml
     - uses: actions/checkout@master
+    - name: List
+      run: ls -al
     - uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
