@@ -1,5 +1,7 @@
 # 🕐Five-Minute Crawler - A Highly Customizable Crawler without Code
 
+![example workflow](https://github.com/2480258/FiveMinCrawler/actions/workflows/gradle.yml/badge.svg)
+
 _and can be customized in five minutes (maybe.... if you know html and other things XD)_
 
 **⚠This program is very experimental. Stuff will be break. Use At Your Risk. Before use, please read LICENSE**
