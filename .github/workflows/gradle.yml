@@ -43,7 +43,8 @@ jobs:
       with:
         name: log
         path: /build/reports/jacoco/test/jacocoTestReport.xml
-
+    - name: Creates coverage reports
+      uses: ./gradlew testCoverage
     - uses: actions/checkout@master
     - uses: codecov/codecov-action@v3
       with:
