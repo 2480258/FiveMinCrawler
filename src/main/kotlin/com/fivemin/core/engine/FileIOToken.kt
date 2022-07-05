@@ -44,7 +44,7 @@ class DirectoryIOToken constructor(private val additionalPath: String) {
      * Throws if file path is given. Use FileIOToken instead.
      */
     init {
-        val f = Paths.get(File(additionalPath).absolutePath)
+        val f = Paths.get(File(additionalPath).path)
         var path = additionalPath
 
         //absolute path always rooted
