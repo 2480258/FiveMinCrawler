@@ -71,13 +71,6 @@ tasks.jar {
 
 tasks.test {
     useTestNG()
-    testLogging {
-        showStandardStreams = true
-        showCauses = true
-        showExceptions = true
-        showStackTraces = true
-        exceptionFormat = TestExceptionFormat.FULL
-    }
 }
 
 tasks.withType<KotlinCompile> {
