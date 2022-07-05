@@ -42,12 +42,12 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: log
-        path: /build/reports/jacoco/test/jacocoTestReport.xml
+        path: /home/runner/work/FiveMinCrawler/FiveMinCrawler/build/reports/jacoco/test/jacocoTestReport.xml
     - uses: actions/checkout@master
     - uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-        files: ./build/reports/jacoco/test/jacocoTestReport.xml # optional
+        files: /home/runner/work/FiveMinCrawler/build/reports/jacoco/test/jacocoTestReport.xml # optional
         flags: unittests # optional
         name: codecov-umbrella # optional
         fail_ci_if_error: true # optional (default = false)
