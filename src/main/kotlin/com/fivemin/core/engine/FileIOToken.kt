@@ -28,6 +28,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
+import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 
 /**
@@ -43,15 +44,15 @@ class DirectoryIOToken constructor(private val additionalPath: String) {
      * Throws if file path is given. Use FileIOToken instead.
      */
     init {
-        val f = File(additionalPath)
+        val f = Paths.get(File(additionalPath).absolutePath)
         var path = additionalPath
 
-        if (f.isRooted) {
-
-            val drive = additionalPath.subSequence(0 until 3).toString()
-            val left = additionalPath.subSequence(3 until additionalPath.length).toString()
-
-            path = drive + checkPathName(left)
+        //absolute path always rooted
+        if (f.isAbsolute) {
+            val root = f.root //root should be preserved because of C:\\ ( ':' is forbidden for directory chars)
+            val left = additionalPath.subSequence(root.toString().length until additionalPath.length).toString()
+            
+            path = Paths.get(root.toString(), checkPathNameOSSelective(left)).toString()
         }
 
         Path = File(path)
@@ -100,11 +101,30 @@ class DirectoryIOToken constructor(private val additionalPath: String) {
         init {
             ErrorChar = '_'
         }
-
-        private fun checkPathName(name: String): String {
-            return name.split('"', '<', '>', '|', ':', '*', '?', '/').reduce { x, y -> x + ErrorChar + y }
+        
+        private fun checkPathNameOSSelective(name: String): String {
+            val curOs = System.getProperty("os.name")
+            
+            if(curOs.lowercase().contains("nix")) {
+                return checkPathNameLinux(name)
+            }
+            else if(curOs.lowercase().contains("windows")) {
+                return checkPathNameWindows(name)
+            }
+            else {
+                return checkPathNameLinux(name)
+            }
         }
 
+        private fun checkPathNameWindows(name: String): String {
+            return name.split('"', '<', '>', '|', ':', '*', '?', '/').reduce { x, y -> x + ErrorChar + y }
+        }
+    
+        private fun checkPathNameLinux(name: String): String {
+            return name.split('"', '<', '>', '|', ':', '*', '?', '\\').reduce { x, y -> x + ErrorChar + y }
+        }
+    
+    
         private fun appendPath(path1: String, path2: String): String {
             val sep1 = path1.last() == File.separatorChar
             val sep2 = path2.last() == File.separatorChar
