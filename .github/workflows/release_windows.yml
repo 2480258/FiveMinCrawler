@@ -37,7 +37,7 @@ jobs:
         run: mkdir tt
 
       - name: do jpackage
-        run: jpackage -i ./build/libs -n FiveMinCrawler_Release --main-class MainKt --main-jar FiveMinCrawler-0.1.jar -t app-image --temp ./tt/
+        run: jpackage -i ./build/libs -n FiveMinCrawler_Release --main-class MainKt --main-jar FiveMinCrawler-0.1.jar -t app-image --temp ./tt/ --win-console
 
       - name: zip
         run: tar.exe -a -c -f release.zip FiveMinCrawler_Release
@@ -52,7 +52,7 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
+          automatic_release_tag: "${{ steps.current-time.outputs.formattedTime }}"
           prerelease: true
           title: Release [${{ steps.current-time.outputs.formattedTime }}]
           files: |
