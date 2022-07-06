@@ -37,7 +37,7 @@ jobs:
         run: mkdir tt
 
       - name: do jpackage
-        run: jpackage -i ./build/lib -n FiveMinCrawler_Release --main-class MainKt --main-jar FiveMinCrawler-0.1.jar -t app-image --temp ./tt/
+        run: jpackage -i ./build/libs -n FiveMinCrawler_Release --main-class MainKt --main-jar FiveMinCrawler-0.1.jar -t app-image --temp ./tt/
 
       - name: zip
         run: tar.exe -a -c -f release.zip FiveMinCrawler_Release
