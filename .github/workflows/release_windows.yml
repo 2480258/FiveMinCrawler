@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI
+name: release_windows
 
 # Controls when the workflow will run
 on:
@@ -42,13 +42,25 @@ jobs:
       - name: zip
         run: tar.exe -a -c -f release.zip FiveMinCrawler_Release
 
-      - name: upload release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      - name: Get current time
+        uses: josStorer/get-current-time@v2
+        id: current-time
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: Release ${{ github.ref }}
-          draft: false
+          format: YYYYMMDD-HH
+          utcOffset: "+08:00"
+      - name: Use current time
+        env:
+          TIME: "${{ steps.current-time.outputs.time }}"
+          R_TIME: "${{ steps.current-time.outputs.readableTime }}"
+          F_TIME: "${{ steps.current-time.outputs.formattedTime }}"
+          YEAR: "${{ steps.current-time.outputs.year }}"
+          DAY: "${{ steps.current-time.outputs.day }}"
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
           prerelease: true
+          title: Release [${{ steps.current-time.outputs.formattedTime }}]
+          files: |
+            release.zip
