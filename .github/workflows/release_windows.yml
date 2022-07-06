@@ -41,7 +41,7 @@ jobs:
 
       - name: zip
         run: tar.exe -a -c -f release.zip FiveMinCrawler_Release
-      
+
       - name: upload release
         uses: actions/create-release@v1
         env:
@@ -49,5 +49,6 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
+          body: Release ${{ github.ref }}
           draft: false
           prerelease: true
