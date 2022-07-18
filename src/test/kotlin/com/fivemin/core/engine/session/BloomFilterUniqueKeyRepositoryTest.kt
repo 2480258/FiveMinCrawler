@@ -53,35 +53,7 @@ class BloomFilterUniqueKeyRepositoryTest {
     @AfterMethod
     fun tearDown() {
     }
-    
-    @Test
-    fun testOnStart() {
-        bf.onStart()
-        bf.onFinish(mockk())
-        
-        bf.waitFinish()
-    }
-    
-    @Test
-    fun testOnStartThrowsOnNegative() {
-        assertThrows {
-            bf.onFinish(mockk())
-        }
-    }
-    
-    @Test
-    fun testWaitFinish() {
-        val t1 = thread {
-            bf.waitFinish()
-        }
-        
-        val t2 = thread {
-            bf.onStart()
-            bf.onFinish(mockk())
-        }
-        
-        t1.join()
-    }
+
     
     @Test
     fun testAddUniqueKeyWithDetachableThrows_ThrowsWithDuplicatedKey() {

@@ -18,9 +18,8 @@
  *
  */
 
-package com.fivemin.core.database
+package com.fivemin.core.engine.session.database
 
-import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
 
 
@@ -32,15 +31,15 @@ class DatabaseAdapterImplTest {
     fun insertIfNoneInputTest() {
         adapterImpl = DatabaseAdapterImpl("jdbc:sqlite::memory:")
         
-        assert(adapterImpl.insertIfNone("test"))
+        assert(adapterImpl.insertKeyIfNone("test"))
     }
     
     @Test
     fun insertIfNoneDuplicatedTest() {
         adapterImpl = DatabaseAdapterImpl("jdbc:sqlite::memory:")
         
-        adapterImpl.insertIfNone("test")
-        assert(!adapterImpl.insertIfNone("test"))
+        adapterImpl.insertKeyIfNone("test")
+        assert(!adapterImpl.insertKeyIfNone("test"))
     }
     
     @Test
@@ -54,7 +53,7 @@ class DatabaseAdapterImplTest {
     fun containsWhenContainsTest() {
         adapterImpl = DatabaseAdapterImpl("jdbc:sqlite::memory:")
         
-        adapterImpl.insertIfNone("test")
+        adapterImpl.insertKeyIfNone("test")
         assert(adapterImpl.contains("test"))
     }
 }

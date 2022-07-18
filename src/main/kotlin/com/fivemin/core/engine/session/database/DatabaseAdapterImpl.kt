@@ -18,9 +18,9 @@
  *
  */
 
-package com.fivemin.core.database
+package com.fivemin.core.engine.session.database
 
-import com.fivemin.core.engine.DatabaseAdapter
+import com.fivemin.core.engine.session.DatabaseAdapter
 import java.sql.*
 
 class DatabaseAdapterImpl(private val jdbcUrl: String) : DatabaseAdapter {
@@ -43,7 +43,7 @@ class DatabaseAdapterImpl(private val jdbcUrl: String) : DatabaseAdapter {
         containsPrepared = connection.prepareStatement("select * from person where id = ?")
     }
     
-    override fun insertIfNone(key: String): Boolean {
+    override fun insertKeyIfNone(key: String): Boolean {
         insertPrepared.setString(1, key)
         val result = insertPrepared.executeUpdate()
         

@@ -18,10 +18,8 @@
  *
  */
 
-package com.fivemin.core.engine
+package com.fivemin.core.engine.session
 
-interface DatabaseAdapter {
-    fun insertIfNone(key: String) : Boolean
-    
-    fun contains(key: String) : Boolean
+interface DatabaseAdapterFactory {
+    fun get() : DatabaseAdapter
 }

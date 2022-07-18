@@ -24,6 +24,7 @@ import arrow.core.*
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.crawlingTask.*
 import com.fivemin.core.engine.session.BloomFilterUniqueKeyRepository
+import com.fivemin.core.engine.session.FinishObserverImpl
 import com.fivemin.core.engine.session.bFilter.BloomFilterFactoryImpl
 import com.fivemin.core.engine.transaction.*
 import com.fivemin.core.engine.transaction.export.ExportParser
@@ -85,7 +86,9 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     private val controller: ConfigController = virtualOption.controller
     private val directIO = virtualOption.directIO
     private val exportState = ExportStateImpl(directIO, none())
-    private val sessionUniqueKeyFilter = BloomFilterUniqueKeyRepository(BloomFilterFactoryImpl(), virtualOption.resumeOption.map { it.archivedSessionSet })
+    private val finishObserver = FinishObserverImpl()
+    private val sessionUniqueKeyFilter = BloomFilterUniqueKeyRepository(BloomFilterFactoryImpl(), virtualOption.resumeOption.map { it.archivedSessionSet }, finishObserver)
+    
     
     private val taskFactory: CrawlerTaskFactoryFactory =
         createFactory(virtualOption.obj, virtualOption.subPolicyCollection)
@@ -116,7 +119,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
                 ),
                 TaskInfo(provider, taskFactory),
                 SessionInitStateImpl(
-                    SessionInfo(sessionUniqueKeyFilter, sessionUniqueKeyFilter),
+                    SessionInfo(finishObserver, sessionUniqueKeyFilter),
                     SessionData(sessionUniqueKeyFilter, sessionUniqueKeyFilter),
                     SessionContext(LocalUniqueKeyTokenRepo(), none())
                 )
@@ -125,7 +128,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     }
 
     fun waitForFinish(): ResumeOption {
-        sessionUniqueKeyFilter.waitFinish()
+        finishObserver.waitFinish()
         return ResumeOption(sessionUniqueKeyFilter.export())
     }
 

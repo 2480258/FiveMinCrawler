@@ -46,9 +46,9 @@ class TemporaryUniqueKeyRepository {
     private val uniqueKeyTokenFactory = UniqueKeyTokenFactory()
     
     val size: Int
-    get() {
-        return hashMap.size
-    }
+        get() {
+            return hashMap.size
+        }
     
     fun addUniqueKey(key: UniqueKey): UniqueKeyToken {
         val token = uniqueKeyTokenFactory.create(key)
@@ -70,32 +70,10 @@ class TemporaryUniqueKeyRepository {
     }
 }
 
-class BloomFilterUniqueKeyRepository constructor(
-    factory: BloomFilterFactory,
-    serialized: Option<SerializableAMQ>
-) : UniqueKeyRepository, SessionRepository, FinishObserver, DetachObserver {
-    private val notDetachableFilter: SerializableAMQ
-    private val detachableFilter: SerializableAMQ
-    private val temporaryUniqueKeyRepository = TemporaryUniqueKeyRepository()
-    
-    private val uniqueKeyTokenFactory = UniqueKeyTokenFactory()
-    
+class FinishObserverImpl : FinishObserver {
     private val pageCount = AtomicInteger(0)
     private val finish: CountDownLatch = CountDownLatch(1)
     
-    private val rwLock = ReentrantReadWriteLock()
-    
-    companion object {
-        private val logger = LoggerController.getLogger("BloomFilterUniqueKeyRepository")
-    }
-    
-    init {
-        detachableFilter = serialized.fold({ factory.createEmpty() }, {
-            it
-        })
-        
-        notDetachableFilter = detachableFilter.copy()
-    }
     
     override fun onStart() {
         pageCount.incrementAndGet()
@@ -118,15 +96,40 @@ class BloomFilterUniqueKeyRepository constructor(
     override fun waitFinish() {
         finish.await()
     }
+}
+
+class BloomFilterUniqueKeyRepository constructor(
+    factory: BloomFilterFactory,
+    serialized: Option<SerializableAMQ>,
+    private val finishObserver: FinishObserver
+) : UniqueKeyRepository, SessionRepository, DetachObserver {
+    
+    private val notDetachableFilter: SerializableAMQ
+    private val detachableFilter: SerializableAMQ
+    
+    private val temporaryUniqueKeyRepository = TemporaryUniqueKeyRepository()
+    private val uniqueKeyTokenFactory = UniqueKeyTokenFactory()
+    
+    companion object {
+        private val logger = LoggerController.getLogger("BloomFilterUniqueKeyRepository")
+    }
+    
+    init {
+        detachableFilter = serialized.fold({ factory.createEmpty() }, {
+            it
+        })
+        
+        notDetachableFilter = detachableFilter.copy()
+    }
     
     override fun create(parent: Option<SessionToken>): SessionInfo {
-        return SessionInfo(this, this)
+        return SessionInfo(finishObserver, this)
     }
     
     override fun addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken {
         val token = uniqueKeyTokenFactory.create(key)
-        if(notDetachableFilter.put(key)) {
-            if(!detachableFilter.put(key)) { //BloomFilter.put() works atomically, so in this line it is guaranteed that this is not a duplicated key.
+        if (notDetachableFilter.put(key)) {
+            if (!detachableFilter.put(key)) { //BloomFilter.put() works atomically, so in this line it is guaranteed that this is not a duplicated key.
                 throw DuplicateKeyException()
             }
         } else {
@@ -140,10 +143,10 @@ class BloomFilterUniqueKeyRepository constructor(
     
     override fun addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken {
         val token = uniqueKeyTokenFactory.create(key)
-        if(!notDetachableFilter.put(key)) {
+        if (!notDetachableFilter.put(key)) {
             throw DuplicateKeyException()
         }
-    
+        
         logger.debug("$key < $token < added uniquekey with not detachable")
         
         return token
@@ -151,15 +154,15 @@ class BloomFilterUniqueKeyRepository constructor(
     
     override fun addUniqueKey(key: UniqueKey): UniqueKeyToken {
         val token = uniqueKeyTokenFactory.create(key)
-        if(notDetachableFilter.put(key)) {
+        if (notDetachableFilter.put(key)) {
             //BloomFilter.put() works atomically, so in this line it is guaranteed that this is not a duplicated key.
             temporaryUniqueKeyRepository.addUniqueKey(key) //thread-safe
         } else {
             throw DuplicateKeyException()
         }
-    
+        
         logger.debug("$key < $token < added uniquekey with temparatory")
-    
+        
         return token
     }
     
@@ -173,7 +176,7 @@ class BloomFilterUniqueKeyRepository constructor(
     private fun conveyToDetachable(token: UniqueKeyToken) {
         val key = temporaryUniqueKeyRepository.deleteUniqueKey(token) //thread-safe
         key.map { //no race condition with duplicated key; already filtered
-            if(!detachableFilter.put(it)) { //should be not happen except false positive.
+            if (!detachableFilter.put(it)) { //should be not happen except false positive.
                 throw DuplicateKeyException()
             }
         }
@@ -216,7 +219,7 @@ class BloomFilterUniqueKeyRepository constructor(
     /**
      * Test purpose.
      */
-    fun isTempStorageEmpty() : Boolean{
+    fun isTempStorageEmpty(): Boolean {
         return temporaryUniqueKeyRepository.size == 0
     }
 }
