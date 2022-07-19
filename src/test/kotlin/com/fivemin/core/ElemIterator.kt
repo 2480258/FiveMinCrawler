@@ -21,6 +21,7 @@
 package com.fivemin.core
 
 import java.net.URI
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -55,15 +56,9 @@ class UriIterator : IteratorElemFactory<URI> {
 }
 
 class StringIterator : IteratorElemFactory<String> {
-    val Str = "abcdefghijklmnopqrstuvwxyz0123456789"
-    val reentrantLock = ReentrantLock()
-    val len: Int = 8
-    var calledCount = 0
+    var calledCount = AtomicInteger()
     
     override fun getNext(): String {
-        return reentrantLock.withLock {
-            calledCount++
-            return calledCount.toString(36)
-        }
+        return calledCount.incrementAndGet().toString(36)
     }
 }

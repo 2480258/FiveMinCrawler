@@ -20,60 +20,66 @@
 
 package com.fivemin.core
 
-import arrow.core.Either
 import arrow.core.none
 import arrow.core.right
-import arrow.core.valid
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactory
 import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactoryCollector
-import com.fivemin.core.engine.session.BloomFilterFactory
-import com.fivemin.core.engine.session.BloomFilterUniqueKeyRepository
+import com.fivemin.core.engine.session.*
 import com.fivemin.core.engine.session.bFilter.BloomFilterImpl
-import com.fivemin.core.engine.transaction.AbstractPolicyOption
+import com.fivemin.core.engine.session.database.DatabaseAdapterFactoryImpl
 import com.fivemin.core.engine.transaction.StringUniqueKeyProvider
 import com.fivemin.core.engine.transaction.UriUniqueKeyProvider
 import com.fivemin.core.engine.transaction.export.ExportTransactionPolicy
 import com.fivemin.core.engine.transaction.finalizeRequest.FinalizeRequestTransactionPolicy
-import com.fivemin.core.engine.transaction.finalizeRequest.RequestWaiter
 import com.fivemin.core.engine.transaction.prepareRequest.PrepareRequestTransactionPolicy
 import com.fivemin.core.engine.transaction.serialize.SerializeTransactionPolicy
-import com.fivemin.core.initialize.DocumentUniqueKeyProviderImpl
-import com.fivemin.core.initialize.MovementFactoryImpl
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
 class TaskMockFactory {
     companion object {
-        fun <T> createSessionStarted() : SessionStartedState {
+        fun <T> createSessionStarted(): SessionStartedState {
             val mock: BloomFilterFactory = mockk()
-    
+            
             every {
                 mock.createEmpty()
             } returns (BloomFilterImpl(100, 0.00000001))
-    
-            var sessRepo = BloomFilterUniqueKeyRepository(mock, none())
-    
-    
-            val sess : SessionStartedState = SessionStartedStateImpl(SessionInfo(sessRepo, sessRepo), SessionData(sessRepo, sessRepo), SessionContext(LocalUniqueKeyTokenRepo(), none()))
-
+            
+            val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
+            val persister = UniqueKeyPersisterImpl(persistFactory.get())
+            
+            var keyRepo = CompositeUniqueKeyRepository(
+                persister,
+                BloomFilterCache(mock),
+                TemporaryUniqueKeyRepository(),
+                UniqueKeyTokenFactory()
+            )
+            val fin = FinishObserverImpl()
+            val sessRepo = SessionRepositoryImpl(keyRepo, FinishObserverImpl())
+            
+            val sess: SessionStartedState = SessionStartedStateImpl(
+                SessionInfo(fin, keyRepo),
+                SessionData(keyRepo, sessRepo),
+                SessionContext(LocalUniqueKeyTokenRepo(), none())
+            )
+            
             return sess
         }
-
-
-        fun createPolicySet (
+        
+        
+        fun createPolicySet(
             prepare: PrepareRequestTransactionPolicy<Request>? = null,
             request: FinalizeRequestTransactionPolicy<Request>? = null,
             serialize: SerializeTransactionPolicy<Request>? = null,
             export: ExportTransactionPolicy<Request>? = null
-        ) : DocumentPolicyStorageFactoryCollector {
-            var prepMock : PrepareRequestTransactionPolicy<Request> = mockk()
+        ): DocumentPolicyStorageFactoryCollector {
+            var prepMock: PrepareRequestTransactionPolicy<Request> = mockk()
             coEvery {
                 prepMock.progressAsync(any(), any(), any())
             } coAnswers {
@@ -83,8 +89,8 @@ class TaskMockFactory {
                     }
                 }
             }
-
-            var reqMock : FinalizeRequestTransactionPolicy<Request> = mockk()
+            
+            var reqMock: FinalizeRequestTransactionPolicy<Request> = mockk()
             coEvery {
                 reqMock.progressAsync(any(), any(), any())
             } coAnswers {
@@ -94,8 +100,8 @@ class TaskMockFactory {
                     }
                 }
             }
-
-            var selMock : SerializeTransactionPolicy<Request> = mockk()
+            
+            var selMock: SerializeTransactionPolicy<Request> = mockk()
             coEvery {
                 selMock.progressAsync(any(), any(), any())
             } coAnswers {
@@ -105,8 +111,8 @@ class TaskMockFactory {
                     }
                 }
             }
-
-            var expMock : ExportTransactionPolicy<Request> = mockk()
+            
+            var expMock: ExportTransactionPolicy<Request> = mockk()
             coEvery {
                 expMock.progressAsync(any(), any(), any())
             } coAnswers {
@@ -116,37 +122,40 @@ class TaskMockFactory {
                     }
                 }
             }
-
-
-            return DocumentPolicyStorageFactoryCollector(DocumentPolicyStorageFactory(
-                prepare ?: prepMock,
-                request ?: reqMock,
-                serialize ?: selMock,
-                export ?: expMock
-            ))
+            
+            
+            return DocumentPolicyStorageFactoryCollector(
+                DocumentPolicyStorageFactory(
+                    prepare ?: prepMock,
+                    request ?: reqMock,
+                    serialize ?: selMock,
+                    export ?: expMock
+                )
+            )
         }
-
-
+        
+        
         fun createTaskInfo(
             prepare: PrepareRequestTransactionPolicy<Request>? = null,
             request: FinalizeRequestTransactionPolicy<Request>? = null,
             serialize: SerializeTransactionPolicy<Request>? = null,
-            export: ExportTransactionPolicy<Request>? = null): TaskInfo {
+            export: ExportTransactionPolicy<Request>? = null
+        ): TaskInfo {
             val info: TaskInfo = mockk()
             val taskFac: CrawlerTaskFactory<Request> = mockk()
-
+            
             every {
                 taskFac.policySet
-            } returns(createPolicySet(prepare, request, serialize, export))
-
+            } returns (createPolicySet(prepare, request, serialize, export))
+            
             every {
                 info.createTask<Request>()
             } returns (taskFac)
-
+            
             every {
                 info.uniqueKeyProvider
-            } returns(KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider()))
-
+            } returns (KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider()))
+            
             every {
                 taskFac["get2"](
                     any<DocumentType>()
@@ -157,14 +166,14 @@ class TaskMockFactory {
                         PrepareTransaction<HttpRequest>,
                         FinalizeRequestTransaction<HttpRequest>, Request, Request, Request> =
                     mockk()
-
+                
                 coEvery {
                     task.start(any(), any(), any())
                 }
-
+                
                 task
             }
-
+            
             return info
         }
     }

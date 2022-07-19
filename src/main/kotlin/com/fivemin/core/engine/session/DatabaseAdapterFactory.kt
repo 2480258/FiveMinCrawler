@@ -18,27 +18,8 @@
  *
  */
 
-package com.fivemin.core.engine
+package com.fivemin.core.engine.session
 
-import java.io.OutputStream
-
-interface SerializableAMQ {
-    fun mightContains(element: UniqueKey) : Boolean
-    
-    /**
-     * Return True if insertion is success, Return false if duplicated element (might) is already included.
-     * */
-    fun put(element: UniqueKey): Boolean
-    
-    fun exportTo(outputStream: OutputStream)
-    
-    fun copy(): SerializableAMQ
-}
-
-interface UniqueKeyRepository {
-    fun addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken
-    
-    fun addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken
-    
-    fun addUniqueKey(key: UniqueKey): UniqueKeyToken
+interface DatabaseAdapterFactory {
+    fun get() : DatabaseAdapter
 }

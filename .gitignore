@@ -8,3 +8,4 @@ FiveMinTest/build/*
 FiveMinTest/.gradle/*
 /jacoco
 jacocoTestReport.xml
+sample.db
