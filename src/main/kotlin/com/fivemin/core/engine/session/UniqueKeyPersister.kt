@@ -20,14 +20,14 @@
 
 package com.fivemin.core.engine.session
 
-interface DatabaseAdapter {
-    /**
-     Atomically inserts key into DB or ignore (if duplicated)
-     */
-    fun insertKeyIfNone(key: String) : Boolean
+import com.fivemin.core.engine.UniqueKey
+
+
+interface UniqueKeyPersister {
+    fun persistKey(key: UniqueKey) : Boolean
     
-    /**
-    Try to find key from DB
-     */
-    fun contains(key: String) : Boolean
+    fun contains(key: UniqueKey) : Boolean
+}
+
+class UniqueKeyPersisterImpl {
 }

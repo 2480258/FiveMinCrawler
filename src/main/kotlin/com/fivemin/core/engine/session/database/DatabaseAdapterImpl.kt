@@ -21,39 +21,92 @@
 package com.fivemin.core.engine.session.database
 
 import com.fivemin.core.engine.session.DatabaseAdapter
-import java.sql.*
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
+import org.sqlite.javax.SQLiteConnectionPoolDataSource
+import java.sql.Connection
+import java.sql.DriverManager
+import java.sql.PreparedStatement
+import java.sql.Statement
+import javax.sql.DataSource
 
-class DatabaseAdapterImpl(private val jdbcUrl: String) : DatabaseAdapter {
-    
-    val connection: Connection
-    val insertPrepared: PreparedStatement
-    val containsPrepared: PreparedStatement
+
+class DatabaseAdapterFactoryImpl(private val jdbcUrl: String) {
+    val dataSource: HikariDataSource
     
     init {
-        connection = DriverManager.getConnection(jdbcUrl)
-        connection.autoCommit = true
+        val config = HikariConfig()
+        config.jdbcUrl = jdbcUrl
     
-        val statement: Statement = connection.createStatement()
-        statement.queryTimeout = 30
-        statement.executeUpdate("drop table if exists person")
-        statement.executeUpdate("create table person (id string primary key)")
-        statement.executeUpdate("create unique index keyindex on person(id)")
+        dataSource = HikariDataSource(config)
         
-        insertPrepared = connection.prepareStatement("insert or ignore into person values(?)")
-        containsPrepared = connection.prepareStatement("select * from person where id = ?")
+        initializeTable()
+    }
+    
+    private fun initializeTable() {
+        var con : Connection? = null
+        
+        try {
+            con = dataSource.getConnection()
+            val statement = con.createStatement()
+            
+            statement.executeUpdate("create table if not exists person (id string primary key)")
+            statement.executeUpdate("create unique index if not exists keyindex on person(id)")
+            
+        } finally {
+            con?.close()
+        }
+    }
+    
+    fun get() : DatabaseAdapter {
+        return DatabaseAdapterImpl(dataSource)
+    }
+}
+
+class DatabaseAdapterImpl(private val dataSource: DataSource) : DatabaseAdapter {
+    
+    private fun <T> ensureConnection(func: (Connection) -> T) : T {
+        var con : Connection? = null
+    
+        try {
+            con = dataSource.getConnection()
+            return func(con)
+        } finally {
+            con?.close()
+        }
     }
     
     override fun insertKeyIfNone(key: String): Boolean {
-        insertPrepared.setString(1, key)
-        val result = insertPrepared.executeUpdate()
-        
-        return result >= 1
+        return ensureConnection {
+            var insertPrepared : PreparedStatement? = null
+            
+            try {
+                insertPrepared = it.prepareStatement("insert or ignore into person values(?)")
+    
+                insertPrepared.setString(1, key)
+                val result = insertPrepared.executeUpdate()
+    
+                result >= 1
+            } finally {
+                insertPrepared?.close()
+            }
+        }
     }
     
     override fun contains(key: String): Boolean {
-        containsPrepared.setString(1, key)
-        val result = containsPrepared.executeQuery()
-        
-        return result.next()
+        return ensureConnection {
+            var containsPrepared : PreparedStatement? = null
+            
+            try {
+                containsPrepared = it.prepareStatement("select * from person where id = ?")
+                
+                containsPrepared.setString(1, key)
+                val result = containsPrepared.executeQuery()
+    
+                result.next()
+            } finally {
+                containsPrepared?.close()
+            }
+        }
     }
 }

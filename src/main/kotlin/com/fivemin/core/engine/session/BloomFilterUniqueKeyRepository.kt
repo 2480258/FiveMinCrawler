@@ -100,12 +100,11 @@ class FinishObserverImpl : FinishObserver {
 
 class BloomFilterUniqueKeyRepository constructor(
     factory: BloomFilterFactory,
-    serialized: Option<SerializableAMQ>,
+    private val persister: UniqueKeyPersister,
     private val finishObserver: FinishObserver
 ) : UniqueKeyRepository, SessionRepository, DetachObserver {
     
     private val notDetachableFilter: SerializableAMQ
-    private val detachableFilter: SerializableAMQ
     
     private val temporaryUniqueKeyRepository = TemporaryUniqueKeyRepository()
     private val uniqueKeyTokenFactory = UniqueKeyTokenFactory()
@@ -115,11 +114,7 @@ class BloomFilterUniqueKeyRepository constructor(
     }
     
     init {
-        detachableFilter = serialized.fold({ factory.createEmpty() }, {
-            it
-        })
-        
-        notDetachableFilter = detachableFilter.copy()
+        notDetachableFilter = factory.createEmpty()
     }
     
     override fun create(parent: Option<SessionToken>): SessionInfo {
@@ -129,8 +124,10 @@ class BloomFilterUniqueKeyRepository constructor(
     override fun addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken {
         val token = uniqueKeyTokenFactory.create(key)
         if (notDetachableFilter.put(key)) {
-            if (!detachableFilter.put(key)) { //BloomFilter.put() works atomically, so in this line it is guaranteed that this is not a duplicated key.
-                throw DuplicateKeyException()
+            if (!persister.persistKey(key)) {
+                // There's a same key if persistKey returns false
+                // No need to lock: DB can do lookup more than once in rare case.
+                notDetachableFilter.put(key) // Add to cache
             }
         } else {
             throw DuplicateKeyException()
@@ -164,13 +161,6 @@ class BloomFilterUniqueKeyRepository constructor(
         logger.debug("$key < $token < added uniquekey with temparatory")
         
         return token
-    }
-    
-    /**
-     * Not Thread-Safe. Call it only if crawling is finished.
-     */
-    override fun export(): SerializableAMQ {
-        return detachableFilter
     }
     
     private fun conveyToDetachable(token: UniqueKeyToken) {

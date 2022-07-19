@@ -105,6 +105,7 @@ dependencies {
     implementation("org.brotli:dec:0.1.2")
     implementation("com.google.guava:guava:31.1-jre")
     
+    implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.xerial:sqlite-jdbc:3.36.0.3")
     
     testImplementation(kotlin("test"))
