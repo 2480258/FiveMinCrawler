@@ -34,37 +34,6 @@ import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.*
 
-class ResumeDataFactory {
-
-    companion object {
-        private val logger = LoggerController.getLogger("ResumeDataFactory")
-    }
-
-    @OptIn(ExperimentalSerializationApi::class)
-    fun get(file: File, factory: SerializedBloomFilterFactory): Either<Throwable, ResumeOption> {
-        val stream = file.inputStream()
-        
-        try {
-            return Either.catch{
-                ResumeOption(factory.createWithInput(stream))
-            }
-        } finally {
-            stream.close()
-        }
-    }
-
-    @OptIn(ExperimentalSerializationApi::class)
-    fun save(option: ResumeOption): (FileIOToken) -> Unit {
-        
-        return {
-            logger.info("Serializing resume file")
-            it.openFileWriteStream {
-                option.archivedSessionSet.exportTo(it)
-            }
-        }
-    }
-}
-
 class ResumeDataNameGenerator(val option: StartTaskOption) {
     fun generate(): String {
 

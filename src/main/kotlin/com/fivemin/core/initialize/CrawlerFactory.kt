@@ -23,9 +23,9 @@ package com.fivemin.core.initialize
 import arrow.core.*
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.crawlingTask.*
-import com.fivemin.core.engine.session.BloomFilterUniqueKeyRepository
-import com.fivemin.core.engine.session.FinishObserverImpl
+import com.fivemin.core.engine.session.*
 import com.fivemin.core.engine.session.bFilter.BloomFilterFactoryImpl
+import com.fivemin.core.engine.session.database.DatabaseAdapterFactoryImpl
 import com.fivemin.core.engine.transaction.*
 import com.fivemin.core.engine.transaction.export.ExportParser
 import com.fivemin.core.engine.transaction.export.ExportTransactionPolicy
@@ -48,7 +48,7 @@ import java.net.URI
 
 @Serializable
 data class ResumeOption(
-    val archivedSessionSet: SerializableAMQ
+    val jdbcUrl: String
 )
 
 data class SubPolicyCollection(
@@ -74,7 +74,11 @@ data class ParseOption(
     val requesterSelector: RequesterSelector
 )
 
-data class CrawlerObjects constructor(val deq: SRTFOptimizationPolicy, val keyEx: SRTFKeyExtractor, val descriptFac: SRTFPageDescriptorFactory){
+data class CrawlerObjects constructor(
+    val deq: SRTFOptimizationPolicy,
+    val keyEx: SRTFKeyExtractor,
+    val descriptFac: SRTFPageDescriptorFactory
+) {
 
 }
 
@@ -87,23 +91,28 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     private val directIO = virtualOption.directIO
     private val exportState = ExportStateImpl(directIO, none())
     private val finishObserver = FinishObserverImpl()
-    private val sessionUniqueKeyFilter = BloomFilterUniqueKeyRepository(BloomFilterFactoryImpl(), virtualOption.resumeOption.map { it.archivedSessionSet }, finishObserver)
+    private val sessionUniqueKeyFilter = CompositeUniqueKeyRepository(
+        createUniqueKeyPersister(virtualOption.resumeOption.jdbcUrl),
+        BloomFilterCache(BloomFilterFactoryImpl()),
+        TemporaryUniqueKeyRepository(),
+        UniqueKeyTokenFactory()
+    )
     
     
     private val taskFactory: CrawlerTaskFactoryFactory =
         createFactory(virtualOption.obj, virtualOption.subPolicyCollection)
-
+    
     suspend fun start(uri: URI): Either<Throwable, ExportTransaction<Request>> {
         val task = taskFactory.getFactory<Request>()
             .get4<
-                InitialTransaction<Request>,
-                PrepareTransaction<Request>,
-                FinalizeRequestTransaction<Request>,
-                SerializeTransaction<Request>,
-                ExportTransaction<Request>>(
+                    InitialTransaction<Request>,
+                    PrepareTransaction<Request>,
+                    FinalizeRequestTransaction<Request>,
+                    SerializeTransaction<Request>,
+                    ExportTransaction<Request>>(
                 DocumentType.DEFAULT
             )
-
+        
         return coroutineScope {
             task.start(
                 InitialTransactionImpl<Request>(
@@ -120,49 +129,57 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
                 TaskInfo(provider, taskFactory),
                 SessionInitStateImpl(
                     SessionInfo(finishObserver, sessionUniqueKeyFilter),
-                    SessionData(sessionUniqueKeyFilter, sessionUniqueKeyFilter),
+                    SessionData(sessionUniqueKeyFilter, SessionRepositoryImpl(sessionUniqueKeyFilter, finishObserver)),
                     SessionContext(LocalUniqueKeyTokenRepo(), none())
                 )
             ).await()
         }
     }
-
-    fun waitForFinish(): ResumeOption {
+    
+    fun waitForFinish() {
         finishObserver.waitFinish()
-        return ResumeOption(sessionUniqueKeyFilter.export())
     }
-
+    
+    private fun createUniqueKeyPersister(jdbcUrl: String): UniqueKeyPersister {
+        val factory = DatabaseAdapterFactoryImpl(jdbcUrl)
+        return UniqueKeyPersisterImpl(factory.get())
+    }
+    
     private fun createFactory(
         obj: CrawlerObjects,
         additional: SubPolicyCollection
     ): CrawlerTaskFactoryFactory {
         val def = getDefaultSubPolicyCollection()
-
+        
         val merged = SubPolicyCollection(
             def.preprocess.plus(additional.preprocess),
             def.request.plus(additional.request),
             def.serialize.plus(additional.serialize),
             def.export.plus(additional.export)
         )
-
+        
         return CrawlerTaskFactoryFactoryImpl(DocumentPolicyStorageFactoryCollector(getDefaultPolicy(obj, merged)))
     }
-
+    
     private fun getDefaultPolicy(
         obj: CrawlerObjects,
         subpol: SubPolicyCollection
     ): DocumentPolicyStorageFactory {
         val movefac = getDefaultMovementFactory(obj.deq, obj.keyEx, obj.descriptFac)
-
+        
         val prepare = PrepareRequestTransactionPolicy(AbstractPolicyOption(subpol.preprocess), movefac)
         val request = FinalizeRequestTransactionPolicy(AbstractPolicyOption(subpol.request), movefac)
         val serialize = SerializeTransactionPolicy(AbstractPolicyOption(subpol.serialize), movefac)
         val export = ExportTransactionPolicy(AbstractPolicyOption(subpol.export), movefac)
-
+        
         return DocumentPolicyStorageFactory(prepare, request, serialize, export)
     }
-
-    private fun getDefaultMovementFactory(deq: SRTFOptimizationPolicy, keyEx: SRTFKeyExtractor, descriptFac: SRTFPageDescriptorFactory): MovementFactory<Request> {
+    
+    private fun getDefaultMovementFactory(
+        deq: SRTFOptimizationPolicy,
+        keyEx: SRTFKeyExtractor,
+        descriptFac: SRTFPageDescriptorFactory
+    ): MovementFactory<Request> {
         return MovementFactoryImpl(
             virtualOption.parseOption.preParser,
             RequestWaiter(getRequestTaskFactory(deq, keyEx, descriptFac)),
@@ -171,18 +188,26 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
             virtualOption.parseOption.postParser
         )
     }
-
-    private fun getRequestQueue(deq: SRTFOptimizationPolicy, keyEx: SRTFKeyExtractor, descriptFac: SRTFPageDescriptorFactory): RequestQueue {
+    
+    private fun getRequestQueue(
+        deq: SRTFOptimizationPolicy,
+        keyEx: SRTFKeyExtractor,
+        descriptFac: SRTFPageDescriptorFactory
+    ): RequestQueue {
         val count = controller.getSettings("MaxRequestThread").map { it.toInt() }.fold({ 1 }, { it })
-
+        
         if (count < 1) {
             throw IllegalArgumentException("MaxRequestThread is below 1")
         }
-
+        
         return WSQueue(deq, keyEx, descriptFac, count)
     }
-
-    private fun getRequestTaskFactory(deq: SRTFOptimizationPolicy, keyEx: SRTFKeyExtractor, descriptFac: SRTFPageDescriptorFactory): RequesterTaskFactory {
+    
+    private fun getRequestTaskFactory(
+        deq: SRTFOptimizationPolicy,
+        keyEx: SRTFKeyExtractor,
+        descriptFac: SRTFPageDescriptorFactory
+    ): RequesterTaskFactory {
         return RequesterTaskFactoryImpl(
             RequestTaskOption(
                 virtualOption.parseOption.requesterSelector,
@@ -190,7 +215,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
             )
         )
     }
-
+    
     private fun getDefaultSubPolicyCollection(): SubPolicyCollection {
         val maxPages = controller.getSettings(MAX_PAGE_LIMIT_KEY).map {
             it.toIntOrNull().toOption().map {
@@ -201,7 +226,11 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
         val additionalPrepareSubPolicy = listOf(maxPages).filterOption()
         
         return SubPolicyCollection(
-            listOf<TransactionSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request>>(MarkDetachablePolicy(), DetachableSubPolicy(), AddTagAliasSubPolicy()).plus(additionalPrepareSubPolicy),
+            listOf<TransactionSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request>>(
+                MarkDetachablePolicy(),
+                DetachableSubPolicy(),
+                AddTagAliasSubPolicy()
+            ).plus(additionalPrepareSubPolicy),
             listOf(RedirectSubPolicy(), RetrySubPolicy(), ResponseDisposeSubPolicy()),
             listOf(),
             listOf()

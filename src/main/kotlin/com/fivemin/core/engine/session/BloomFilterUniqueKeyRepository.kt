@@ -30,6 +30,145 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
+class BloomFilterCache(private val factory: BloomFilterFactory) {
+    val bloomFilter = factory.createEmpty()
+    
+    fun put(key: UniqueKey): Boolean {
+        return bloomFilter.put(key)
+    }
+}
+
+class SessionRepositoryImpl(private val detachObserver: DetachObserver, private val finishObserver: FinishObserver) :
+    SessionRepository {
+    override fun create(parent: Option<SessionToken>): SessionInfo {
+        return SessionInfo(finishObserver, detachObserver)
+    }
+}
+
+class CompositeUniqueKeyRepository(
+    
+    private val persister: UniqueKeyPersister,
+    private val cache: BloomFilterCache,
+    private val temporaryUniqueKeyRepository: TemporaryUniqueKeyRepository,
+    private val uniqueKeyTokenFactory: UniqueKeyTokenFactory
+) :
+    UniqueKeyRepository, DetachObserver {
+    
+    companion object {
+        private val logger = LoggerController.getLogger("CompositeUniqueKeyRepository")
+    }
+    
+    override fun addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken {
+        if (!cache.put(key)) { // insertion failed -> already has the key
+            // This process is atomic so no same key can go below
+            throw DuplicateKeyException()
+        }
+        
+        // insertion succeed -> key is now exists in cache
+        
+        if (!persister.persistKey(key)) { // insertion failed -> already has the key
+            // This process is atomic so no same key can go below
+            throw DuplicateKeyException()
+        }
+        
+        // insertion succeed -> key is now exists in DB
+        
+        //now OK
+        val token = uniqueKeyTokenFactory.create(key)
+        logger.debug("$key < $token < added uniquekey with detachable")
+        
+        return token
+    }
+    
+    override fun addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken {
+        if (!cache.put(key)) { // insertion failed -> already has the key
+            // This process is atomic so no same key can go below
+            throw DuplicateKeyException()
+        }
+        
+        // insertion succeed -> key is now exists in cache
+        
+        if (persister.contains(key)) { // check failed -> already has the key
+            throw DuplicateKeyException()
+        }
+        
+        //now OK
+        val token = uniqueKeyTokenFactory.create(key)
+        logger.debug("$key < $token < added uniquekey with not detachable")
+        
+        return token
+    }
+    
+    override fun addUniqueKey(key: UniqueKey): UniqueKeyToken {
+        if (!cache.put(key)) { // insertion failed -> already has the key
+            // This process is atomic so no same key can go below
+            throw DuplicateKeyException()
+        }
+        
+        // insertion succeed -> key is now exists in cache
+        
+        if (persister.contains(key)) { // check failed -> already has the key
+            throw DuplicateKeyException()
+        }
+        
+        //now OK
+        val token = uniqueKeyTokenFactory.create(key)
+        logger.debug("$key < $token < added uniquekey with temparatory")
+        temporaryUniqueKeyRepository.addUniqueKey(key) //thread-safe, idempotent
+        
+        return token
+    }
+    
+    override fun notifyMarkedDetachable(tokens: Iterable<UniqueKeyToken>) {
+        tokens.forEach {
+            conveyToDetachable(it)
+        }
+    }
+    
+    override fun notifyMarkedNotDetachable(tokens: Iterable<UniqueKeyToken>) {
+        tokens.forEach {
+            conveyToNotDetachable(it)
+        }
+    }
+    
+    private fun conveyToDetachable(token: UniqueKeyToken) {
+        val key = temporaryUniqueKeyRepository.deleteUniqueKey(token) //thread-safe
+        key.map { //no race condition with duplicated key; already filtered
+            if (!persister.persistKey(it)) {
+                throw DuplicateKeyException()
+            }
+        }
+        
+        logger.debug("$token < converys to detachable")
+    }
+    
+    
+    private fun conveyToNotDetachable(token: UniqueKeyToken) {
+        temporaryUniqueKeyRepository.deleteUniqueKey(token) //thread-safe
+        logger.debug("$token < converys to not detachable")
+    }
+    
+    /**
+     * Test purpose.
+     */
+    fun containsDetachable(key: UniqueKey): Boolean {
+        return persister.contains(key)
+    }
+    
+    /**
+     * Test purpose.
+     */
+    fun containsNotDetachableAndAdd(key: UniqueKey): Boolean {
+        return !cache.put(key)
+    }
+    
+    /**
+     * Test purpose.
+     */
+    fun isTempStorageEmpty(): Boolean {
+        return temporaryUniqueKeyRepository.size == 0
+    }
+}
 
 class UniqueKeyTokenFactory {
     fun create(key: UniqueKey): UniqueKeyToken {
@@ -60,14 +199,6 @@ class TemporaryUniqueKeyRepository {
     fun deleteUniqueKey(token: UniqueKeyToken): Option<UniqueKey> {
         return hashMap.remove(token.tokenNumber).toOption()
     }
-    
-    fun contains(token: UniqueKeyToken): Boolean {
-        return hashMap.contains(token)
-    }
-    
-    fun contains(key: UniqueKey): Boolean {
-        return hashMap.containsValue(key)
-    }
 }
 
 class FinishObserverImpl : FinishObserver {
@@ -95,121 +226,5 @@ class FinishObserverImpl : FinishObserver {
     
     override fun waitFinish() {
         finish.await()
-    }
-}
-
-class BloomFilterUniqueKeyRepository constructor(
-    factory: BloomFilterFactory,
-    private val persister: UniqueKeyPersister,
-    private val finishObserver: FinishObserver
-) : UniqueKeyRepository, SessionRepository, DetachObserver {
-    
-    private val notDetachableFilter: SerializableAMQ
-    
-    private val temporaryUniqueKeyRepository = TemporaryUniqueKeyRepository()
-    private val uniqueKeyTokenFactory = UniqueKeyTokenFactory()
-    
-    companion object {
-        private val logger = LoggerController.getLogger("BloomFilterUniqueKeyRepository")
-    }
-    
-    init {
-        notDetachableFilter = factory.createEmpty()
-    }
-    
-    override fun create(parent: Option<SessionToken>): SessionInfo {
-        return SessionInfo(finishObserver, this)
-    }
-    
-    override fun addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken {
-        val token = uniqueKeyTokenFactory.create(key)
-        if (notDetachableFilter.put(key)) {
-            if (!persister.persistKey(key)) {
-                // There's a same key if persistKey returns false
-                // No need to lock: DB can do lookup more than once in rare case.
-                notDetachableFilter.put(key) // Add to cache
-            }
-        } else {
-            throw DuplicateKeyException()
-        }
-        
-        logger.debug("$key < $token < added uniquekey with detachable")
-        
-        return token
-    }
-    
-    override fun addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken {
-        val token = uniqueKeyTokenFactory.create(key)
-        if (!notDetachableFilter.put(key)) {
-            throw DuplicateKeyException()
-        }
-        
-        logger.debug("$key < $token < added uniquekey with not detachable")
-        
-        return token
-    }
-    
-    override fun addUniqueKey(key: UniqueKey): UniqueKeyToken {
-        val token = uniqueKeyTokenFactory.create(key)
-        if (notDetachableFilter.put(key)) {
-            //BloomFilter.put() works atomically, so in this line it is guaranteed that this is not a duplicated key.
-            temporaryUniqueKeyRepository.addUniqueKey(key) //thread-safe
-        } else {
-            throw DuplicateKeyException()
-        }
-        
-        logger.debug("$key < $token < added uniquekey with temparatory")
-        
-        return token
-    }
-    
-    private fun conveyToDetachable(token: UniqueKeyToken) {
-        val key = temporaryUniqueKeyRepository.deleteUniqueKey(token) //thread-safe
-        key.map { //no race condition with duplicated key; already filtered
-            if (!detachableFilter.put(it)) { //should be not happen except false positive.
-                throw DuplicateKeyException()
-            }
-        }
-        
-        logger.debug("$token < converys to detachable")
-    }
-    
-    
-    private fun conveyToNotDetachable(token: UniqueKeyToken) {
-        temporaryUniqueKeyRepository.deleteUniqueKey(token) //thread-safe
-        logger.debug("$token < converys to not detachable")
-    }
-    
-    override fun notifyMarkedDetachable(tokens: Iterable<UniqueKeyToken>) {
-        tokens.forEach {
-            conveyToDetachable(it)
-        }
-    }
-    
-    override fun notifyMarkedNotDetachable(tokens: Iterable<UniqueKeyToken>) {
-        tokens.forEach {
-            conveyToNotDetachable(it)
-        }
-    }
-    
-    /**
-     * Test purpose.
-     */
-    fun containsDetachable(key: UniqueKey): Boolean {
-        return detachableFilter.mightContains(key)
-    }
-    
-    /**
-     * Test purpose.
-     */
-    fun containsNotDetachable(key: UniqueKey): Boolean {
-        return notDetachableFilter.mightContains(key)
-    }
-    
-    /**
-     * Test purpose.
-     */
-    fun isTempStorageEmpty(): Boolean {
-        return temporaryUniqueKeyRepository.size == 0
     }
 }

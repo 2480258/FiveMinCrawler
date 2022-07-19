@@ -32,12 +32,15 @@ import javax.sql.DataSource
 
 
 class DatabaseAdapterFactoryImpl(private val jdbcUrl: String) {
-    val dataSource: HikariDataSource
+    private val dataSource: HikariDataSource
     
     init {
         val config = HikariConfig()
         config.jdbcUrl = jdbcUrl
-    
+        config.connectionTimeout = 500000
+        config.maximumPoolSize = 1
+        //config.addDataSourceProperty("org.sqlite.SQLiteDataSource.BusyTimeout", "500000")
+        //config.addDataSourceProperty("org.sqlite.SQLiteDataSource.BusyTimeout", "500000")
         dataSource = HikariDataSource(config)
         
         initializeTable()
@@ -50,8 +53,8 @@ class DatabaseAdapterFactoryImpl(private val jdbcUrl: String) {
             con = dataSource.getConnection()
             val statement = con.createStatement()
             
-            statement.executeUpdate("create table if not exists person (id string primary key)")
-            statement.executeUpdate("create unique index if not exists keyindex on person(id)")
+            statement.executeUpdate("create table if not exists keys (id string primary key)")
+            statement.executeUpdate("create unique index if not exists keyindex on keys(id)")
             
         } finally {
             con?.close()
@@ -81,7 +84,7 @@ class DatabaseAdapterImpl(private val dataSource: DataSource) : DatabaseAdapter 
             var insertPrepared : PreparedStatement? = null
             
             try {
-                insertPrepared = it.prepareStatement("insert or ignore into person values(?)")
+                insertPrepared = it.prepareStatement("insert or ignore into keys values(?)")
     
                 insertPrepared.setString(1, key)
                 val result = insertPrepared.executeUpdate()
@@ -98,7 +101,7 @@ class DatabaseAdapterImpl(private val dataSource: DataSource) : DatabaseAdapter 
             var containsPrepared : PreparedStatement? = null
             
             try {
-                containsPrepared = it.prepareStatement("select * from person where id = ?")
+                containsPrepared = it.prepareStatement("select * from keys where id = ?")
                 
                 containsPrepared.setString(1, key)
                 val result = containsPrepared.executeQuery()

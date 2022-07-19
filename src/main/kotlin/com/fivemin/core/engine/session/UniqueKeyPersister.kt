@@ -29,5 +29,12 @@ interface UniqueKeyPersister {
     fun contains(key: UniqueKey) : Boolean
 }
 
-class UniqueKeyPersisterImpl {
+class UniqueKeyPersisterImpl (private val databaseAdapter: DatabaseAdapter) : UniqueKeyPersister{
+    override fun persistKey(key: UniqueKey): Boolean {
+        return databaseAdapter.insertKeyIfNone(key.toString())
+    }
+    
+    override fun contains(key: UniqueKey): Boolean {
+        return databaseAdapter.contains(key.toString())
+    }
 }

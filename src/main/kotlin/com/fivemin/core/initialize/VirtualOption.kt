@@ -40,7 +40,7 @@ data class VirtualOption(
     val parseOption: ParseOption,
     val controller: ConfigController,
     val directIO: DirectIO,
-    val resumeOption: Option<ResumeOption>,
+    val resumeOption: ResumeOption,
     val subPolicyCollection: SubPolicyCollection,
     val obj: CrawlerObjects
 )
@@ -57,7 +57,6 @@ class StartTaskOption(
         private val logger = LoggerController.getLogger("StartTaskOption")
     }
     
-    private val resume: ResumeDataFactory = ResumeDataFactory()
     private val configFileName = "fivemin.config.json"
     suspend fun run() {
         // TODO Log
@@ -69,11 +68,6 @@ class StartTaskOption(
         crawlerFactory.start(URI(mainUriTarget))
         
         var req = crawlerFactory.waitForFinish()
-        
-        var tkn =
-            ret.directIO.getToken(UsingPath.RESUME).withAdditionalPathFile(ResumeDataNameGenerator(this).generate())
-        
-        resume.save(req)(tkn)
     }
     
     private fun getConfigString(): String {
@@ -95,18 +89,21 @@ class StartTaskOption(
         var io = DirectIOImpl(config, rootPath)
         var fac = JsonParserOptionFactory(file.readText(), listOf(), io) // TODO MEF
         
-        return VirtualOption(fac.option, config, io, getResumeOption(), srtf.policies, CrawlerObjects(srtf.deq, srtf.keyEx, srtf.descriptFac))
+        return VirtualOption(
+            fac.option,
+            config,
+            io,
+            getResumeOption(),
+            srtf.policies,
+            CrawlerObjects(srtf.deq, srtf.keyEx, srtf.descriptFac)
+        )
     }
     
-    private fun getResumeOption(): Option<ResumeOption> {
+    private fun getResumeOption(): ResumeOption {
         return resumeAt.map {
-            var ret = resume.get(File(it), SerializedBloomFilterFactoryImpl())
-            
-            ret.swap().map {
-                logger.warn("can't load resume file: " + it.localizedMessage)
-            }
-            
-            ret.orNull().toOption()
-        }.flatten()
+            ResumeOption(it)
+        }.fold({
+            ResumeOption(ResumeDataNameGenerator(this).generate())
+        }, { it })
     }
 }

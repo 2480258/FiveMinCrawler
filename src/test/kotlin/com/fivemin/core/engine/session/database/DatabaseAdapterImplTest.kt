@@ -20,23 +20,30 @@
 
 package com.fivemin.core.engine.session.database
 
+import com.fivemin.core.engine.session.DatabaseAdapter
+import com.fivemin.core.engine.session.DatabaseAdapterFactory
 import org.testng.annotations.Test
 
 
 class DatabaseAdapterImplTest {
     
-    lateinit var adapterImpl: DatabaseAdapterImpl
+    fun getAdapter() : DatabaseAdapter {
+        val factory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
+        return factory.get()
+    }
+    
+    lateinit var adapterImpl: DatabaseAdapter
     
     @Test
     fun insertIfNoneInputTest() {
-        adapterImpl = DatabaseAdapterImpl("jdbc:sqlite::memory:")
+        adapterImpl = getAdapter()
         
         assert(adapterImpl.insertKeyIfNone("test"))
     }
     
     @Test
     fun insertIfNoneDuplicatedTest() {
-        adapterImpl = DatabaseAdapterImpl("jdbc:sqlite::memory:")
+        adapterImpl = getAdapter()
         
         adapterImpl.insertKeyIfNone("test")
         assert(!adapterImpl.insertKeyIfNone("test"))
@@ -44,14 +51,14 @@ class DatabaseAdapterImplTest {
     
     @Test
     fun containsWhenNotContainedTest() {
-        adapterImpl = DatabaseAdapterImpl("jdbc:sqlite::memory:")
+        adapterImpl = getAdapter()
         
         assert(!adapterImpl.contains("test"))
     }
     
     @Test
     fun containsWhenContainsTest() {
-        adapterImpl = DatabaseAdapterImpl("jdbc:sqlite::memory:")
+        adapterImpl = getAdapter()
         
         adapterImpl.insertKeyIfNone("test")
         assert(adapterImpl.contains("test"))

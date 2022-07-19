@@ -21,14 +21,17 @@
 package com.fivemin.core.engine.session
 
 import arrow.core.none
+import com.fivemin.core.ElemIterator
 import com.fivemin.core.engine.UniqueKey
 import com.fivemin.core.engine.session.bFilter.BloomFilterImpl
+import com.fivemin.core.engine.session.database.DatabaseAdapterFactoryImpl
 import io.mockk.every
 import io.mockk.mockk
 import org.testng.Assert.assertThrows
 import org.testng.annotations.AfterMethod
 import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
@@ -36,7 +39,7 @@ import kotlin.concurrent.withLock
 
 class BloomFilterUniqueKeyRepositoryTest {
     
-    lateinit var bf: BloomFilterUniqueKeyRepository
+    lateinit var bf: CompositeUniqueKeyRepository
     lateinit var uniq: UniqueKeyIterator
     
     @BeforeMethod
@@ -46,14 +49,22 @@ class BloomFilterUniqueKeyRepositoryTest {
             factory.createEmpty()
         } returns (BloomFilterImpl(100, 0.000001))
         
-        bf = BloomFilterUniqueKeyRepository(factory, none())
+        val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
+        val persister = UniqueKeyPersisterImpl(persistFactory.get())
+        
+        bf = CompositeUniqueKeyRepository(
+            persister,
+            BloomFilterCache(factory),
+            TemporaryUniqueKeyRepository(),
+            UniqueKeyTokenFactory()
+        )
         uniq = UniqueKeyIterator()
     }
     
     @AfterMethod
     fun tearDown() {
     }
-
+    
     
     @Test
     fun testAddUniqueKeyWithDetachableThrows_ThrowsWithDuplicatedKey() {
@@ -105,62 +116,153 @@ class BloomFilterUniqueKeyRepositoryTest {
         }
     }
     
-    
-    //@Test - Too much time taken
-    fun testMultiThreaded() {
-        val threads = ConcurrentHashMap<Thread, Any>()
-        
+    @Test
+    fun testAddUniqueKey_ThrowsAfterPersister() {
         val factory: BloomFilterFactory = mockk()
         every {
             factory.createEmpty()
-        } returns (BloomFilterImpl(10000, 0.000001))
+        } returns (BloomFilterImpl(100, 0.000001))
         
-        val bff = BloomFilterUniqueKeyRepository(factory, none())
         
-        for (i in 0 until 1000) {
-            for (j in 0 until 10) {
-                val t = Thread {
-                    if ((i + j) % 4 == 0) addDetachable(bff, uniq.getNext())
-                    if ((i + j) % 4 == 1) addNotDetachable(bff, uniq.getNext())
-                    if ((i + j) % 4 == 2) addKeyAndSetDetachable(bff, uniq.getNext())
-                    if ((i + j) % 4 == 3) addKeyAndSetNotDetachable(bff, uniq.getNext())
-                }
-                t.start()
-                threads[t] = ""
-            }
+        val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
+        val persister = UniqueKeyPersisterImpl(persistFactory.get())
+        
+        val bff = CompositeUniqueKeyRepository(
+            persister,
+            BloomFilterCache(factory),
+            TemporaryUniqueKeyRepository(),
+            UniqueKeyTokenFactory()
+        )
+        
+        val key = uniq.getNext()
+        
+        persister.persistKey(key)
+        
+        assertThrows {
+            bff.addUniqueKey(key)
         }
-        
-        for (t in threads) {
-            t.key.join()
-        }
-        
-        println(bff.isTempStorageEmpty())
-        assert(bff.isTempStorageEmpty())
     }
     
-    fun addDetachable(bff: BloomFilterUniqueKeyRepository, key: UniqueKey) {
+    @Test
+    fun testAddUniqueKeyWithNonDetachable_ThrowsAfterPersister() {
+        val factory: BloomFilterFactory = mockk()
+        every {
+            factory.createEmpty()
+        } returns (BloomFilterImpl(100, 0.000001))
+        
+        
+        val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
+        val persister = UniqueKeyPersisterImpl(persistFactory.get())
+        
+        val bff = CompositeUniqueKeyRepository(
+            persister,
+            BloomFilterCache(factory),
+            TemporaryUniqueKeyRepository(),
+            UniqueKeyTokenFactory()
+        )
+        
+        val key = uniq.getNext()
+        
+        persister.persistKey(key)
+        
+        assertThrows {
+            bff.addUniqueKeyWithNotDetachableThrows(key)
+        }
+    }
+    
+    @Test
+    fun testMultiThreaded() {
+        try {
+            File("./sample.db").deleteRecursively()
+            
+            val threads = ConcurrentHashMap<Thread, Any>()
+            
+            val factory: BloomFilterFactory = mockk()
+            every {
+                factory.createEmpty()
+            } returns (BloomFilterImpl(1000, 0.000001))
+            
+            val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite:sample.db")
+            val persister = UniqueKeyPersisterImpl(persistFactory.get())
+            
+            val bff = CompositeUniqueKeyRepository(
+                persister,
+                BloomFilterCache(factory),
+                TemporaryUniqueKeyRepository(),
+                UniqueKeyTokenFactory()
+            )
+            
+            val elemIterator = ElemIterator<UniqueKey>(UniqueKeyIterator())
+            
+            (0 until 1200).forEach {
+                elemIterator.gen()
+            }
+            
+            for (i in 0 until 300) {
+                for (j in 0 until 4) {
+                    val t = Thread {
+                        if (j == 0) addDetachable(bff, elemIterator[i]!!)
+                        if (j == 1) addNotDetachable(bff, elemIterator[i + 300]!!)
+                        if (j == 2) addKeyAndSetDetachable(bff, elemIterator[i + 600]!!)
+                        if (j == 3) addKeyAndSetNotDetachable(bff, elemIterator[i + 900]!!)
+                    }
+                    t.start()
+                    threads[t] = ""
+                }
+            }
+            
+            for (t in threads) {
+                t.key.join()
+            }
+            
+            assert(bff.isTempStorageEmpty())
+            
+            for (i in 0 until 300) {
+                assert(bff.containsDetachable(elemIterator[i]!!))
+            }
+            
+            for (i in 300 until 600) {
+                assert(bff.containsNotDetachableAndAdd(elemIterator[i]!!))
+            }
+            
+            for (i in 600 until 900) {
+                assert(bff.containsDetachable(elemIterator[i]!!))
+            }
+            
+            for (i in 900 until 1200) {
+                assert(bff.containsNotDetachableAndAdd(elemIterator[i]!!))
+            }
+            
+        } finally {
+            File("./sample.db").deleteRecursively()
+        }
+        
+    }
+    
+    
+    fun addDetachable(bff: CompositeUniqueKeyRepository, key: UniqueKey) {
         //println(key.toString())
         bff.addUniqueKeyWithDetachableThrows(key)
         assert(bff.containsDetachable(key))
     }
     
-    fun addNotDetachable(bff: BloomFilterUniqueKeyRepository, key: UniqueKey) {
+    fun addNotDetachable(bff: CompositeUniqueKeyRepository, key: UniqueKey) {
         //println(key.toString())
         bff.addUniqueKeyWithNotDetachableThrows(key)
-        assert(bff.containsNotDetachable(key))
+        assert(bff.containsNotDetachableAndAdd(key))
     }
     
-    fun addKeyAndSetDetachable(bff: BloomFilterUniqueKeyRepository, key: UniqueKey) {
+    fun addKeyAndSetDetachable(bff: CompositeUniqueKeyRepository, key: UniqueKey) {
         //println(key.toString())
         val token = bff.addUniqueKey(key)
         bff.notifyMarkedDetachable(listOf(token))
         assert(bff.containsDetachable(key))
     }
     
-    fun addKeyAndSetNotDetachable(bff: BloomFilterUniqueKeyRepository, key: UniqueKey) {
+    fun addKeyAndSetNotDetachable(bff: CompositeUniqueKeyRepository, key: UniqueKey) {
         //println(key.toString())
         val token = bff.addUniqueKey(key)
         bff.notifyMarkedNotDetachable(listOf(token))
-        assert(bff.containsNotDetachable(key))
+        assert(bff.containsNotDetachableAndAdd(key))
     }
 }

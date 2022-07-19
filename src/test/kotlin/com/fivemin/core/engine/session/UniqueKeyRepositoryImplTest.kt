@@ -29,6 +29,7 @@ import com.fivemin.core.UriIterator
 import com.fivemin.core.engine.SessionToken
 import com.fivemin.core.engine.UniqueKey
 import com.fivemin.core.engine.session.bFilter.BloomFilterImpl
+import com.fivemin.core.engine.session.database.DatabaseAdapterFactoryImpl
 import com.fivemin.core.engine.transaction.StringUniqueKey
 import io.mockk.every
 import io.mockk.mockk
@@ -47,7 +48,7 @@ class UniqueKeyIterator : IteratorElemFactory<UniqueKey> {
 
 class UniqueKeyRepositoryImplTest {
 
-    lateinit var r: BloomFilterUniqueKeyRepository
+    lateinit var r: CompositeUniqueKeyRepository
     var it = ElemIterator(UniqueKeyIterator())
 
     @BeforeMethod
@@ -57,8 +58,11 @@ class UniqueKeyRepositoryImplTest {
         every {
             mock.createEmpty()
         } returns (BloomFilterImpl(100, 0.00000001))
+    
+        val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
+        val persister = UniqueKeyPersisterImpl(persistFactory.get())
         
-        r = BloomFilterUniqueKeyRepository(mock, none())
+        r = CompositeUniqueKeyRepository(persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory())
         
         it = ElemIterator(UniqueKeyIterator())
     }
