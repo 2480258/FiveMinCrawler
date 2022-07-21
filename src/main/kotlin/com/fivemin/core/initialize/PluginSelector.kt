@@ -18,8 +18,14 @@
  *
  */
 
+package com.fivemin.core.initialize
 
-rootProject.name = "FiveMinCrawler"
-include("FiveMinTest")
-include("FiveMinDummyPlugin")
+data class PluginObject constructor(
+    val subPolicyCollection: SubPolicyCollection?) {
+}
 
+data class ModifyingObject constructor(val pluginNames: Iterable<String>, val subPolicyCollection: SubPolicyCollection)
+
+interface PluginSelector {
+    fun fold() : ModifyingObject
+}

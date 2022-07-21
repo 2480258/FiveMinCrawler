@@ -20,4 +20,12 @@
 
 package com.fivemin.core.initialize.mef
 
-interface MEFPlugin
+import com.fivemin.core.initialize.PluginObject
+
+interface MEFPlugin {
+    val pluginName: String
+    val priority: Int
+    
+    fun get(): PluginObject
+}
+

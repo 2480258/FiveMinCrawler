@@ -18,8 +18,18 @@
  *
  */
 
+package com.fivemin.core.initialize.mef
 
-rootProject.name = "FiveMinCrawler"
-include("FiveMinTest")
-include("FiveMinDummyPlugin")
+import org.testng.annotations.Test
 
+import org.testng.Assert.*
+
+class PluginSelectorImplTest {
+    @Test
+    fun testFold() {
+        val selector = PluginSelectorImpl("./plugins")
+        val result = selector.fold()
+        System.err.println(result)
+        assert(result.pluginNames.contains("DummyPlugin"))
+    }
+}
