@@ -33,6 +33,8 @@ jobs:
       run: chmod +x ./gradlew
     - name: Run Test Server
       run: ./gradlew :FiveMinTest:bootRun >/dev/null 2>&1 &
+    - name: Build Test Plugin
+      run: ./gradlew :FiveMinDummyPlugin:assemblePlugin
     - name: Sleeps 10s
       run: sleep 10s
     - name: Build with Gradlej
