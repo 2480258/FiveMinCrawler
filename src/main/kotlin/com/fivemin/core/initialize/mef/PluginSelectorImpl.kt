@@ -40,7 +40,6 @@ class PluginSelectorImpl constructor(private val pluginPath: String) : PluginSel
         
         pluginManager.loadPlugins()
         pluginManager.startPlugins()
-        
         return pluginManager.getExtensions(MEFPlugin::class.java)
     }
     
@@ -59,6 +58,6 @@ class PluginSelectorImpl constructor(private val pluginPath: String) : PluginSel
             source.merge(operands)
         }
         
-        return ModifyingObject(folded)
+        return ModifyingObject(plugins.map { it.pluginName }, folded)
     }
 }

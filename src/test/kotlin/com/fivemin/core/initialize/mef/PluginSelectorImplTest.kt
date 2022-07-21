@@ -18,14 +18,18 @@
  *
  */
 
-package com.fivemin.core.initialize
+package com.fivemin.core.initialize.mef
 
-data class PluginObject constructor(
-    val subPolicyCollection: SubPolicyCollection?) {
-}
+import org.testng.annotations.Test
 
-data class ModifyingObject constructor(val pluginNames: Iterable<String>, val subPolicyCollection: SubPolicyCollection)
+import org.testng.Assert.*
 
-interface PluginSelector {
-    fun fold() : ModifyingObject
+class PluginSelectorImplTest {
+    @Test
+    fun testFold() {
+        val selector = PluginSelectorImpl("./plugins")
+        val result = selector.fold()
+        
+        assert(result.pluginNames.contains("DummyPlugin"))
+    }
 }
