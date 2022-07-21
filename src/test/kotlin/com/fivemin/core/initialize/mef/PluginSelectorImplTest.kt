@@ -29,7 +29,7 @@ class PluginSelectorImplTest {
     fun testFold() {
         val selector = PluginSelectorImpl("./plugins")
         val result = selector.fold()
-        
+        System.err.println(result)
         assert(result.pluginNames.contains("DummyPlugin"))
     }
 }
