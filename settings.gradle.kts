@@ -21,4 +21,5 @@
 
 rootProject.name = "FiveMinCrawler"
 include("FiveMinTest")
+include("FiveMinDummyPlugin")
 

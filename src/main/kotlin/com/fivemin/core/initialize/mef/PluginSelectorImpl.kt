@@ -22,6 +22,7 @@ package com.fivemin.core.initialize.mef
 
 import arrow.core.filterOption
 import arrow.core.toOption
+import com.fivemin.core.LoggerController
 import com.fivemin.core.initialize.ModifyingObject
 import com.fivemin.core.initialize.PluginSelector
 import com.fivemin.core.initialize.SubPolicyCollection
@@ -30,6 +31,10 @@ import org.pf4j.DefaultPluginManager
 import java.nio.file.Paths
 
 class PluginSelectorImpl constructor(private val pluginPath: String) : PluginSelector {
+    companion object {
+        private val logger = LoggerController.getLogger("PluginSelectorImpl")
+    }
+    
     private fun loadPlugins(): List<MEFPlugin> {
         val pluginManager = DefaultPluginManager(Paths.get(pluginPath))
         
@@ -40,8 +45,14 @@ class PluginSelectorImpl constructor(private val pluginPath: String) : PluginSel
     }
     
     override fun fold(): ModifyingObject {
+        val plugins = loadPlugins().sortedByDescending { it.priority }
+        
+        plugins.forEach {
+            logger.info("${it.pluginName} < plugin loaded")
+        }
+        
         val collections =
-            loadPlugins().map { it.get() }.sortedByDescending { it.priority }.map { it.subPolicyCollection.toOption() }
+            plugins.map { it.get() }.map { it.subPolicyCollection.toOption() }
                 .filterOption()
         
         val folded = collections.fold(SubPolicyCollection(listOf(), listOf(), listOf(), listOf())) { source, operands ->

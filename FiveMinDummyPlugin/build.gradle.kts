@@ -18,14 +18,22 @@
  *
  */
 
-package com.fivemin.core.initialize
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.kapt3.base.Kapt.kapt
 
-data class PluginObject constructor(
-    val subPolicyCollection: SubPolicyCollection?) {
+plugins {
+    kotlin("jvm")
+    kotlin("kapt")
 }
 
-data class ModifyingObject constructor(val subPolicyCollection: SubPolicyCollection)
+repositories {
+    mavenCentral()
+}
 
-interface PluginSelector {
-    fun fold() : ModifyingObject
+dependencies {
+    compileOnly(rootProject)
+    compileOnly(kotlin("stdlib"))
+    
+    compileOnly("org.pf4j:pf4j:3.7.0")
+    kapt("org.pf4j:pf4j:3.7.0")
 }
