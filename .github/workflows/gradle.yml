@@ -37,6 +37,8 @@ jobs:
       run: ./gradlew :FiveMinDummyPlugin:assemblePlugin
     - name: Sleeps 10s
       run: sleep 10s
+    - name: Check Plugins
+      run: ls ./plugins
     - name: Build with Gradlej
       uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
       with:
