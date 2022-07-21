@@ -6,6 +6,9 @@ outputFiles.bin
 13.tmp
 FiveMinTest/build/*
 FiveMinTest/.gradle/*
+FiveMinDummyPlugin/build/*
+FiveMinDummyPlugin/.gradle/*
 /jacoco
 jacocoTestReport.xml
 sample.db
+plugins

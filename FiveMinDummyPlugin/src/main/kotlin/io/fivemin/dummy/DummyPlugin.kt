@@ -25,6 +25,7 @@ import com.fivemin.core.initialize.PluginObject
 import com.fivemin.core.initialize.SubPolicyCollection
 import com.fivemin.core.initialize.mef.MEFPlugin
 import org.pf4j.Extension
+import org.pf4j.ExtensionPoint
 
 /*
  *
@@ -47,7 +48,7 @@ import org.pf4j.Extension
  */
 
 @Extension
-class DummyPlugin : MEFPlugin{
+class DummyPlugin : ExtensionPoint, MEFPlugin{
     companion object {
         private val logger = LoggerController.getLogger("DummyPlugin")
     }
