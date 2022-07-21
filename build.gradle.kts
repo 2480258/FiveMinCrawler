@@ -126,6 +126,7 @@ tasks.jar {
 
 tasks.test {
     useTestNG()
+    testLogging.showStandardStreams = true
 }
 
 tasks.withType<KotlinCompile> {
