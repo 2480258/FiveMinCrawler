@@ -39,8 +39,6 @@ class DatabaseAdapterFactoryImpl(private val jdbcUrl: String) {
         config.jdbcUrl = jdbcUrl
         config.connectionTimeout = 500000
         config.maximumPoolSize = 1
-        //config.addDataSourceProperty("org.sqlite.SQLiteDataSource.BusyTimeout", "500000")
-        //config.addDataSourceProperty("org.sqlite.SQLiteDataSource.BusyTimeout", "500000")
         dataSource = HikariDataSource(config)
         
         initializeTable()

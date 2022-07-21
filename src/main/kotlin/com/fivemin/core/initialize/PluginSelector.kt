@@ -18,11 +18,15 @@
  *
  */
 
-package com.fivemin.core.initialize.mef
+package com.fivemin.core.initialize
 
-import com.fivemin.core.initialize.PluginObject
-
-interface MEFPlugin {
-    fun get(): PluginObject
+data class PluginObject constructor(
+    val priority: Int,
+    val subPolicyCollection: SubPolicyCollection?) {
 }
 
+data class ModifyingObject constructor(val subPolicyCollection: SubPolicyCollection)
+
+interface PluginSelector {
+    fun fold() : ModifyingObject
+}

@@ -29,6 +29,7 @@ import com.fivemin.core.engine.*
 import com.fivemin.core.engine.session.bFilter.SerializedBloomFilterFactoryImpl
 import com.fivemin.core.export.ConfigControllerImpl
 import com.fivemin.core.initialize.json.JsonParserOptionFactory
+import com.fivemin.core.initialize.mef.PluginSelectorImpl
 import com.fivemin.core.request.queue.DequeueOptimizationPolicy
 import com.fivemin.core.request.queue.srtfQueue.SRTFOptimizationPolicyImpl
 import com.fivemin.core.request.queue.srtfQueue.SRTFPageDescriptorFactoryImpl
@@ -75,14 +76,16 @@ class StartTaskOption(
             return File(configFileName).readText(Charsets.UTF_8)
         }
         
-        return "{}"
+        return "{}" //empty json
     }
     
     private fun build(): VirtualOption {
         
         var file = File(paramPath)
-
-// var mef = MEFFactory(pluginDirectory)
+        
+        var mef = pluginDirectory.map {
+            PluginSelectorImpl(it).fold().subPolicyCollection
+        }.fold({ SubPolicyCollection(listOf(), listOf(), listOf(), listOf()) }, { it })
         
         var srtf = SRTFFactory().create()
         var config = ConfigControllerImpl(getConfigString())
@@ -94,7 +97,7 @@ class StartTaskOption(
             config,
             io,
             getResumeOption(),
-            srtf.policies,
+            mef.merge(srtf.policies),
             CrawlerObjects(srtf.deq, srtf.keyEx, srtf.descriptFac)
         )
     }

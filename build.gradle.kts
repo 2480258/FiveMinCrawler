@@ -108,6 +108,8 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.xerial:sqlite-jdbc:3.36.0.3")
     
+    implementation("org.pf4j:pf4j:2.1.0")
+    
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.12.1")
 }
