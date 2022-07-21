@@ -27,10 +27,11 @@ import com.fivemin.core.initialize.PluginSelector
 import com.fivemin.core.initialize.SubPolicyCollection
 
 import org.pf4j.DefaultPluginManager
+import java.nio.file.Paths
 
 class PluginSelectorImpl constructor(private val pluginPath: String) : PluginSelector {
     private fun loadPlugins(): List<MEFPlugin> {
-        val pluginManager = DefaultPluginManager()
+        val pluginManager = DefaultPluginManager(Paths.get(pluginPath))
         
         pluginManager.loadPlugins()
         pluginManager.startPlugins()
