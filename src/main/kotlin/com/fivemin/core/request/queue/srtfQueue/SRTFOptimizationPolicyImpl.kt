@@ -76,6 +76,7 @@ class SRTFOptimizationPolicyImpl(private val timingRepository: SRTFTimingReposit
     
     private suspend fun addAsWorkingSet_ReturnsWorkingSet(currentToken: RequestToken): Option<RequestToken> {
         childMap[currentToken] = currentToken
+        wsMap[currentToken] = WorkingSetList()
         
         return Some(currentToken)
     }
@@ -137,7 +138,12 @@ class SRTFOptimizationPolicyImpl(private val timingRepository: SRTFTimingReposit
     
     override suspend fun removeDescriptor(token: RequestToken, descriptor: SRTFPageDescriptor) {
         lock.withLock {
-            wsMap.remove(token).toOption().map {
+            option {
+                val ws = childMap[token].toOption().bind()
+                val pages = wsMap[ws].toOption().bind()
+                
+                pages
+            }.map {
                 it.substractPage(descriptor)
             }
         }

@@ -44,35 +44,36 @@ import java.net.URI
 class StubMockFactory {
     companion object {
         fun mockState(): SessionStartedState {
-            val state: SessionStartedState = mockk()
+            val state: SessionStartedState = mockk(relaxed = true)
             val res: Deferred<Either<Throwable, Any>> = mockk()
-
+            
             every {
                 state.addAlias(any())
             } returns (Unit)
-
+            
             coEvery {
                 state.retryAsync(any<suspend (SessionInitState) -> Deferred<Either<Throwable, Any>>>())
             } returns (res)
-
+            
             coEvery {
                 res.await()
-            } returns(mockk())
-
+            } returns (mockk())
+            
             return state
         }
-
+        
         fun mockInfo(): TaskInfo {
             val provider = KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider())
             val taskInfo: TaskInfo = mockk()
-
+            
             val createdTaskFac: CrawlerTaskFactory<Request> = mockk()
-            val createdTask: CrawlerTask1<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request, Request> = mockk()
-
+            val createdTask: CrawlerTask1<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request, Request> =
+                mockk()
+            
             every {
                 taskInfo.uniqueKeyProvider
             } returns (provider)
-
+            
             return taskInfo
         }
     }
@@ -80,14 +81,14 @@ class StubMockFactory {
 
 class AttributeMockFactory {
     companion object {
-
+        
         fun DocumentAttribute.asSingleUpgrade(tag: TagRepository? = null): ExportAttributeInfo {
             val pair = Pair(this.item.first(), ExportAttributeLocator(this.info, none()))
             val info = ExportAttributeInfo(pair.second, pair.first, tag ?: TagRepositoryImpl())
-
+            
             return info
         }
-
+        
         fun DocumentAttribute.asMultiUpgrade(tag: TagRepository? = null): Iterable<ExportAttributeInfo> {
             return this.item.mapIndexed { x, y ->
                 Pair(y, ExportAttributeLocator(this.info, x.toOption()))
@@ -95,86 +96,80 @@ class AttributeMockFactory {
                 ExportAttributeInfo(it.second, it.first, tag ?: TagRepositoryImpl())
             }
         }
-
+        
         fun getMultiStringAttrEx(
-            name: String,
-            triple: Iterable<Triple<Request, RequestOption, SuccessBody>>
+            name: String, triple: Iterable<Triple<Request, RequestOption, SuccessBody>>
         ): DocumentAttribute {
             val mock = mockk<DocumentAttribute>()
-
+            
             every {
                 mock.info
             }.returns(DocumentAttributeInfo(name))
-
+            
+            every {
+                mock.item
+            }.returns(DocumentAttributeArrayItemImpl(triple.map {
+                DocumentAttributeExternalElementImpl(
+                    it.first.token, it.first.target, it.first.tags, it.second, it.third
+                )
+            }))
+            
+            return mock
+        }
+        
+        fun getSingleStringAttrEx(
+            name: String, req: Request, succ: SuccessBody, opt: RequestOption
+        ): DocumentAttribute {
+            val mock = mockk<DocumentAttribute>()
+            
+            every {
+                mock.info
+            }.returns(DocumentAttributeInfo(name))
+            
             every {
                 mock.item
             }.returns(
-                DocumentAttributeArrayItemImpl(
-                    triple.map {
-                        DocumentAttributeExternalElementImpl(it.first.token, it.first.target, it.first.tags, it.second, it.third)
-                    }
+                DocumentAttributeSingleItemImpl(
+                    DocumentAttributeExternalElementImpl(
+                        req.token, req.target, req.tags, opt, succ
+                    )
                 )
             )
-
+            
             return mock
         }
-
-        fun getSingleStringAttrEx(
-            name: String,
-            req: Request,
-            succ: SuccessBody,
-            opt: RequestOption
-        ): DocumentAttribute {
-            val mock = mockk<DocumentAttribute>()
-
-            every {
-                mock.info
-            }.returns(DocumentAttributeInfo(name))
-
-            every {
-                mock.item
-            }.returns(DocumentAttributeSingleItemImpl(DocumentAttributeExternalElementImpl(req.token, req.target, req.tags, opt, succ)))
-
-            return mock
-        }
-
+        
         fun getSingleStringAttr(
-            name: String,
-            value: String
+            name: String, value: String
         ): DocumentAttribute {
             val mock = mockk<DocumentAttribute>()
-
+            
             every {
                 mock.info
             }.returns(DocumentAttributeInfo(name))
-
+            
             every {
                 mock.item
             }.returns(DocumentAttributeSingleItemImpl(DocumentAttributeInternalElementImpl(value)))
-
+            
             return mock
         }
-
+        
         fun getMultiSingleAttr(
-            name: String,
-            value: Iterable<String>
+            name: String, value: Iterable<String>
         ): DocumentAttribute {
             val mock = mockk<DocumentAttribute>()
-
+            
             every {
                 mock.info
             }.returns(DocumentAttributeInfo(name))
-
+            
             every {
                 mock.item
-            }.returns(
-                DocumentAttributeArrayItemImpl(
-                    value.map {
-                        DocumentAttributeInternalElementImpl(it)
-                    }
-                )
-            )
-
+            }.returns(DocumentAttributeArrayItemImpl(value.map {
+                DocumentAttributeInternalElementImpl(it)
+            }))
+            
             return mock
         }
     }
@@ -182,429 +177,405 @@ class AttributeMockFactory {
 
 class DocumentMockFactory {
     companion object {
-
+        
         fun Request.upgrade(): InitialTransaction<Request> {
             val ret = mockk<InitialTransaction<Request>>()
-
+            
             every {
                 ret.tags
             } returns (this.tags)
-
+            
             every {
                 ret.request
             } returns (this)
-
+            
             every {
                 ret.option
             } returns (InitialOption())
-
+            
             return ret
         }
-
+        
         fun InitialTransaction<Request>.upgradeAsAttribute(
-            engine: String? = null,
-            slot: Int? = null
+            engine: String? = null, slot: Int? = null
         ): PrepareTransaction<Request> {
             if (this.request.requestType == RequestType.LINK) {
                 throw IllegalArgumentException()
             }
-
+            
             val ret = mockk<PrepareTransaction<Request>>()
-
+            
             every {
                 ret.tags
             } returns (this.tags)
-
+            
             every {
                 ret.request
             } returns (this.request)
-
+            
             every {
                 ret.previous
             } returns (this)
-
+            
             every {
                 ret.requestOption
-            } returns (
-                RequestOption(
-                    RequesterPreference(
-                        RequesterEngineInfo(engine ?: "Default"),
-                        slot.toOption().map { RequesterSlotInfo(it) }
-                    )
-                )
-                )
-
+            } returns (RequestOption(RequesterPreference(RequesterEngineInfo(engine ?: "Default"),
+                slot.toOption().map { RequesterSlotInfo(it) })))
+            
             return ret
         }
-
+        
         fun PrepareTransaction<Request>.upgradeAsRequestReq(detachableState: DetachableState? = null): DocumentRequest<Request> {
             val ret = mockk<DocumentRequest<Request>>()
-
+            
             every {
                 ret.request
             } returns (this)
-
+            
             every {
                 ret.info
             } returns (DocumentRequestInfo(detachableState ?: DetachableState.WANT))
-
+            
             return ret
         }
-
+        
         fun PrepareDocumentTransaction<Request>.upgrade(resp: ResponseData? = null): FinalizeRequestTransaction<Request> {
             val ret = mockk<FinalizeRequestTransaction<Request>>()
-
+            
             every {
                 ret.tags
             } returns (this.tags)
-
+            
             every {
                 ret.request
             } returns (this.request)
-
+            
             every {
                 ret.previous
             } returns (this)
-
+            
             every {
                 ret.result
-            } returns ((resp ?: this.upgradeAsRequestReq().upgrade().getSuccResponse()).right())
-
+            } returns ((resp ?: this.upgradeAsRequestReq().upgrade().getSuccResponse_Html()).right())
+            
             return ret
         }
-
+        
         fun InitialTransaction<Request>.upgradeAsDocument(
-            name: String,
-            mode: WorkingSetMode = WorkingSetMode.Enabled,
-            engine: String? = null,
-            slot: Int? = null
+            pageName: String, mode: WorkingSetMode = WorkingSetMode.Enabled, engine: String? = null, slot: Int? = null
         ): PrepareDocumentTransaction<Request> {
             // if (this.request.requestType != RequestType.LINK) {
             //   throw IllegalArgumentException()
             // }
-
+            
             val ret = mockk<PrepareDocumentTransaction<Request>>()
-
+            
             every {
                 ret.tags
             } returns (this.tags)
-
+            
             every {
                 ret.request
             } returns (this.request)
-
+            
             every {
                 ret.previous
             } returns (this)
-
+            
             every {
                 ret.requestOption
-            } returns (
-                RequestOption(
-                    RequesterPreference(
-                        RequesterEngineInfo(engine ?: "Default"),
-                        slot.toOption().map { RequesterSlotInfo(it) }
-                    )
-                )
-                )
-
+            } returns (RequestOption(RequesterPreference(RequesterEngineInfo(engine ?: "Default"),
+                slot.toOption().map { RequesterSlotInfo(it) })))
+            
             every {
                 ret.containerOption
             } returns (ContainerOption(mode))
-
+            
             every {
                 ret.parseOption
-            } returns (ParseOption(PageName(name)))
-
+            } returns (ParseOption(PageName(pageName)))
+            
             return ret
         }
-
+        
         fun PrepareTransaction<Request>.upgrade(resp: ResponseData? = null): FinalizeRequestTransaction<Request> {
             val ret = mockk<FinalizeRequestTransaction<Request>>()
-
+            
             every {
                 ret.tags
             } returns (this.tags)
-
+            
             every {
                 ret.request
             } returns (this.request)
-
+            
             every {
                 ret.previous
             } returns (this)
-
+            
             every {
                 ret.result
-            } returns ((resp ?: this.upgradeAsRequestReq().upgrade().getSuccResponse()).right())
-
+            } returns ((resp ?: this.upgradeAsRequestReq().upgrade().getSuccResponse_Html()).right())
+            
             return ret
         }
-
+        
         fun FinalizeRequestTransaction<Request>.upgrade(attr: Iterable<DocumentAttribute>? = null): SerializeTransaction<Request> {
             val ret = mockk<SerializeTransaction<Request>>()
-
+            
             every {
                 ret.tags
             } returns (this.tags)
-
+            
             every {
                 ret.request
             } returns (this.request)
-
+            
             every {
                 ret.attributes
             } returns (attr ?: listOf())
-
+            
             return ret
         }
-
+        
         fun SerializeTransaction<Request>.upgrade(handles: List<Either<Throwable, ExportResultToken>>? = null): ExportTransaction<Request> {
             val ret = mockk<ExportTransaction<Request>>()
-
+            
             var fHandles = handles
-
+            
             if (handles == null) {
                 fHandles = listOf()
             }
-
+            
             every {
                 ret.tags
             } returns (this.tags)
-
+            
             every {
                 ret.request
             } returns (this.request)
-
+            
             every {
                 ret.exportHandles
             } returns (fHandles!!)
-
+            
             return ret
         }
-
+        
         fun PrepareDocumentTransaction<Request>.upgradeAsRequestDoc(): DocumentRequest<Request> {
             val ret = mockk<DocumentRequest<Request>>()
-
+            
             every {
                 ret.request
             } returns (this)
-
+            
+            //This is actually not 100% correct, but almost correct
+            val info = DocumentRequestInfo(if (this.containerOption.workingSetMode == WorkingSetMode.Enabled) DetachableState.WANT else DetachableState.HATE)
+            
+            every {
+                ret.info
+            } returns (info)
+            
             return ret
         }
-
+        
         fun DocumentRequest<Request>.upgrade(fac: DequeueDecisionFactory? = null): PreprocessedRequest<Request> {
             val ret = mockk<PreprocessedRequest<Request>>()
-
+            
             var ffac: DequeueDecisionFactory? = fac
-
+            
             if (ffac == null) {
                 val facMock = mockk<DequeueDecisionFactory>()
-
+                
                 every {
                     facMock.get()
                 } returns (DequeueDecision.ALLOW)
-
+                
                 ffac = facMock
             }
-
+            
             every {
                 ret.request
             } returns (this)
-
+            
             this.request.requestOption.preference.slot.fold({
                 every {
                     ret.info
-                } returns (
-                    PreprocessRequestInfo(
-                        PerformedRequesterInfo(
-                            this.request.requestOption.preference.engine,
-                            RequesterSlotInfo(0)
-                        ),
-                        ffac
-                    )
-                    )
+                } returns (PreprocessRequestInfo(
+                    PerformedRequesterInfo(
+                        this.request.requestOption.preference.engine, RequesterSlotInfo(0)
+                    ), ffac
+                ))
             }) {
                 every {
                     ret.info
-                } returns (
-                    PreprocessRequestInfo(
-                        PerformedRequesterInfo(
-                            this.request.requestOption.preference.engine,
-                            it
-                        ),
-                        ffac
-                    )
-                    )
+                } returns (PreprocessRequestInfo(
+                    PerformedRequesterInfo(
+                        this.request.requestOption.preference.engine, it
+                    ), ffac
+                ))
             }
-
+            
             return ret
         }
-
+        
         fun PreprocessedRequest<Request>.getCriticalBodyResponse(): ResponseData {
             val bdy = mockk<ResponseData>()
             val result = mockk<CriticalErrorBody>()
-
+            
             every {
                 bdy.responseBody
-            } returns(result)
-
+            } returns (result)
+            
             return bdy
         }
-
-        fun PreprocessedRequest<Request>.getSuccResponse(
-            content: String? = null,
-            time: ResponseTime? = null
+        
+        fun PreprocessedRequest<Request>.getSuccResponse_Html(
+            content: String? = null, time: ResponseTime? = null
         ): ResponseData {
             val cont = content.orEmpty()
             val resultMock = mockk<ResponseData>()
             val data = mockk<HtmlMemoryData>()
-
+            
             val by = Charsets.UTF_8.encode(cont).array().inputStream()
-
+            
             every {
                 data.openStreamAsByteAndDispose {
                     any<Any>()
-
+                    
                     Any()
                 }
             } answers {
                 this.firstArg<(InputStream) -> Any>()(by).right()
             }
-
+            
             every {
                 data.openStreamAsStringAndDispose {
                     any<Any>()
-
+                    
                     Any()
                 }
             } answers {
                 this.firstArg<(InputStreamReader) -> Any>()(InputStreamReader(by)).right()
             }
-
+            
             val f = HtmlDocumentFactoryImpl()
-
+            
             every {
                 data.parseAsHtmlDocument<Any>(any())
             } answers {
                 this.firstArg<(HtmlParsable) -> Any>()(f.create(cont)).right()
             }
-
+            
             coEvery {
                 data.parseAsHtmlDocumentAsync<Any>(any())
             } coAnswers {
                 this.firstArg<suspend (HtmlParsable) -> Any>()(f.create(cont)).right()
             }
-
+            
             val reqq = mockk<RequestBody>()
-
+            
             every {
                 reqq.currentUri
             } returns (this.request.request.request.target)
-
+            
             val succ = mockk<SuccessBody>()
             every {
                 succ.requestBody
             } returns (reqq)
-
+            
             every {
                 succ.responseTime
             } returns (ResponseTime(5, 0))
-
+            
             every {
                 succ.body
             } returns (data)
-
+            
             every {
                 resultMock.responseBody
             } returns (succ)
-
+            
             every {
                 resultMock.requesterInfo
             } returns (this.info.info)
-
+            
             return resultMock
         }
-
+        
         fun getHttpRequest(
-            uri: URI,
-            type: RequestType,
-            parent: RequestToken? = null,
-            tags: TagRepository? = null
+            uri: URI, type: RequestType, parent: RequestToken? = null, tags: TagRepository? = null
         ): HttpRequest {
             val ret = mockk<HttpRequest>()
-
+            
             val token = RequestToken.create()
-
+            
             every {
                 ret.target
             } returns (uri)
-
+            
             every {
                 ret.parent
             } returns (parent.toOption())
-
+            
             every {
                 ret.token
             } returns (token)
-
+            
             every {
                 ret.tags
             } returns (tags ?: TagRepositoryImpl())
-
+            
             every {
                 ret.requestType
             } returns (type)
-
+            
             every {
                 ret.documentType
             } returns (DocumentType.DEFAULT)
-
+            
             every {
                 ret.getDebugInfo()
             } returns ("[" + token.tokenNumber + "]: " + ret.target.path + (ret.target.query ?: ""))
-
+            
             return ret
         }
-
+        
         fun getRequest(
-            uri: URI,
-            type: RequestType,
-            parent: RequestToken? = null,
-            tags: TagRepository? = null
+            uri: URI, type: RequestType, parent: RequestToken? = null, tags: TagRepository? = null
         ): Request {
             val ret = mockk<Request>()
-
+            
             val token = RequestToken.create()
-
+            
             every {
                 ret.target
             } returns (uri)
-
+            
             every {
                 ret.parent
             } returns (parent.toOption())
-
+            
             every {
                 ret.token
             } returns (token)
-
+            
             every {
                 ret.tags
             } returns (tags ?: TagRepositoryImpl())
-
+            
             every {
                 ret.requestType
             } returns (type)
-
+            
             every {
                 ret.documentType
             } returns (DocumentType.DEFAULT)
-
+            
             every {
                 ret.getDebugInfo()
             } returns ("[" + token.tokenNumber + "]: " + ret.target.path + (ret.target.query ?: ""))
-
+            
             return ret
         }
     }
