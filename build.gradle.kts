@@ -111,7 +111,7 @@ dependencies {
     implementation("org.pf4j:pf4j:3.7.0")
     
     testImplementation(kotlin("test"))
-    testImplementation("io.mockk:mockk:1.12.1")
+    testImplementation("io.mockk:mockk:1.12.4")
 }
 
 tasks.jar {

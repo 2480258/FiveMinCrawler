@@ -23,7 +23,7 @@ package com.fivemin.core.engine.transaction.serialize.postParser
 import arrow.core.none
 import arrow.core.toOption
 import com.fivemin.core.DocumentMockFactory
-import com.fivemin.core.DocumentMockFactory.Companion.getSuccResponse
+import com.fivemin.core.DocumentMockFactory.Companion.getSuccResponse_Html
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsRequestReq
@@ -57,7 +57,7 @@ class LinkExtractImplTest {
     fun hashReleative_ReturnsLink() {
         runBlocking {
             var resp = DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a")
-                .upgradeAsRequestReq().upgrade().getSuccResponse("<a href=\"/test1#tt\"></a>")
+                .upgradeAsRequestReq().upgrade().getSuccResponse_Html("<a href=\"/test1#tt\"></a>")
 
             var ret = link.extract(resp, LinkSelector(ParserNavigator("a:nth-child(1)"), none()).toOption())
 
@@ -77,7 +77,7 @@ class LinkExtractImplTest {
     fun hashAbsolute_ReturnsLink() {
         runBlocking {
             var resp = DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a")
-                .upgradeAsRequestReq().upgrade().getSuccResponse("<a href=\"https://aaa.com/test1#tt\"></a>")
+                .upgradeAsRequestReq().upgrade().getSuccResponse_Html("<a href=\"https://aaa.com/test1#tt\"></a>")
 
             var ret = link.extract(resp, LinkSelector(ParserNavigator("a:nth-child(1)"), none()).toOption())
 
@@ -97,7 +97,7 @@ class LinkExtractImplTest {
     fun releative_ReturnsLink() {
         runBlocking {
             var resp = DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a")
-                .upgradeAsRequestReq().upgrade().getSuccResponse("<a href=\"/test1\"></a>")
+                .upgradeAsRequestReq().upgrade().getSuccResponse_Html("<a href=\"/test1\"></a>")
 
             var ret = link.extract(resp, LinkSelector(ParserNavigator("a:nth-child(1)"), none()).toOption())
 
@@ -117,7 +117,7 @@ class LinkExtractImplTest {
     fun absolute_ReturnsLink() {
         runBlocking {
             var resp = DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a")
-                .upgradeAsRequestReq().upgrade().getSuccResponse("<a href=\"https://aaa.com/test1\"></a>")
+                .upgradeAsRequestReq().upgrade().getSuccResponse_Html("<a href=\"https://aaa.com/test1\"></a>")
 
             var ret = link.extract(resp, LinkSelector(ParserNavigator("a:nth-child(1)"), none()).toOption())
 
@@ -137,7 +137,7 @@ class LinkExtractImplTest {
     fun withoutRegex_ReturnsLink() {
         runBlocking {
             var resp = DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a")
-                .upgradeAsRequestReq().upgrade().getSuccResponse("<img src=\"https://aaa.com/test1\">")
+                .upgradeAsRequestReq().upgrade().getSuccResponse_Html("<img src=\"https://aaa.com/test1\">")
 
             var ret = link.extract(resp, LinkSelector(ParserNavigator("*"), none()).toOption())
 
@@ -158,7 +158,7 @@ class LinkExtractImplTest {
 
         runBlocking {
             var resp = DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a")
-                .upgradeAsRequestReq().upgrade().getSuccResponse("<img src=\"https://aaa.com/test1\">")
+                .upgradeAsRequestReq().upgrade().getSuccResponse_Html("<img src=\"https://aaa.com/test1\">")
 
             var ret = link.extract(resp, LinkSelector(ParserNavigator("*"), Regex("http").toOption()).toOption())
 
@@ -179,7 +179,7 @@ class LinkExtractImplTest {
 
         runBlocking {
             var resp = DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a")
-                .upgradeAsRequestReq().upgrade().getSuccResponse("<a href=\"https://aaa.com/test1\"></a>")
+                .upgradeAsRequestReq().upgrade().getSuccResponse_Html("<a href=\"https://aaa.com/test1\"></a>")
 
             var ret = link.extract(resp, LinkSelector(ParserNavigator("*"), Regex("http").toOption()).toOption())
 
@@ -200,7 +200,7 @@ class LinkExtractImplTest {
 
         runBlocking {
             var resp = DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a")
-                .upgradeAsRequestReq().upgrade().getSuccResponse("<a href=\"https://aaa.com/test1#tt\"></a>")
+                .upgradeAsRequestReq().upgrade().getSuccResponse_Html("<a href=\"https://aaa.com/test1#tt\"></a>")
 
             var ret = link.extract(resp, LinkSelector(ParserNavigator("*"), Regex("test2").toOption()).toOption())
 
@@ -219,7 +219,7 @@ class LinkExtractImplTest {
 
         runBlocking {
             var resp = DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK).upgrade().upgradeAsDocument("a")
-                .upgradeAsRequestReq().upgrade().getSuccResponse("<a href=\"/test1\"></a><a href=\"/test2\"></a>")
+                .upgradeAsRequestReq().upgrade().getSuccResponse_Html("<a href=\"/test1\"></a><a href=\"/test2\"></a>")
 
             var ret = link.extract(resp, LinkSelector(ParserNavigator("*"), Regex("http").toOption()).toOption())
 

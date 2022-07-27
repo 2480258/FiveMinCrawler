@@ -20,21 +20,14 @@
 
 package com.fivemin.core.request.queue.srtfQueue
 
-import arrow.core.firstOrNone
 import arrow.core.flatten
-import arrow.core.singleOrNone
 import arrow.core.toOption
-import com.fivemin.core.DuplicateKeyException
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.PriorityBlockingQueue
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
-import java.util.concurrent.locks.ReentrantReadWriteLock
-import kotlin.concurrent.read
 import kotlin.concurrent.withLock
-import kotlin.concurrent.write
 
 interface RotatingQueue<Score : Comparable<Score>, UniversalKey, Value> {
     fun dequeue(): Value
@@ -44,34 +37,32 @@ interface RotatingQueue<Score : Comparable<Score>, UniversalKey, Value> {
     fun update(originalKey: UniversalKey, score: Score)
 }
 
-class RotatingQueueNode<UniversalKey, Value> constructor(val key: UniversalKey) {
+
+class RotatingQueueNode<UniversalKey, Value, Score : Comparable<Score>> constructor(val key: UniversalKey) {
     
-    private val queue = PriorityBlockingQueue<Value>()
+    private val queue = ConcurrentSkipListMap<Score, Value>()
     
     val size: Int
         get() {
             return queue.size
         }
     
-    fun offer(value: Value) {
-        queue.offer(value)
+    fun offer(value: Value, score: Score) {
+        queue[score] = value
     }
     
     fun poll(): Value? {
-        //doesn't wait or block as passing by while(...) statement
-        //https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/util/concurrent/PriorityBlockingQueue.java
-        return queue.poll(0, TimeUnit.NANOSECONDS)
+        return queue.pollFirstEntry()?.value
     }
 }
 //https://www.boost.org/sgi/stl/StrictWeakOrdering.html
 
-class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
-    RotatingQueue<Score, UniversalKey, Value> {
+class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> : RotatingQueue<Score, UniversalKey, Value> {
     
     
     private val table = ConcurrentHashMap<UniversalKey, Score>()
     private val data =
-        Collections.synchronizedSortedMap(TreeMap<Score, TreeMap<UniversalKey, RotatingQueueNode<UniversalKey, Value>>>())
+        Collections.synchronizedSortedMap(TreeMap<Score, TreeMap<UniversalKey, RotatingQueueNode<UniversalKey, Value, Score>>>())
     
     private val lock = ReentrantLock()
     private val condition: Condition = lock.newCondition()
@@ -79,12 +70,12 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
     /**
      * Test purpose.
      */
-    public val queueSize: Int get() = lock.withLock { data.size }
+    val queueSize: Int get() = lock.withLock { data.size }
     
     /**
      * Test purpose.
      */
-    public val listSize: Int
+    val listSize: Int
         get() = lock.withLock {
             data.map {
                 it.value.map {
@@ -96,7 +87,7 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
     /**
      * Test purpose.
      */
-    public val tableSize: Int get() = lock.withLock { table.size }
+    val tableSize: Int get() = lock.withLock { table.size }
     
     
     override fun dequeue(): Value {
@@ -118,7 +109,7 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
         condition.signalAll()
     }
     
-    private fun get_queue(): RotatingQueueNode<UniversalKey, Value> {
+    private fun get_queue(): RotatingQueueNode<UniversalKey, Value, Score> {
         if (data.size == 0) {
             waitFirstQueue()
             get_queue()
@@ -137,7 +128,7 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
         return elem_from_queue(firstQueue)
     }
     
-    private fun elem_from_queue(firstQueue: RotatingQueueNode<UniversalKey, Value>): Value {
+    private fun elem_from_queue(firstQueue: RotatingQueueNode<UniversalKey, Value, Score>): Value {
         return firstQueue.poll().toOption().fold({
             replaceHead()
             dequeue_internal()
@@ -200,20 +191,22 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> :
         
         val dataList = ensureKeyExists(key, score)
         val dataElem = dataList[key].toOption().fold({
-            val ret = RotatingQueueNode<UniversalKey, Value>(key)
+            val ret = RotatingQueueNode<UniversalKey, Value, Score>(key)
             dataList[key] = ret
             
             ret
         }) {
             it
         }
-        dataElem.offer(value)
+        dataElem.offer(value, score)
         
         releaseWait()
         
     }
     
-    private fun ensureKeyExists(key: UniversalKey, score: Score): TreeMap<UniversalKey, RotatingQueueNode<UniversalKey, Value>> {
+    private fun ensureKeyExists(
+        key: UniversalKey, score: Score
+    ): TreeMap<UniversalKey, RotatingQueueNode<UniversalKey, Value, Score>> {
         val tableKey = table.getOrPut(key) { score }!! //why is this nullable?
         
         return data.getOrPut(tableKey) { TreeMap() }!!

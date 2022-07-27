@@ -50,7 +50,7 @@ class ReferrerExtractorStreamTest {
             CustomCookieJar(),
             ResponseAdapterImpl(
                 PerformedRequesterInfo(RequesterEngineInfo("A"), RequesterSlotInfo(0)),
-                MemoryFilterFactoryImpl(DirectIOImpl(ConfigControllerImpl(""), none()), HtmlDocumentFactoryImpl())
+                MemoryFilterFactoryImpl(DirectIOImpl(ConfigControllerImpl("{}"), none()), HtmlDocumentFactoryImpl())
             ),
             RequestHeaderProfile()
         )
