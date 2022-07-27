@@ -84,10 +84,12 @@ class ReferrerPolicyFactory {
             ReferrerPolicy.NO_REFERRER -> none()
             ReferrerPolicy.UNSAFE_URL -> Some(src)
             ReferrerPolicy.ORIGIN -> Some(onlyDomain(src))
-            ReferrerPolicy.STRICT_ORIGIN -> if (isHttps(src)) {
+            ReferrerPolicy.STRICT_ORIGIN -> if (isHttps(dest) and isHttps(src)) {
                 Some(onlyDomain(src))
-            } else {
+            } else if (isHttps(src) and !isHttps(dest)){
                 none()
+            } else {
+                Some(onlyDomain(src))
             }
             ReferrerPolicy.NO_REFERRER_WHEN_DOWNGRADE -> if (isHttps(dest)) {
                 Some(src)
@@ -100,17 +102,17 @@ class ReferrerPolicyFactory {
                 none()
             }
 
-            ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN -> if (isSameDomain(src, dest)) {
+            ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN -> if (isSameDomain(src, dest) and isHttps(dest)) {
                 Some(src)
             } else {
                 Some(onlyDomain(src))
             }
-            ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN -> if (!isHttps(src)) {
+            ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN -> if (!isHttps(dest)) {
                 none()
             } else if (isSameDomain(src, dest)) {
                 Some(src)
             } else {
-                none()
+                Some(onlyDomain(src))
             }
         }
     }
