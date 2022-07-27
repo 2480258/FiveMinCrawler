@@ -61,7 +61,7 @@ class WSQueueTest {
                 it.bimap({
                     fail()
                 }, {
-                    assertEquals(it.request.request.request.request.token, req.request.request.request.token)
+                    return@EnqueueRequestInfo
                 })
             })
         }
