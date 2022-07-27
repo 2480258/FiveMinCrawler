@@ -144,14 +144,14 @@ class RotatingQueueNodeTest {
     
     @Test
     fun testDuplicationKeyUpdate() {
-        queue.enqueue(4, 4, 4)
-        queue.enqueue(3, 3, 1)
-        queue.enqueue(3, 2, 4)
-        queue.enqueue(1, 1, 4)
+        queue.enqueue(400, 4, 40)
+        queue.enqueue(300, 3, 10)
+        queue.enqueue(300, 3, 40)
+        queue.enqueue(100, 1, 40)
     
-        queue.update(3, 3)
+        queue.update(300, 30)
     
-        assertEquals(queue.dequeue(), 2)
+        assertEquals(queue.dequeue(), 3)
         assertEquals(queue.dequeue(), 3)
     }
     
