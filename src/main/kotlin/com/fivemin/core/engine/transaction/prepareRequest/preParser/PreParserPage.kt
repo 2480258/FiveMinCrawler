@@ -47,6 +47,11 @@ class PreParserPageImpl(
     }
 
     override fun <Document : Request> makeTransaction(init: InitialTransaction<Document>): Option<PrepareTransaction<Document>> {
+        if(init.request.requestType == RequestType.ATTRIBUTE) {
+            throw java.lang.IllegalArgumentException("${init.request.getDebugInfo()} < can't parse attribute as html")
+        }
+        
+        
         val isPreDefined = if (isPageNamePreDefined(init)) {
             checkPreDefined(init)
         } else if (condition.check(init).isMet) {

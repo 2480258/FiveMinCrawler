@@ -21,7 +21,11 @@
 package com.fivemin.core
 
 import arrow.core.*
-import com.fivemin.core.engine.* // ktlint-disable no-unused-imports
+import com.fivemin.core.DocumentMockFactory.Companion.upgrade
+import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
+import com.fivemin.core.engine.*
+import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactory
+import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactoryCollector
 import com.fivemin.core.engine.transaction.StringUniqueKeyProvider
 import com.fivemin.core.engine.transaction.UriUniqueKeyProvider
 import com.fivemin.core.engine.transaction.export.ExportAttributeInfo
@@ -37,8 +41,12 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.io.InvalidObjectException
 import java.net.URI
 
 class StubMockFactory {
@@ -59,16 +67,56 @@ class StubMockFactory {
                 res.await()
             } returns (mockk())
             
+            coEvery {
+                state.getChildSession<Any>(any())
+            } coAnswers {
+                coroutineScope {
+                    async {
+                        Either.catch {
+                            DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK).upgrade().upgradeAsDocument("a").upgrade()
+                        }
+                    }
+                }
+            }
+            
             return state
         }
         
         fun mockInfo(): TaskInfo {
             val provider = KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider())
-            val taskInfo: TaskInfo = mockk()
+            val taskInfo: TaskInfo = mockk(relaxed = true)
             
-            val createdTaskFac: CrawlerTaskFactory<Request> = mockk()
-            val createdTask: CrawlerTask1<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request, Request> =
-                mockk()
+            val createdTaskFac: CrawlerTaskFactory<Request> = mockk(relaxed = true)
+            val createdTask: CrawlerTask2<InitialTransaction<Request>,
+                    PrepareTransaction<Request>,
+                    FinalizeRequestTransaction<Request>, Request, Request, Request> =
+                mockk(relaxed = true)
+            
+            coEvery {
+                createdTask.start(any(), any(), any())
+            } coAnswers {
+                coroutineScope {
+                    async {
+                        Either.catch {
+                            DocumentMockFactory.getRequest(URI("https://aa.com"), RequestType.LINK).upgrade()
+                                .upgradeAsDocument("a")
+                                .upgrade()
+                        }
+                    }
+                }
+            }
+            
+            every {
+                taskInfo.createTask<Request>()
+            } returns (createdTaskFac)
+            
+            every {
+                createdTaskFac.get2<InitialTransaction<Request>,
+                        PrepareTransaction<Request>,
+                        FinalizeRequestTransaction<Request>>(any())
+            } answers {
+                createdTask
+            }
             
             every {
                 taskInfo.uniqueKeyProvider
@@ -219,8 +267,10 @@ class DocumentMockFactory {
             
             every {
                 ret.requestOption
-            } returns (RequestOption(RequesterPreference(RequesterEngineInfo(engine ?: "Default"),
-                slot.toOption().map { RequesterSlotInfo(it) })))
+            } returns (RequestOption(
+                RequesterPreference(RequesterEngineInfo(engine ?: "Default"),
+                    slot.toOption().map { RequesterSlotInfo(it) })
+            ))
             
             return ret
         }
@@ -256,7 +306,7 @@ class DocumentMockFactory {
             
             every {
                 ret.result
-            } returns ((resp ?: this.upgradeAsRequestReq().upgrade().getSuccResponse_Html()).right())
+            } returns (Either.catch { (resp ?: this.upgradeAsRequestReq().upgrade().getSuccResponse_Html()) })
             
             return ret
         }
@@ -284,8 +334,10 @@ class DocumentMockFactory {
             
             every {
                 ret.requestOption
-            } returns (RequestOption(RequesterPreference(RequesterEngineInfo(engine ?: "Default"),
-                slot.toOption().map { RequesterSlotInfo(it) })))
+            } returns (RequestOption(
+                RequesterPreference(RequesterEngineInfo(engine ?: "Default"),
+                    slot.toOption().map { RequesterSlotInfo(it) })
+            ))
             
             every {
                 ret.containerOption
@@ -370,7 +422,8 @@ class DocumentMockFactory {
             } returns (this)
             
             //This is actually not 100% correct, but almost correct
-            val info = DocumentRequestInfo(if (this.containerOption.workingSetMode == WorkingSetMode.Enabled) DetachableState.WANT else DetachableState.HATE)
+            val info =
+                DocumentRequestInfo(if (this.containerOption.workingSetMode == WorkingSetMode.Enabled) DetachableState.WANT else DetachableState.HATE)
             
             every {
                 ret.info
@@ -575,6 +628,19 @@ class DocumentMockFactory {
             every {
                 ret.getDebugInfo()
             } returns ("[" + token.tokenNumber + "]: " + ret.target.path + (ret.target.query ?: ""))
+            
+            every {
+                ret.copyWith(any())
+            } answers {
+                val first = firstArg<Option<URI>>()
+                
+                first.fold({
+                    throw InvalidObjectException("")
+                }, {
+                    getRequest(it, type)
+                })
+                
+            }
             
             return ret
         }

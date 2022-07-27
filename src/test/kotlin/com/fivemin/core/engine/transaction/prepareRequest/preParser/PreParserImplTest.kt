@@ -20,6 +20,7 @@
 
 package com.fivemin.core.engine.transaction.prepareRequest.preParser
 
+import arrow.core.Some
 import arrow.core.none
 import arrow.core.toOption
 import com.fivemin.core.DocumentMockFactory
@@ -35,6 +36,7 @@ import io.mockk.mockk
 import org.testng.Assert.*
 import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
+import java.net.URI
 
 class PreParserImplTest {
 
@@ -98,6 +100,123 @@ class PreParserImplTest {
             )
         )
     }
+    
+    
+    fun mockSuccPage(): PreParserPageImpl {
+        val page: PreParserPageImpl = mockk()
+        every {
+            page.makeTransaction<Request>(any())
+        } returns (Some(
+            DocumentMockFactory.getRequest(URI("http://aaa.com"), RequestType.LINK).upgrade().upgradeAsDocument("a")
+        ))
+        every {
+            page.name
+        } returns (PageName("SuccPage"))
+        return page
+    }
+    
+    fun mockFailPage(): PreParserPageImpl {
+        val page: PreParserPageImpl = mockk()
+        every {
+            page.makeTransaction<Request>(any())
+        } returns (none())
+        
+        every {
+            page.name
+        } returns (PageName("SuccPage"))
+        
+        return page
+    }
+    
+    @Test
+    fun testMakeTransaction_Global_Not_Met() {
+        val globalCondition = mockFailPageCondition()
+        
+        val preparser = PreParserImpl(globalCondition, listOf(mockSuccPage(), mockFailPage()), mockk())
+        
+        val doc = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK)
+            .upgrade()
+        
+        assertEquals(preparser.generateInfo(doc), none<PrepareTransaction<Request>>())
+    }
+    
+    @Test
+    fun testMakeTransaction_Global_Met_Page_Not_Met() {
+        val globalCondition = mockSuccPageCondition()
+        
+        val preparser = PreParserImpl(globalCondition, listOf(mockFailPage()), mockk())
+        
+        val doc = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK)
+            .upgrade()
+        
+        assertEquals(preparser.generateInfo(doc), none<PrepareTransaction<Request>>())
+    }
+    
+    @Test
+    fun testMakeTransaction_Global_Met_Page_Met_Twice() {
+        val globalCondition = mockSuccPageCondition()
+        
+        val preparser = PreParserImpl(globalCondition, listOf(mockSuccPage(), mockSuccPage()), mockk())
+        
+        val doc = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK)
+            .upgrade()
+        
+        assertEquals(preparser.generateInfo(doc), none<PrepareTransaction<Request>>())
+    }
+    
+    
+    @Test
+    fun testMakeTransaction_Global_Met_Page_Met() {
+        val globalCondition = mockSuccPageCondition()
+        
+        val preparser = PreParserImpl(globalCondition, listOf(mockSuccPage()), mockk())
+        
+        val doc = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK)
+            .upgrade()
+    
+        kotlin.test.assertNotEquals(preparser.generateInfo(doc), none<PrepareTransaction<Request>>())
+    }
+    
+    
+    @Test
+    fun testMakeTransaction_Global_Met_Attr() {
+        val globalCondition = mockSuccPageCondition()
+        
+        val preparser = PreParserImpl(globalCondition, listOf(mockFailPage()), mockk())
+        
+        val doc = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.ATTRIBUTE)
+            .upgrade()
+    
+        kotlin.test.assertNotEquals(preparser.generateInfo(doc), none<PrepareTransaction<Request>>())
+    }
+    
+    @Test
+    fun testMakeTransaction_Global_Met_Page_Met_Attr() {
+        val globalCondition = mockSuccPageCondition()
+        
+        val preparser = PreParserImpl(globalCondition, listOf(mockSuccPage()), mockk())
+        
+        val doc = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.ATTRIBUTE)
+            .upgrade()
+    
+        kotlin.test.assertNotEquals(preparser.generateInfo(doc), none<PrepareTransaction<Request>>())
+    }
+    
+    private fun mockSuccPageCondition(): PageCondition<InitialTransaction<Request>, Request> {
+        val globalCondition: PageCondition<InitialTransaction<Request>, Request> = mockk(relaxed = true)
+        every {
+            globalCondition.check(any())
+        } returns (PageConditionResult(true))
+        return globalCondition
+    }
+    
+    private fun mockFailPageCondition(): PageCondition<InitialTransaction<Request>, Request> {
+        val globalCondition: PageCondition<InitialTransaction<Request>, Request> = mockk(relaxed = true)
+        every {
+            globalCondition.check(any())
+        } returns (PageConditionResult(false))
+        return globalCondition
+    }
 
     @Test
     fun testDouble() {
@@ -147,4 +266,6 @@ class PreParserImplTest {
             }, { fail() })
         }
     }
+    
+    
 }
