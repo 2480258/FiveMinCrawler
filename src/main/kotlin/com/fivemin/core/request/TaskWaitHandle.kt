@@ -42,7 +42,7 @@ class TaskWaitHandle<T> {
                 try {
                     act()
                 } finally {
-                    semaphore.acquire()
+                    semaphore.acquire() // registerResult() should be called in act() so acquire again (prevent reuse)
                 }
 
                 result!!
@@ -58,7 +58,7 @@ class TaskWaitHandle<T> {
                 try {
                     act()
                 } finally {
-                    semaphore.acquire()
+                    semaphore.acquire() // registerResult() should be called in act() so acquire again (prevent reuse)
                 }
                 
                 result!!

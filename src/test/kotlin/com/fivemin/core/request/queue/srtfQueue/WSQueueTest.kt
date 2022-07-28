@@ -26,6 +26,7 @@ import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsRequestDoc
 import com.fivemin.core.engine.RequestType
 import com.fivemin.core.request.EnqueueRequestInfo
+import com.fivemin.core.request.TaskWaitHandle
 import kotlinx.coroutines.runBlocking
 import org.testng.annotations.Test
 
@@ -42,7 +43,7 @@ class WSQueueTest {
     fun setUp() {
     }
     
-    // @Test can not pass github actions
+    @Test
     fun wsEnqueTest() {
         val timing = SRTFTimingRepositoryImpl()
         val optimizationPolicy = SRTFOptimizationPolicyImpl(timing)
@@ -56,14 +57,21 @@ class WSQueueTest {
             .upgradeAsRequestDoc()
             .upgrade()
         
-        runBlocking {
-            que.enqueue(req, EnqueueRequestInfo {
-                it.bimap({
-                    fail()
-                }, {
-                    return@EnqueueRequestInfo
+        val handle = TaskWaitHandle<Boolean>()
+        
+        val result = runBlocking {
+            handle.runAsync {
+                que.enqueue(req, EnqueueRequestInfo {
+                    it.bimap({
+                        handle.registerResult(false)
+                    }, {
+                        handle.registerResult(true)
+                    })
                 })
-            })
+            }.await()
+    
         }
+    
+        assert(result)
     }
 }
