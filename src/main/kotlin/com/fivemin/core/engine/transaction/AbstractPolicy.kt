@@ -36,14 +36,12 @@ abstract class AbstractPolicy<
     DstTrans : StrictTransaction<SrcTrans, Document>,
     Document : Request>(
     private val option: AbstractPolicyOption<SrcTrans, DstTrans, Document>,
-    private val movementFactory: MovementFactory<Document>
+    private val movementFactory: TransactionMovementFactory<SrcTrans, DstTrans, Document>
 ) : TransactionPolicy<SrcTrans, DstTrans, Document, Document> {
     companion object {
         private val logger = LoggerController.getLogger("AbstractPolicy")
     }
-
-    protected abstract fun getMovement(factory: MovementFactory<Document>): TransactionMovement<SrcTrans, DstTrans, Document>
-
+    
     override suspend fun progressAsync(
         trans: SrcTrans,
         info: TaskInfo,
@@ -52,7 +50,7 @@ abstract class AbstractPolicy<
         return coroutineScope {
             async {
                 Either.catch {
-                    val movement = getMovement(movementFactory)
+                    val movement = movementFactory.getMovement()
                     val taskResult = movement.move(trans, info, state)
 
                     val spResult = option.subPolicies.fold(taskResult) { acc, transactionSubPolicy ->

@@ -24,8 +24,6 @@ import arrow.core.*
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.engine.*
-import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactory
-import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactoryCollector
 import com.fivemin.core.engine.transaction.StringUniqueKeyProvider
 import com.fivemin.core.engine.transaction.UriUniqueKeyProvider
 import com.fivemin.core.engine.transaction.export.ExportAttributeInfo
@@ -43,7 +41,6 @@ import io.mockk.mockk
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.InvalidObjectException
@@ -203,7 +200,7 @@ class AttributeMockFactory {
             return mock
         }
         
-        fun getMultiSingleAttr(
+        fun getMultiStringAttr(
             name: String, value: Iterable<String>
         ): DocumentAttribute {
             val mock = mockk<DocumentAttribute>()

@@ -20,6 +20,6 @@
 
 package com.fivemin.core.engine
 
-interface CrawlerTaskFactoryFactory {
-    fun <Document : Request> getFactory(): CrawlerTaskFactory<Document>
+interface CrawlerTaskFactoryFactory<Document : Request>{
+    fun  getFactory(): CrawlerTaskFactory<Document>
 }

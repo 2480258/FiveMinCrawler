@@ -28,16 +28,20 @@ import com.fivemin.core.engine.session.bFilter.BloomFilterFactoryImpl
 import com.fivemin.core.engine.session.database.DatabaseAdapterFactoryImpl
 import com.fivemin.core.engine.transaction.*
 import com.fivemin.core.engine.transaction.export.ExportParser
+import com.fivemin.core.engine.transaction.export.ExportTransactionMovement
 import com.fivemin.core.engine.transaction.export.ExportTransactionPolicy
 import com.fivemin.core.engine.transaction.finalizeRequest.*
 import com.fivemin.core.engine.transaction.prepareRequest.DetachableSubPolicy
 import com.fivemin.core.engine.transaction.prepareRequest.PreParser
+import com.fivemin.core.engine.transaction.prepareRequest.PrepareRequestTransactionMovement
 import com.fivemin.core.engine.transaction.prepareRequest.PrepareRequestTransactionPolicy
 import com.fivemin.core.engine.transaction.serialize.PostParser
+import com.fivemin.core.engine.transaction.serialize.SerializeTransactionMovementImpl
 import com.fivemin.core.engine.transaction.serialize.SerializeTransactionPolicy
 import com.fivemin.core.export.ExportStateImpl
-import com.fivemin.core.request.*
-import com.fivemin.core.request.queue.DequeueOptimizationPolicy
+import com.fivemin.core.request.RequestQueue
+import com.fivemin.core.request.RequestTaskOption
+import com.fivemin.core.request.RequesterSelector
 import com.fivemin.core.request.queue.srtfQueue.SRTFKeyExtractor
 import com.fivemin.core.request.queue.srtfQueue.SRTFOptimizationPolicy
 import com.fivemin.core.request.queue.srtfQueue.SRTFPageDescriptorFactory
@@ -75,11 +79,123 @@ data class ParseOption(
 )
 
 data class CrawlerObjects constructor(
-    val deq: SRTFOptimizationPolicy,
-    val keyEx: SRTFKeyExtractor,
-    val descriptFac: SRTFPageDescriptorFactory
+    val deq: SRTFOptimizationPolicy, val keyEx: SRTFKeyExtractor, val descriptFac: SRTFPageDescriptorFactory
 ) {
 
+}
+
+
+enum class DocumentTransaction {
+    Prepare, Request, Serialize, Export
+}
+
+
+class CrawlerBuilder constructor(private val policyMap: Map<DocumentTransaction, Any>) {
+    companion object {
+        fun <Document : Request> startPolicyBuild(): Builder1<Document, InitialTransaction<Document>> {
+            return Builder1(mutableMapOf())
+        }
+    }
+    
+    class Builder1<Document : Request, Src : Transaction<Document>> constructor(public val policy: MutableMap<DocumentTransaction, Any>) {
+        fun <Dst : StrictTransaction<Src, Document>> addPolicy(
+            obj: TransactionMovementFactory<Src, Dst, Document>,
+            subPolicies: Iterable<TransactionSubPolicy<Src, Dst, Document>>,
+            loc: DocumentTransaction
+        ): Builder1<Document, Dst> {
+            val psObj = when (loc) {
+                DocumentTransaction.Prepare -> PrepareRequestTransactionPolicy(
+                    AbstractPolicyOption(subPolicies) as AbstractPolicyOption<InitialTransaction<Document>, PrepareTransaction<Document>, Document>,
+                    obj as TransactionMovementFactory<InitialTransaction<Document>, PrepareTransaction<Document>, Document>
+                )
+                DocumentTransaction.Request -> FinalizeRequestTransactionPolicy(
+                    AbstractPolicyOption(subPolicies) as AbstractPolicyOption<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document>,
+                    obj as TransactionMovementFactory<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document>
+                )
+                DocumentTransaction.Serialize -> SerializeTransactionPolicy(
+                    AbstractPolicyOption(subPolicies) as AbstractPolicyOption<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document>,
+                    obj as TransactionMovementFactory<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document>
+                )
+                DocumentTransaction.Export -> ExportTransactionPolicy(
+                    AbstractPolicyOption(subPolicies) as AbstractPolicyOption<SerializeTransaction<Document>, ExportTransaction<Document>, Document>,
+                    obj as TransactionMovementFactory<SerializeTransaction<Document>, ExportTransaction<Document>, Document>
+                )
+            }
+            
+            policy[loc] = psObj
+            return Builder1(policy)
+        }
+        
+        fun endPolicyBuild(): CrawlerBuilder {
+            return CrawlerBuilder(policy)
+        }
+    }
+    
+    fun finalize(info: TaskInfo, state: SessionInitState): CrawlerStarter {
+        return CrawlerStarter(
+            CrawlerTaskFactoryFactoryImpl(DocumentPolicyStorageFactoryCollector(policyMap)), info, state
+        )
+    }
+}
+
+data class CrawlerStarter constructor(
+    val factory: CrawlerTaskFactoryFactoryImpl<Request>, val info: TaskInfo, val state: SessionInitState
+)
+
+data class CrawlerOption constructor(
+    val preParser: PreParser,
+    val requestWaiter: RequestWaiter,
+    val postParser: PostParser<Request>,
+    val exportParser: ExportParser,
+    val exportState: ExportState,
+    val info: TaskInfo,
+    val state: SessionInitStateImpl
+)
+
+class CrawlerFactory2 {
+    class PrepareFactory constructor(val preParser: PreParser) :
+        TransactionMovementFactory<InitialTransaction<Request>, PrepareTransaction<Request>, Request> {
+        override fun getMovement(): TransactionMovement<InitialTransaction<Request>, PrepareTransaction<Request>, Request> {
+            return PrepareRequestTransactionMovement(preParser)
+        }
+    }
+    
+    class FinalizeReqFactory constructor(val requestWaiter: RequestWaiter) :
+        TransactionMovementFactory<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request> {
+        override fun getMovement(): TransactionMovement<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request> {
+            return FinalizeRequestTransactionMovement(requestWaiter)
+        }
+    }
+    
+    class SerializeFactory constructor(val postParser: PostParser<Request>) :
+        TransactionMovementFactory<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request> {
+        override fun getMovement(): TransactionMovement<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request> {
+            return SerializeTransactionMovementImpl(postParser)
+        }
+    }
+    
+    class ExportFactory constructor(val ep: ExportParser, val es: ExportState) :
+        TransactionMovementFactory<SerializeTransaction<Request>, ExportTransaction<Request>, Request> {
+        override fun getMovement(): TransactionMovement<SerializeTransaction<Request>, ExportTransaction<Request>, Request> {
+            return ExportTransactionMovement(ep, es)
+        }
+    }
+    
+    fun get(subPolicies: SubPolicyCollection, options: CrawlerOption): CrawlerStarter {
+        return CrawlerBuilder.startPolicyBuild<Request>()
+            .addPolicy(PrepareFactory(options.preParser), subPolicies.preprocess, DocumentTransaction.Prepare)
+            .addPolicy(FinalizeReqFactory(options.requestWaiter), subPolicies.request, DocumentTransaction.Request)
+            .addPolicy(SerializeFactory(options.postParser), subPolicies.serialize, DocumentTransaction.Serialize)
+            .addPolicy(
+                ExportFactory(options.exportParser, options.exportState), subPolicies.export, DocumentTransaction.Export
+            ).endPolicyBuild().finalize(options.info, options.state)
+    }
+}
+
+class CrawlerOptionFactory {
+    fun get(): CrawlerOption {
+    
+    }
 }
 
 class CrawlerFactory(private val virtualOption: VirtualOption) {
@@ -104,30 +220,21 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     
     suspend fun start(uri: URI): Either<Throwable, ExportTransaction<Request>> {
         val task = taskFactory.getFactory<Request>()
-            .get4<
-                    InitialTransaction<Request>,
-                    PrepareTransaction<Request>,
-                    FinalizeRequestTransaction<Request>,
-                    SerializeTransaction<Request>,
-                    ExportTransaction<Request>>(
+            .get4<InitialTransaction<Request>, PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, ExportTransaction<Request>>(
                 DocumentType.DEFAULT
             )
         
         return coroutineScope {
             task.start(
                 InitialTransactionImpl<Request>(
-                    InitialOption(),
-                    TagRepositoryImpl(),
-                    HttpRequestImpl(
+                    InitialOption(), TagRepositoryImpl(), HttpRequestImpl(
                         none(),
                         uri,
                         RequestType.LINK,
                         PerRequestHeaderProfile(none(), none(), none(), uri),
                         TagRepositoryImpl()
                     )
-                ),
-                TaskInfo(provider, taskFactory),
-                SessionInitStateImpl(
+                ), TaskInfo(provider, taskFactory), SessionInitStateImpl(
                     SessionInfo(finishObserver, sessionUniqueKeyFilter),
                     SessionData(sessionUniqueKeyFilter, SessionRepositoryImpl(sessionUniqueKeyFilter, finishObserver)),
                     SessionContext(LocalUniqueKeyTokenRepo(), none())
@@ -146,8 +253,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     }
     
     private fun createFactory(
-        obj: CrawlerObjects,
-        additional: SubPolicyCollection
+        obj: CrawlerObjects, additional: SubPolicyCollection
     ): CrawlerTaskFactoryFactory {
         val def = getDefaultSubPolicyCollection()
         
@@ -162,8 +268,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     }
     
     private fun getDefaultPolicy(
-        obj: CrawlerObjects,
-        subpol: SubPolicyCollection
+        obj: CrawlerObjects, subpol: SubPolicyCollection
     ): DocumentPolicyStorageFactory {
         val movefac = getDefaultMovementFactory(obj.deq, obj.keyEx, obj.descriptFac)
         
@@ -176,9 +281,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     }
     
     private fun getDefaultMovementFactory(
-        deq: SRTFOptimizationPolicy,
-        keyEx: SRTFKeyExtractor,
-        descriptFac: SRTFPageDescriptorFactory
+        deq: SRTFOptimizationPolicy, keyEx: SRTFKeyExtractor, descriptFac: SRTFPageDescriptorFactory
     ): MovementFactory<Request> {
         return MovementFactoryImpl(
             virtualOption.parseOption.preParser,
@@ -190,9 +293,7 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     }
     
     private fun getRequestQueue(
-        deq: SRTFOptimizationPolicy,
-        keyEx: SRTFKeyExtractor,
-        descriptFac: SRTFPageDescriptorFactory
+        deq: SRTFOptimizationPolicy, keyEx: SRTFKeyExtractor, descriptFac: SRTFPageDescriptorFactory
     ): RequestQueue {
         val count = controller.getSettings("MaxRequestThread").map { it.toInt() }.fold({ 1 }, { it })
         
@@ -204,14 +305,11 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
     }
     
     private fun getRequestTaskFactory(
-        deq: SRTFOptimizationPolicy,
-        keyEx: SRTFKeyExtractor,
-        descriptFac: SRTFPageDescriptorFactory
+        deq: SRTFOptimizationPolicy, keyEx: SRTFKeyExtractor, descriptFac: SRTFPageDescriptorFactory
     ): RequesterTaskFactory {
         return RequesterTaskFactoryImpl(
             RequestTaskOption(
-                virtualOption.parseOption.requesterSelector,
-                getRequestQueue(deq, keyEx, descriptFac)
+                virtualOption.parseOption.requesterSelector, getRequestQueue(deq, keyEx, descriptFac)
             )
         )
     }
@@ -227,13 +325,21 @@ class CrawlerFactory(private val virtualOption: VirtualOption) {
         
         return SubPolicyCollection(
             listOf<TransactionSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request>>(
-                MarkDetachablePolicy(),
-                DetachableSubPolicy(),
-                AddTagAliasSubPolicy()
+                MarkDetachablePolicy(), DetachableSubPolicy(), AddTagAliasSubPolicy()
             ).plus(additionalPrepareSubPolicy),
             listOf(RedirectSubPolicy(), RetrySubPolicy(), ResponseDisposeSubPolicy()),
             listOf(),
             listOf()
+        )
+    }
+}
+
+class DefaultCollectionFactory {
+    fun get(): SubPolicyCollection {
+        return SubPolicyCollection(
+            listOf(
+                MarkDetachablePolicy(), DetachableSubPolicy(), AddTagAliasSubPolicy()
+            ), listOf(RedirectSubPolicy(), RetrySubPolicy(), ResponseDisposeSubPolicy()), listOf(), listOf()
         )
     }
 }

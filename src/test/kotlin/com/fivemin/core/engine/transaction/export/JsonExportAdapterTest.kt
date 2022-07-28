@@ -58,7 +58,7 @@ class JsonExportAdapterTest {
         val adapter = JsonExportAdapter(tagExp, ExportHandleFactoryImpl(mockDirectIO(), "JsonExportAdapterTest"))
         
         val single = AttributeMockFactory.getSingleStringAttr("test1", "value")
-        val multi = AttributeMockFactory.getMultiSingleAttr("test2", listOf("value1", "value2"))
+        val multi = AttributeMockFactory.getMultiStringAttr("test2", listOf("value1", "value2"))
         
         var ext = adapter.parseAndExport(
             DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK),
