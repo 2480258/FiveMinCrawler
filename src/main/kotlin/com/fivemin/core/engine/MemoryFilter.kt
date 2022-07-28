@@ -32,42 +32,44 @@ interface MemoryWriter : MemoryFilter
  * Temp data saver.
  * Saves written data at disk
  */
-class DiskWriterImpl constructor(private val token: RequestToken, private val tempPath: DirectoryIOToken) : MemoryWriter {
+class DiskWriterImpl constructor(private val token: RequestToken, private val tempPath: DirectoryIOToken) :
+    MemoryWriter {
     override var length: Int = 0
     override var isDisposed: Boolean = false
     override var isCompleted: Boolean = false
-
+    
     val TEMP_EXT = ".tmp"
     val writer: FileOutputStream
     val file: FileIOToken
+    
     init {
         file = tempPath.withAdditionalPathFile(getAdditionalPath(token))
         writer = file.unsafeOpenFileStream().fold({ x -> throw x }, { x -> x })
     }
-
+    
     private fun getAdditionalPath(tok: RequestToken): String {
         return tok.hashCode().toString() + TEMP_EXT
     }
-
+    
     override fun write(b: ByteArray, off: Int, len: Int) {
         writer.write(b, off, len)
     }
-
+    
     override fun flushAndExportAndDispose(): MemoryData {
         if (isCompleted) {
             throw IllegalStateException()
         }
-
+        
         markAsComplete()
         close()
-
+        
         return FileMemoryDataImpl(file)
     }
-
+    
     private fun markAsComplete() {
         isCompleted = true
     }
-
+    
     override fun close() {
         writer.close()
         isDisposed = true
@@ -85,32 +87,32 @@ class MemoryWriterImpl : MemoryWriter {
             writer.writeTo(dest.writer)
         }
     }
-
+    
     override var length: Int = 0
         get() = writer.size()
     override var isDisposed: Boolean = false
-
+    
     override fun write(b: ByteArray, off: Int, len: Int) {
         length += b.size
         writer.write(b, off, len)
     }
-
+    
     override fun flushAndExportAndDispose(): MemoryData {
         writer.flush()
         markAsComplete()
-
+        
         return ArrayMemoryData(writer.toByteArray())
     }
-
+    
     private fun markAsComplete() {
         isCompleted = true
     }
-
+    
     override fun close() {
         writer.close()
         isDisposed = true
     }
-
+    
     override var isCompleted: Boolean = false
 }
 
@@ -118,7 +120,7 @@ class ArrayMemoryData constructor(private val data: ByteArray) : MemoryData {
     override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Either<Throwable, T> {
         return Either.catch { func(ByteArrayInputStream(data)) }
     }
-
+    
     override fun openWriteStreamUnsafe(): Either<Throwable, OutputStream> {
         TODO("Not yet implemented")
     }
@@ -129,10 +131,10 @@ class ArrayMemoryData constructor(private val data: ByteArray) : MemoryData {
  */
 interface MemoryFilter : AutoCloseable {
     val length: Int
-
+    
     val isCompleted: Boolean
     val isDisposed: Boolean
-
+    
     fun write(b: ByteArray, off: Int, len: Int)
     fun flushAndExportAndDispose(): MemoryData
 }
@@ -148,15 +150,16 @@ interface StringFilter : MemoryFilter {
  *
  * Recognizes UTF8, UTF32BE, UTF32LE, UTF16BE, UTF16LE via Byte-Order-Mark
  */
-class StringFilterImpl constructor(private val filter: MemoryFilter, private var _encoding: Option<Charset>) : StringFilter {
-
+class StringFilterImpl constructor(private val filter: MemoryFilter, private var _encoding: Option<Charset>) :
+    StringFilter {
+    
     override val encoding: Charset
         get() {
             return _encoding.fold({ Charsets.UTF_8 }, {
                 it
             })
         }
-
+    
     val bomCharsets: Map<Charset, ByteArray> = mapOf(
         Charsets.UTF_8 to byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()),
         Charsets.UTF_32BE to byteArrayOf(0x00.toByte(), 0x00.toByte(), 0xFE.toByte(), 0xFF.toByte()),
@@ -167,37 +170,41 @@ class StringFilterImpl constructor(private val filter: MemoryFilter, private var
     private val MAX_BOM_LENGTH = 10 //how much byte needed to be copied over for BOM recognitions?
     override var isCompleted: Boolean = false
         get() = filter.isCompleted
-
+    
     override var isDisposed: Boolean = false
         get() = filter.isDisposed
-
+    
     override var length: Int = 0
         get() = filter.length
-
+    
     override fun write(b: ByteArray, off: Int, len: Int) {
-        if (_encoding.isNotEmpty() && length == 0) {
+        if (_encoding.isEmpty() && length == 0) {
             val minCount = Math.min(b.size, MAX_BOM_LENGTH)
             val arr = b.take(minCount).toByteArray()
             _encoding = getEncoding(arr).some()
         }
-
+        
         filter.write(b, off, len)
     }
-
+    
     override fun flushAndExportAndDispose(): StringMemoryData {
         val enc = _encoding.fold({ Charsets.UTF_8 }, { x -> x })
         return StringMemoryDataImpl(filter.flushAndExportAndDispose(), enc)
     }
-
+    
     override fun close() {
         filter.close()
     }
-
+    
     private fun getEncoding(firstByte: ByteArray): Charset {
         return _encoding.getOrElse {
-            bomCharsets.filterValues {
+            val candicates = bomCharsets.filterValues {
                 firstByte.take(it.size).toByteArray().contentEquals(it)
-            }.entries.singleOrNone().fold({
+            }.entries.sortedByDescending {
+                it.value.size
+            } // Preventing edge case - UTF32LE contains UTF16LE BOM marks....
+            
+            candicates.firstOrNone().fold({
                 Charsets.UTF_8
             }, {
                 it.key
@@ -210,24 +217,25 @@ class StringFilterImpl constructor(private val filter: MemoryFilter, private var
  * Decorator of memory writer
  * Supports HTML parser.
  */
-class HtmlFilterImpl constructor(private val filter: StringFilter, private val factory: HtmlDocumentFactory) : MemoryFilter {
+class HtmlFilterImpl constructor(private val filter: StringFilter, private val factory: HtmlDocumentFactory) :
+    MemoryFilter {
     override var isCompleted: Boolean = false
         get() = filter.isCompleted
-
+    
     override var isDisposed: Boolean = false
         get() = filter.isDisposed
-
+    
     override var length: Int = 0
         get() = filter.length
-
+    
     override fun write(b: ByteArray, off: Int, len: Int) {
         filter.write(b, off, len)
     }
-
+    
     override fun flushAndExportAndDispose(): HtmlMemoryData {
         return HtmlMemoryDataImpl(filter.flushAndExportAndDispose(), factory)
     }
-
+    
     override fun close() {
         filter.close()
     }
@@ -248,9 +256,9 @@ class TranslatableFilter(
 ) : MemoryFilter {
     private val MEMORY_BYTE_THRESOLD: Int = 16000
     private val TRANSLATION_THRESOLD: Int = 20000
-
+    
     private var writeStream: MemoryWriter
-
+    
     init {
         writeStream = expectSize.fold({ MemoryWriterImpl() }, {
             if (it < MEMORY_BYTE_THRESOLD) {
@@ -260,32 +268,32 @@ class TranslatableFilter(
             }
         })
     }
-
+    
     override val length: Int
         get() = writeStream.length
     override val isCompleted: Boolean
         get() = writeStream.isCompleted
     override val isDisposed: Boolean
         get() = writeStream.isDisposed
-
+    
     override fun write(b: ByteArray, off: Int, len: Int) {
         if (writeStream is MemoryWriterImpl && (writeStream.length > TRANSLATION_THRESOLD)) {
             val ndata = DiskWriterImpl(handle, tempPath)
             (writeStream as MemoryWriterImpl).migrateMeToAndDisposeThis(ndata)
             writeStream = ndata
         }
-
+        
         writeStream.write(b, off, len)
     }
-
+    
     override fun flushAndExportAndDispose(): MemoryData {
         return writeStream.flushAndExportAndDispose()
     }
-
+    
     override fun close() {
         writeStream.close()
     }
-
+    
     fun dispose() {
         writeStream.close()
     }
