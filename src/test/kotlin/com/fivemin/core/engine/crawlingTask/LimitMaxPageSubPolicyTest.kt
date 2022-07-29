@@ -26,8 +26,6 @@ import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.ElemIterator
-import com.fivemin.core.StubMockFactory.Companion.mockInfo
-import com.fivemin.core.StubMockFactory.Companion.mockState
 import com.fivemin.core.UriIterator
 import com.fivemin.core.engine.*
 import io.mockk.coVerify

@@ -25,7 +25,7 @@ import com.fivemin.core.AttributeMockFactory
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
-import com.fivemin.core.StubMockFactory
+import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.RequestType
 import com.fivemin.core.engine.match
@@ -62,8 +62,8 @@ class SerializeTransactionMovementImplTest {
             )
         )
         
-        val info = StubMockFactory.mockInfo()
-        val state = StubMockFactory.mockState()
+        val info = TaskMockFactory.createTaskInfo()
+        val state = TaskMockFactory.createSessionStarted<Request>()
         
         val doc =
             DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK).upgrade().upgradeAsDocument("a")
@@ -100,10 +100,8 @@ class SerializeTransactionMovementImplTest {
                 )
             )
         )
-        
-        val info = StubMockFactory.mockInfo()
-        val state = StubMockFactory.mockState()
-        
+        val info = TaskMockFactory.createTaskInfo()
+        val state = TaskMockFactory.createSessionStarted<Request>()
         val doc =
             DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK).upgrade().upgradeAsDocument("a")
                 .upgrade()
@@ -136,10 +134,9 @@ class SerializeTransactionMovementImplTest {
                 )
             )
         )
-        
-        val info = StubMockFactory.mockInfo()
-        val state = StubMockFactory.mockState()
-        
+    
+        val info = TaskMockFactory.createTaskInfo()
+        val state = TaskMockFactory.createSessionStarted<Request>()
         val doc =
             DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK).upgrade().upgradeAsDocument("a")
                 .upgrade()

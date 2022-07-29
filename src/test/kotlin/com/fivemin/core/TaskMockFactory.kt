@@ -25,7 +25,6 @@ import arrow.core.right
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.engine.*
-import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactory
 import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactoryCollector
 import com.fivemin.core.engine.session.*
 import com.fivemin.core.engine.session.bFilter.BloomFilterImpl
@@ -36,9 +35,11 @@ import com.fivemin.core.engine.transaction.export.ExportTransactionPolicy
 import com.fivemin.core.engine.transaction.finalizeRequest.FinalizeRequestTransactionPolicy
 import com.fivemin.core.engine.transaction.prepareRequest.PrepareRequestTransactionPolicy
 import com.fivemin.core.engine.transaction.serialize.SerializeTransactionPolicy
+import com.fivemin.core.initialize.DocumentTransaction
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
@@ -55,18 +56,17 @@ class TaskMockFactory {
             val persister = UniqueKeyPersisterImpl(persistFactory.get())
             
             var keyRepo = CompositeUniqueKeyRepository(
-                persister,
-                BloomFilterCache(mock),
-                TemporaryUniqueKeyRepository(),
-                UniqueKeyTokenFactory()
+                persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
             )
             val fin = FinishObserverImpl()
             val sessRepo = SessionRepositoryImpl(keyRepo, FinishObserverImpl())
             
-            val sess: SessionStartedState = SessionStartedStateImpl(
-                SessionInfo(fin, keyRepo),
-                SessionData(keyRepo, sessRepo),
-                SessionContext(LocalUniqueKeyTokenRepo(), none())
+            val sess: SessionStartedState = spyk(
+                SessionStartedStateImpl(
+                    SessionInfo(fin, keyRepo),
+                    SessionData(keyRepo, sessRepo),
+                    SessionContext(LocalUniqueKeyTokenRepo(), none())
+                )
             )
             
             return sess
@@ -78,7 +78,7 @@ class TaskMockFactory {
             request: FinalizeRequestTransactionPolicy<Request>? = null,
             serialize: SerializeTransactionPolicy<Request>? = null,
             export: ExportTransactionPolicy<Request>? = null
-        ): DocumentPolicyStorageFactoryCollector {
+        ): DocumentPolicyStorageFactoryCollector<Request> {
             var prepMock: PrepareRequestTransactionPolicy<Request> = mockk()
             coEvery {
                 prepMock.progressAsync(any(), any(), any())
@@ -123,14 +123,14 @@ class TaskMockFactory {
                 }
             }
             
-            
-            return DocumentPolicyStorageFactoryCollector(
-                DocumentPolicyStorageFactory(
-                    prepare ?: prepMock,
-                    request ?: reqMock,
-                    serialize ?: selMock,
-                    export ?: expMock
+            return DocumentPolicyStorageFactoryCollector<Request>(
+                mapOf<DocumentTransaction, Any>(
+                    DocumentTransaction.Prepare to (prepare ?: prepMock),
+                    DocumentTransaction.Request to (request ?: reqMock),
+                    DocumentTransaction.Serialize to (serialize ?: selMock),
+                    DocumentTransaction.Export to (export ?: expMock)
                 )
+            
             )
         }
         
@@ -161,10 +161,7 @@ class TaskMockFactory {
                     any<DocumentType>()
                 )
             } answers {
-                val task: CrawlerTask2<
-                        InitialTransaction<HttpRequest>,
-                        PrepareTransaction<HttpRequest>,
-                        FinalizeRequestTransaction<HttpRequest>, Request, Request, Request> =
+                val task: CrawlerTask2<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>, Request, Request, Request> =
                     mockk()
                 
                 coEvery {

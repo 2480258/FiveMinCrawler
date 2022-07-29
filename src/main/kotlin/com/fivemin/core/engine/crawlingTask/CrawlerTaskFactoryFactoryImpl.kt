@@ -27,8 +27,8 @@ import com.fivemin.core.engine.Request
 /**
  * Factory Method for CrawlerTaskFactory.
  */
-class CrawlerTaskFactoryFactoryImpl<Document : Request>(private val storage: DocumentPolicyStorageFactoryCollector<Document>) : CrawlerTaskFactoryFactory {
-    override fun getFactory(): CrawlerTaskFactory<Document> {
+class CrawlerTaskFactoryFactoryImpl(private val storage: DocumentPolicyStorageFactoryCollector<Request>) : CrawlerTaskFactoryFactory<Request> {
+    override fun getFactory(): CrawlerTaskFactory<Request> {
         return CrawlerTaskFactory(storage)
     }
 }

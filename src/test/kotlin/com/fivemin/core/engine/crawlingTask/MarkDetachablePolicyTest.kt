@@ -23,7 +23,7 @@ package com.fivemin.core.engine.crawlingTask
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
-import com.fivemin.core.StubMockFactory
+import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.RequestType
 import com.fivemin.core.engine.WorkingSetMode
@@ -45,12 +45,12 @@ class MarkDetachablePolicyTest {
         val preproc = init.upgradeAsDocument("a", WorkingSetMode.Enabled)
         
         val detach = MarkDetachablePolicy<Request>()
-        val state = StubMockFactory.mockState()
+        val state = TaskMockFactory.createSessionStarted<Request>()
         
         
         
         runBlocking {
-            detach.process(init, preproc, StubMockFactory.mockInfo(), state)
+            detach.process(init, preproc, TaskMockFactory.createTaskInfo(), state)
         }
         
         verify { state.setDetachable() }
@@ -64,12 +64,12 @@ class MarkDetachablePolicyTest {
         val preproc = init.upgradeAsDocument("a", WorkingSetMode.Disabled)
         
         val detach = MarkDetachablePolicy<Request>()
-        val state = StubMockFactory.mockState()
+        val state = TaskMockFactory.createSessionStarted<Request>()
         
         
         
         runBlocking {
-            detach.process(init, preproc, StubMockFactory.mockInfo(), state)
+            detach.process(init, preproc, TaskMockFactory.createTaskInfo(), state)
         }
         
         verify { state.setNonDetachable() }

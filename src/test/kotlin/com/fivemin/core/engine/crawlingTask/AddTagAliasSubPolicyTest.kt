@@ -25,8 +25,7 @@ import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.ElemIterator
-import com.fivemin.core.StubMockFactory.Companion.mockInfo
-import com.fivemin.core.StubMockFactory.Companion.mockState
+import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.UriIterator
 import com.fivemin.core.engine.*
 import io.mockk.coVerify
@@ -53,10 +52,10 @@ class AddTagAliasSubPolicyTest {
             DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK, null, TagRepositoryImpl(listTag().toOption()))
                 .upgrade()
 
-        val state = mockState()
+        val state = TaskMockFactory.createSessionStarted<Request>()
 
         runBlocking {
-            val proc = addtagPolicy.process(req, req.upgradeAsDocument("a"), mockInfo(), state)
+            val proc = addtagPolicy.process(req, req.upgradeAsDocument("a"), TaskMockFactory.createTaskInfo(), state)
 
             coVerify(exactly = 1) {
                 state.addAlias(any())

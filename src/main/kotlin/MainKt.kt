@@ -20,34 +20,52 @@
 
 import arrow.core.toOption
 import com.fivemin.core.LoggerController
+import com.fivemin.core.engine.*
+import com.fivemin.core.initialize.CrawlerFactory
 import com.fivemin.core.initialize.StartTaskOption
-import kotlinx.cli.*
+import kotlinx.cli.ArgParser
+import kotlinx.cli.ArgType
+import kotlinx.cli.default
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.io.InvalidObjectException
 
 class MainKt {
     companion object {
-
         @JvmStatic
         fun main(args: Array<String>) {
-
-            runBlocking {
-                try {
-
-                    start(args)
-                } catch (e: Exception) {
-                    e.printStackTrace()
+            try {
+                val options = parseOptions(args)
+                CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+                    val task = taskFactory.getFactory()
+                        .get4<
+                                InitialTransaction<Request>,
+                                PrepareTransaction<Request>,
+                                FinalizeRequestTransaction<Request>,
+                                SerializeTransaction<Request>,
+                                ExportTransaction<Request>>(
+                            DocumentType.DEFAULT
+                        )
+                    
+                    runBlocking {
+                        task.start(document, info, state)
+                    }
                 }
-                kotlin.system.exitProcess(0)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
+            kotlin.system.exitProcess(0)
         }
-
-        suspend fun start(args: Array<String>) {
-
+        
+        fun parseOptions(args: Array<String>): StartTaskOption {
+            val logger = LoggerController.getLogger("MainKt")
+            logger.info("Starting crawler")
+            
+            
             val parser = ArgParser("FiveMinCrawler")
+            
             val uri by parser.option(ArgType.String, shortName = "u", description = "crawl uri")
             val paramPath by parser.option(ArgType.String, shortName = "p", description = "parameter path")
-
             val pluginPath by parser.option(ArgType.String, shortName = "g", description = "(Optional) plugin path")
             val resumeFrom by parser.option(
                 ArgType.String,
@@ -62,38 +80,31 @@ class MainKt {
             )
             val useVerbose by parser.option(ArgType.Boolean, shortName = "v", description = "use verbose logging")
                 .default(false)
-
+            
             parser.parse(args)
-
+            
             if (argsText != null) {
-                start(File(argsText).readText().split(' ').toTypedArray())
+                return parseOptions(File(argsText).readText().split(' ').toTypedArray())
             } else {
                 if (useVerbose) {
                     System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
+                    logger.debug("Logging Level = TRACE")
                 } else {
                     System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO")
                 }
-
-                val logger = LoggerController.getLogger("MainKt")
-                logger.debug("Logging Level = Debug")
-
-                logger.info("Starting crawler")
-
+                
                 if (uri == null || paramPath == null) {
                     logger.error("please check your arguments.... exiting.")
-                    return
+                    throw InvalidObjectException("can not parse arguments")
                 }
-                val opt = StartTaskOption(
+                
+                return StartTaskOption(
                     uri!!,
                     paramPath!!,
                     pluginPath.toOption(),
                     resumeFrom.toOption(),
                     rootPath.toOption()
                 )
-
-                opt.run()
-
-                logger.info("Finished")
             }
         }
     }
