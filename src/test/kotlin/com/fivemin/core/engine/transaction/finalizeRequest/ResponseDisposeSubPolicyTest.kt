@@ -21,65 +21,39 @@
 package com.fivemin.core.engine.transaction.finalizeRequest
 
 import com.fivemin.core.DocumentMockFactory
-import com.fivemin.core.DocumentMockFactory.Companion.getCriticalErrorBodyResponse
 import com.fivemin.core.DocumentMockFactory.Companion.getSuccResponse_Html
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsRequestDoc
-import com.fivemin.core.ElemIterator
 import com.fivemin.core.TaskMockFactory
-import com.fivemin.core.UriIterator
-import com.fivemin.core.engine.*
-import com.fivemin.core.engine.transaction.StringUniqueKeyProvider
-import com.fivemin.core.engine.transaction.UriUniqueKeyProvider
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.mockk
+import com.fivemin.core.engine.Request
+import com.fivemin.core.engine.RequestType
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.testng.annotations.Test
-import java.net.URI
-import kotlin.test.assertEquals
 
-class RetrySubPolicyTest {
-    @Test
-    fun testProcess_Retry() {
-        val retry = RetrySubPolicy<Request>()
-        
-        val src = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK).upgrade().upgradeAsDocument("a")
-        val response = src.upgradeAsRequestDoc().upgrade().getCriticalErrorBodyResponse()
-        val dest = src.upgrade(response)
-        
-        val info = TaskMockFactory.createTaskInfo()
-        val state = TaskMockFactory.createSessionStarted<Request>()
-        
-        runBlocking {
-            retry.process(src, dest, info, state).await()
-        }
-        
-        coVerify (exactly = 1){
-            state.retryAsync<Any>(any())
-        }
-    }
+import org.testng.Assert.*
+import java.net.URI
+
+class ResponseDisposeSubPolicyTest {
     
     @Test
-    fun testProcess_Pass() {
-        val retry = RetrySubPolicy<Request>()
-        
+    fun testProcess() {
+        val disposeSubPolicy = ResponseDisposeSubPolicy<Request>()
+    
         val src = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK).upgrade().upgradeAsDocument("a")
         val response = src.upgradeAsRequestDoc().upgrade().getSuccResponse_Html()
         val dest = src.upgrade(response)
-        
+    
         val info = TaskMockFactory.createTaskInfo()
         val state = TaskMockFactory.createSessionStarted<Request>()
-        
-        val result = runBlocking {
-            retry.process(src, dest, info, state).await()
+    
+        runBlocking {
+            disposeSubPolicy.process(src, dest, info, state)
         }
         
-        result.fold({
-            throw NullPointerException()
-        }, {
-            assertEquals(it, dest) // reference equals
-        })
+        verify (exactly = 1){
+            response.releaseRequester()
+        }
     }
 }

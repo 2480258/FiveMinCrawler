@@ -20,6 +20,8 @@
 
 package com.fivemin.core
 
+import arrow.core.Either
+import arrow.core.left
 import arrow.core.none
 import arrow.core.right
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
@@ -42,9 +44,95 @@ import io.mockk.mockk
 import io.mockk.spyk
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 
 class TaskMockFactory {
     companion object {
+        
+        inline fun <reified InTrans : Transaction<Request>, OutTrans : Transaction<Request>> createThrowingPolicy():
+                TransactionPolicy<InTrans, OutTrans, Request, Request> {
+            val policyMock1 = mockk<TransactionPolicy<InTrans, OutTrans, Request, Request>>()
+    
+            coEvery {
+                policyMock1.progressAsync(any(), any(), any())
+            } answers {
+                throw NullPointerException()
+            }
+            
+            return policyMock1
+        }
+    
+        inline fun <reified InTrans : Transaction<Request>, OutTrans : Transaction<Request>> createFallingPolicy():
+                TransactionPolicy<InTrans, OutTrans, Request, Request> {
+            val policyMock1 = mockk<TransactionPolicy<InTrans, OutTrans, Request, Request>>()
+        
+            coEvery {
+                policyMock1.progressAsync(any(), any(), any())
+            } coAnswers {
+               coroutineScope {
+                   async {
+                       NullPointerException().left()
+                   }
+               }
+            }
+        
+            return policyMock1
+        }
+        
+        fun createSessionInitState(): SessionInitState {
+            val mock: BloomFilterFactory = mockk()
+            
+            every {
+                mock.createEmpty()
+            } returns (BloomFilterImpl(100, 0.00000001))
+            
+            val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
+            val persister = UniqueKeyPersisterImpl(persistFactory.get())
+            
+            var keyRepo = CompositeUniqueKeyRepository(
+                persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
+            )
+            val fin = FinishObserverImpl()
+            val sessRepo = SessionRepositoryImpl(keyRepo, FinishObserverImpl())
+            
+            val sess: SessionInitStateImpl = spyk(
+                SessionInitStateImpl(
+                    SessionInfo(fin, keyRepo),
+                    SessionData(keyRepo, sessRepo),
+                    SessionContext(LocalUniqueKeyTokenRepo(), none())
+                )
+            )
+            
+            return sess
+        }
+        
+        fun <T> createDetachableSessionStarted(): SessionDetachableStartedState {
+            val mock: BloomFilterFactory = mockk()
+            
+            every {
+                mock.createEmpty()
+            } returns (BloomFilterImpl(100, 0.00000001))
+            
+            val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
+            val persister = UniqueKeyPersisterImpl(persistFactory.get())
+            
+            var keyRepo = CompositeUniqueKeyRepository(
+                persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
+            )
+            val fin = FinishObserverImpl()
+            val sessRepo = SessionRepositoryImpl(keyRepo, FinishObserverImpl())
+            
+            val sess: SessionDetachableStartedStateImpl = spyk(
+                SessionDetachableStartedStateImpl(
+                    SessionInfo(fin, keyRepo),
+                    SessionData(keyRepo, sessRepo),
+                    SessionContext(LocalUniqueKeyTokenRepo(), none())
+                )
+            )
+            
+            return sess
+        }
+        
         fun <T> createSessionStarted(): SessionStartedState {
             val mock: BloomFilterFactory = mockk()
             

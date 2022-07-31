@@ -21,11 +21,7 @@
 package com.fivemin.core
 
 import arrow.core.*
-import com.fivemin.core.DocumentMockFactory.Companion.upgrade
-import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.engine.*
-import com.fivemin.core.engine.transaction.StringUniqueKeyProvider
-import com.fivemin.core.engine.transaction.UriUniqueKeyProvider
 import com.fivemin.core.engine.transaction.export.ExportAttributeInfo
 import com.fivemin.core.engine.transaction.export.ExportAttributeLocator
 import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
@@ -38,9 +34,6 @@ import com.fivemin.core.request.PreprocessedRequest
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.InvalidObjectException
@@ -391,7 +384,7 @@ class DocumentMockFactory {
             return ret
         }
         
-        fun PreprocessedRequest<Request>.getCriticalBodyResponse(): ResponseData {
+        fun PreprocessedRequest<Request>.getCriticalErrorBodyResponse(): ResponseData {
             val bdy = mockk<ResponseData>()
             val result = mockk<CriticalErrorBody>()
             

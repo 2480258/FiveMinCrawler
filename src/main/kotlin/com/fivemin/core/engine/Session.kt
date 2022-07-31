@@ -226,7 +226,6 @@ interface SessionChildGeneratable : SessionState {
     
     /**
      * Creates child session
-     * child session is not detachable if parent is not.
      */
     suspend fun <T> getChildSession(func: suspend (SessionInitState) -> Deferred<Either<Throwable, T>>): Deferred<Either<Throwable, T>> {
         
