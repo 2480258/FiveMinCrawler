@@ -21,6 +21,8 @@
 package com.fivemin.core.engine.transaction
 
 import com.fivemin.core.engine.Request
+import com.fivemin.core.engine.StrictTransaction
+import com.fivemin.core.engine.Transaction
 
 interface MovementFactory<Document : Request> {
     fun <Document : Request> findRequest(): ExecuteRequestMovement<Document>
@@ -30,4 +32,9 @@ interface MovementFactory<Document : Request> {
     fun <Document : Request> findPrepare(): PrepareRequestMovement<Document>
 
     fun <Document : Request> findSerialize(): ExecuteSerializeMovement<Document>
+}
+
+
+interface TransactionMovementFactory<in SrcTrans : Transaction<Document>, DstTrans : StrictTransaction<SrcTrans, Document>, Document : Request> {
+    fun getMovement() : TransactionMovement<SrcTrans, DstTrans, Document>
 }

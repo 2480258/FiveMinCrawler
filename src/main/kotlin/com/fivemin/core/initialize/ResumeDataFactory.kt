@@ -34,12 +34,12 @@ import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.*
 
-class ResumeDataNameGenerator(val option: StartTaskOption) {
+class ResumeDataNameGenerator(val target: String) {
     fun generate(): String {
 
         val sdf = SimpleDateFormat("ss")
         val cur = sdf.format(Date())
 
-        return "[" + cur + "] " + URI(option.mainUriTarget).host + ".dat"
+        return "[" + cur + "] " + URI(target).host + ".dat"
     }
 }

@@ -28,22 +28,26 @@ import com.fivemin.core.engine.session.bFilter.BloomFilterFactoryImpl
 import com.fivemin.core.engine.session.database.DatabaseAdapterFactoryImpl
 import com.fivemin.core.engine.transaction.*
 import com.fivemin.core.engine.transaction.export.ExportParser
+import com.fivemin.core.engine.transaction.export.ExportTransactionMovement
 import com.fivemin.core.engine.transaction.export.ExportTransactionPolicy
 import com.fivemin.core.engine.transaction.finalizeRequest.*
 import com.fivemin.core.engine.transaction.prepareRequest.DetachableSubPolicy
 import com.fivemin.core.engine.transaction.prepareRequest.PreParser
+import com.fivemin.core.engine.transaction.prepareRequest.PrepareRequestTransactionMovement
 import com.fivemin.core.engine.transaction.prepareRequest.PrepareRequestTransactionPolicy
 import com.fivemin.core.engine.transaction.serialize.PostParser
+import com.fivemin.core.engine.transaction.serialize.SerializeTransactionMovementImpl
 import com.fivemin.core.engine.transaction.serialize.SerializeTransactionPolicy
+import com.fivemin.core.export.ConfigControllerImpl
 import com.fivemin.core.export.ExportStateImpl
-import com.fivemin.core.request.*
-import com.fivemin.core.request.queue.DequeueOptimizationPolicy
-import com.fivemin.core.request.queue.srtfQueue.SRTFKeyExtractor
-import com.fivemin.core.request.queue.srtfQueue.SRTFOptimizationPolicy
-import com.fivemin.core.request.queue.srtfQueue.SRTFPageDescriptorFactory
-import com.fivemin.core.request.queue.srtfQueue.WSQueue
-import kotlinx.coroutines.coroutineScope
+import com.fivemin.core.initialize.json.JsonParserOptionFactory
+import com.fivemin.core.initialize.mef.PluginSelectorImpl
+import com.fivemin.core.request.RequestTaskOption
+import com.fivemin.core.request.RequesterSelector
+import com.fivemin.core.request.queue.srtfQueue.*
 import kotlinx.serialization.Serializable
+import java.io.File
+import java.io.InvalidObjectException
 import java.net.URI
 
 @Serializable
@@ -75,165 +79,313 @@ data class ParseOption(
 )
 
 data class CrawlerObjects constructor(
-    val deq: SRTFOptimizationPolicy,
-    val keyEx: SRTFKeyExtractor,
-    val descriptFac: SRTFPageDescriptorFactory
+    val deq: SRTFOptimizationPolicy, val keyEx: SRTFKeyExtractor, val descriptFac: SRTFPageDescriptorFactory
 ) {
 
 }
 
-class CrawlerFactory(private val virtualOption: VirtualOption) {
-    private val MAX_PAGE_LIMIT_KEY = "MaxPageLimit"
+
+enum class DocumentTransaction {
+    Prepare, Request, Serialize, Export
+}
+
+
+class CrawlerBuilder constructor(private val option: StartTaskOption, private val policyMap: Map<DocumentTransaction, Any>) {
+    companion object {
+        fun <Document : Request> startPolicyBuild(option: StartTaskOption): Builder1<Document, InitialTransaction<Document>> {
+            return Builder1(mutableMapOf(), option)
+        }
+    }
     
-    
-    private val provider = KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider())
-    private val controller: ConfigController = virtualOption.controller
-    private val directIO = virtualOption.directIO
-    private val exportState = ExportStateImpl(directIO, none())
-    private val finishObserver = FinishObserverImpl()
-    private val sessionUniqueKeyFilter = CompositeUniqueKeyRepository(
-        createUniqueKeyPersister(virtualOption.resumeOption.jdbcUrl),
-        BloomFilterCache(BloomFilterFactoryImpl()),
-        TemporaryUniqueKeyRepository(),
-        UniqueKeyTokenFactory()
-    )
-    
-    
-    private val taskFactory: CrawlerTaskFactoryFactory =
-        createFactory(virtualOption.obj, virtualOption.subPolicyCollection)
-    
-    suspend fun start(uri: URI): Either<Throwable, ExportTransaction<Request>> {
-        val task = taskFactory.getFactory<Request>()
-            .get4<
-                    InitialTransaction<Request>,
-                    PrepareTransaction<Request>,
-                    FinalizeRequestTransaction<Request>,
-                    SerializeTransaction<Request>,
-                    ExportTransaction<Request>>(
-                DocumentType.DEFAULT
-            )
+    class Builder1<Document : Request, Src : Transaction<Document>> constructor(private val policy: MutableMap<DocumentTransaction, Any>, private val option: StartTaskOption) {
+        fun <Dst : StrictTransaction<Src, Document>> addPolicy(
+            obj: TransactionMovementFactory<Src, Dst, Document>,
+            subPolicies: Iterable<TransactionSubPolicy<Src, Dst, Document>>,
+            loc: DocumentTransaction
+        ): Builder1<Document, Dst> {
+            val psObj = when (loc) {
+                DocumentTransaction.Prepare -> PrepareRequestTransactionPolicy(
+                    AbstractPolicyOption(subPolicies) as AbstractPolicyOption<InitialTransaction<Document>, PrepareTransaction<Document>, Document>,
+                    obj as TransactionMovementFactory<InitialTransaction<Document>, PrepareTransaction<Document>, Document>
+                )
+                DocumentTransaction.Request -> FinalizeRequestTransactionPolicy(
+                    AbstractPolicyOption(subPolicies) as AbstractPolicyOption<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document>,
+                    obj as TransactionMovementFactory<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document>
+                )
+                DocumentTransaction.Serialize -> SerializeTransactionPolicy(
+                    AbstractPolicyOption(subPolicies) as AbstractPolicyOption<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document>,
+                    obj as TransactionMovementFactory<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document>
+                )
+                DocumentTransaction.Export -> ExportTransactionPolicy(
+                    AbstractPolicyOption(subPolicies) as AbstractPolicyOption<SerializeTransaction<Document>, ExportTransaction<Document>, Document>,
+                    obj as TransactionMovementFactory<SerializeTransaction<Document>, ExportTransaction<Document>, Document>
+                )
+            }
+            
+            policy[loc] = psObj
+            return Builder1(policy, option)
+        }
         
-        return coroutineScope {
-            task.start(
-                InitialTransactionImpl<Request>(
-                    InitialOption(),
-                    TagRepositoryImpl(),
-                    HttpRequestImpl(
+        fun endPolicyBuild(): CrawlerBuilder {
+            return CrawlerBuilder(option, policy)
+        }
+    }
+    
+    fun finalize(keyProvider: KeyProvider, state: SessionInitState, finishObserver: FinishObserver): CrawlerStarter {
+        val taskFactory = CrawlerTaskFactoryFactoryImpl(DocumentPolicyStorageFactoryCollector(policyMap))
+        
+        return CrawlerStarter(
+            URI(option.mainUriTarget), taskFactory, TaskInfo(keyProvider, taskFactory), state, finishObserver
+        )
+    }
+}
+
+class CrawlerStarter constructor(
+    private val uri: URI,
+    private val factory: CrawlerTaskFactoryFactoryImpl,
+    private val taskInfo: TaskInfo,
+    private val state: SessionInitState,
+    private val finishObserver: FinishObserver
+) {
+    private var isAlreadyStarted: Boolean = false
+    
+    fun startAndWaitUntilFinish(func: (taskFactory: CrawlerTaskFactoryFactoryImpl, document: InitialTransaction<Request>, info: TaskInfo, state: SessionInitState) -> Unit) {
+        if(isAlreadyStarted) {
+            throw InvalidObjectException("can be called only once")
+        }
+        
+        try {
+            isAlreadyStarted = true
+            func(
+                factory, InitialTransactionImpl<Request>(
+                    InitialOption(), TagRepositoryImpl(), HttpRequestImpl(
                         none(),
                         uri,
                         RequestType.LINK,
                         PerRequestHeaderProfile(none(), none(), none(), uri),
                         TagRepositoryImpl()
                     )
-                ),
-                TaskInfo(provider, taskFactory),
-                SessionInitStateImpl(
-                    SessionInfo(finishObserver, sessionUniqueKeyFilter),
-                    SessionData(sessionUniqueKeyFilter, SessionRepositoryImpl(sessionUniqueKeyFilter, finishObserver)),
-                    SessionContext(LocalUniqueKeyTokenRepo(), none())
-                )
-            ).await()
-        }
-    }
-    
-    fun waitForFinish() {
-        finishObserver.waitFinish()
-    }
-    
-    private fun createUniqueKeyPersister(jdbcUrl: String): UniqueKeyPersister {
-        val factory = DatabaseAdapterFactoryImpl(jdbcUrl)
-        return UniqueKeyPersisterImpl(factory.get())
-    }
-    
-    private fun createFactory(
-        obj: CrawlerObjects,
-        additional: SubPolicyCollection
-    ): CrawlerTaskFactoryFactory {
-        val def = getDefaultSubPolicyCollection()
-        
-        val merged = SubPolicyCollection(
-            def.preprocess.plus(additional.preprocess),
-            def.request.plus(additional.request),
-            def.serialize.plus(additional.serialize),
-            def.export.plus(additional.export)
-        )
-        
-        return CrawlerTaskFactoryFactoryImpl(DocumentPolicyStorageFactoryCollector(getDefaultPolicy(obj, merged)))
-    }
-    
-    private fun getDefaultPolicy(
-        obj: CrawlerObjects,
-        subpol: SubPolicyCollection
-    ): DocumentPolicyStorageFactory {
-        val movefac = getDefaultMovementFactory(obj.deq, obj.keyEx, obj.descriptFac)
-        
-        val prepare = PrepareRequestTransactionPolicy(AbstractPolicyOption(subpol.preprocess), movefac)
-        val request = FinalizeRequestTransactionPolicy(AbstractPolicyOption(subpol.request), movefac)
-        val serialize = SerializeTransactionPolicy(AbstractPolicyOption(subpol.serialize), movefac)
-        val export = ExportTransactionPolicy(AbstractPolicyOption(subpol.export), movefac)
-        
-        return DocumentPolicyStorageFactory(prepare, request, serialize, export)
-    }
-    
-    private fun getDefaultMovementFactory(
-        deq: SRTFOptimizationPolicy,
-        keyEx: SRTFKeyExtractor,
-        descriptFac: SRTFPageDescriptorFactory
-    ): MovementFactory<Request> {
-        return MovementFactoryImpl(
-            virtualOption.parseOption.preParser,
-            RequestWaiter(getRequestTaskFactory(deq, keyEx, descriptFac)),
-            virtualOption.parseOption.exportParser,
-            exportState,
-            virtualOption.parseOption.postParser
-        )
-    }
-    
-    private fun getRequestQueue(
-        deq: SRTFOptimizationPolicy,
-        keyEx: SRTFKeyExtractor,
-        descriptFac: SRTFPageDescriptorFactory
-    ): RequestQueue {
-        val count = controller.getSettings("MaxRequestThread").map { it.toInt() }.fold({ 1 }, { it })
-        
-        if (count < 1) {
-            throw IllegalArgumentException("MaxRequestThread is below 1")
-        }
-        
-        return WSQueue(deq, keyEx, descriptFac, count)
-    }
-    
-    private fun getRequestTaskFactory(
-        deq: SRTFOptimizationPolicy,
-        keyEx: SRTFKeyExtractor,
-        descriptFac: SRTFPageDescriptorFactory
-    ): RequesterTaskFactory {
-        return RequesterTaskFactoryImpl(
-            RequestTaskOption(
-                virtualOption.parseOption.requesterSelector,
-                getRequestQueue(deq, keyEx, descriptFac)
+                ), taskInfo, state
             )
-        )
+        } finally {
+            finishObserver.waitFinish()
+        }
+    }
+}
+
+data class CrawlerOption constructor(
+    val preParser: PreParser,
+    val requestWaiter: RequestWaiter,
+    val postParser: PostParser<Request>,
+    val exportParser: ExportParser,
+    val exportState: ExportState,
+    val keyProvider: KeyProvider,
+    val state: SessionInitStateImpl,
+    val subPolicies: SubPolicyCollection,
+    val finishObserver: FinishObserver
+)
+
+class CrawlerFactory {
+    class PrepareFactory constructor(val preParser: PreParser) :
+        TransactionMovementFactory<InitialTransaction<Request>, PrepareTransaction<Request>, Request> {
+        override fun getMovement(): TransactionMovement<InitialTransaction<Request>, PrepareTransaction<Request>, Request> {
+            return PrepareRequestTransactionMovement(preParser)
+        }
     }
     
-    private fun getDefaultSubPolicyCollection(): SubPolicyCollection {
-        val maxPages = controller.getSettings(MAX_PAGE_LIMIT_KEY).map {
-            it.toIntOrNull().toOption().map {
-                LimitMaxPageSubPolicy<Request>(it)
+    class FinalizeReqFactory constructor(val requestWaiter: RequestWaiter) :
+        TransactionMovementFactory<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request> {
+        override fun getMovement(): TransactionMovement<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request> {
+            return FinalizeRequestTransactionMovement(requestWaiter)
+        }
+    }
+    
+    class SerializeFactory constructor(val postParser: PostParser<Request>) :
+        TransactionMovementFactory<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request> {
+        override fun getMovement(): TransactionMovement<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request> {
+            return SerializeTransactionMovementImpl(postParser)
+        }
+    }
+    
+    class ExportFactory constructor(val ep: ExportParser, val es: ExportState) :
+        TransactionMovementFactory<SerializeTransaction<Request>, ExportTransaction<Request>, Request> {
+        override fun getMovement(): TransactionMovement<SerializeTransaction<Request>, ExportTransaction<Request>, Request> {
+            return ExportTransactionMovement(ep, es)
+        }
+    }
+    
+    fun get(startOption: StartTaskOption): CrawlerStarter {
+        val options = CrawlerOptionFactory().get(startOption)
+        
+        return CrawlerBuilder.startPolicyBuild<Request>(startOption)
+            .addPolicy(PrepareFactory(options.preParser), options.subPolicies.preprocess, DocumentTransaction.Prepare)
+            .addPolicy(
+                FinalizeReqFactory(options.requestWaiter), options.subPolicies.request, DocumentTransaction.Request
+            ).addPolicy(
+                SerializeFactory(options.postParser), options.subPolicies.serialize, DocumentTransaction.Serialize
+            ).addPolicy(
+                ExportFactory(options.exportParser, options.exportState),
+                options.subPolicies.export,
+                DocumentTransaction.Export
+            ).endPolicyBuild().finalize(options.keyProvider, options.state, options.finishObserver)
+    }
+    
+    class CrawlerOptionFactory {
+        val CONFIG_FILE_NAME = "fivemin.config.json"
+        val MAX_PAGE_LIMIT_KEY = "MaxPageLimit"
+        val MAX_REQUEST_THREAD = "MaxRequestThread"
+        
+        fun get(option: StartTaskOption): CrawlerOption {
+            val configController = getConfigController()
+            val directIO = getDirectIO(configController)
+            val finishObserver = FinishObserverImpl()
+            val sessionUniqueKeyRepository = getSessionUniqueKeyFilter(option.resumeAt, option.mainUriTarget)
+            val jsonOptionFactory = getParseOptionFactory(option.paramPath, directIO)
+            val srtfOption = getSRTFOption()
+            
+            return CrawlerOption(
+                getPreparser(jsonOptionFactory),
+                getRequestWaiter(configController, jsonOptionFactory, srtfOption),
+                getPostParser(jsonOptionFactory),
+                getExportParser(jsonOptionFactory),
+                getExportState(directIO),
+                getKeyProvider(),
+                getSessionInitStateImpl(finishObserver, sessionUniqueKeyRepository, sessionUniqueKeyRepository),
+                getDefaultSubPolicyCollection(configController).merge(getSRTFSubPolicyCollection(srtfOption))
+                    .merge(getPluginSubPolicyCollection(option.pluginDirectory)),
+                finishObserver
+            )
+        }
+        
+        private fun getKeyProvider(): KeyProvider {
+            return KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider())
+        }
+        
+        private fun getConfigController(): ConfigController {
+            val configString = if (File(CONFIG_FILE_NAME).exists()) {
+                File(CONFIG_FILE_NAME).readText(Charsets.UTF_8)
+            } else "{}"
+            
+            return ConfigControllerImpl(configString)
+        }
+        
+        private fun getDirectIO(config: ConfigController, rootPath: Option<String> = none()): DirectIO {
+            return DirectIOImpl(config, rootPath)
+        }
+        
+        private fun getSessionUniqueKeyFilter(resumeAt: Option<String>, target: String): CompositeUniqueKeyRepository {
+            val jdbcUrl = resumeAt.map { it }.fold({
+                ResumeDataNameGenerator(target).generate()
+            }, { it })
+            
+            val persister = UniqueKeyPersisterImpl(DatabaseAdapterFactoryImpl(jdbcUrl).get())
+            
+            return CompositeUniqueKeyRepository(
+                persister,
+                BloomFilterCache(BloomFilterFactoryImpl()),
+                TemporaryUniqueKeyRepository(),
+                UniqueKeyTokenFactory()
+            )
+        }
+        
+        private fun getParseOptionFactory(paramPath: String, io: DirectIO): JsonParserOptionFactory {
+            return JsonParserOptionFactory(File(paramPath).readText(Charsets.UTF_8), listOf(), io)
+        }
+        
+        private fun getPreparser(factory: JsonParserOptionFactory): PreParser {
+            return factory.option.preParser
+        }
+        
+        private fun getPostParser(factory: JsonParserOptionFactory): PostParser<Request> {
+            return factory.option.postParser
+        }
+        
+        private fun getExportState(directIO: DirectIO): ExportState {
+            return ExportStateImpl(directIO, none())
+        }
+        
+        private fun getExportParser(factory: JsonParserOptionFactory): ExportParser {
+            return factory.option.exportParser
+        }
+        
+        private fun getRequestWaiter(
+            controller: ConfigController, factory: JsonParserOptionFactory, srtf: SRTFOption
+        ): RequestWaiter {
+            val requestThread = controller.getSettings(MAX_REQUEST_THREAD).map { it.toInt() }.fold({ 1 }, { it })
+            
+            if (requestThread < 1) {
+                throw IllegalArgumentException("MaxRequestThread is below 1")
             }
-        }.flatten()
+            
+            val queue = WSQueue(srtf.deq, srtf.keyEx, srtf.descriptFac, requestThread)
+            
+            val taskFactory = RequesterTaskFactoryImpl(
+                RequestTaskOption(
+                    factory.option.requesterSelector, queue
+                )
+            )
+            
+            return RequestWaiter(taskFactory)
+        }
         
-        val additionalPrepareSubPolicy = listOf(maxPages).filterOption()
+        private fun getSRTFOption(): SRTFOption {
+            val timing = SRTFTimingRepositoryImpl()
+            val opt = SRTFOptimizationPolicyImpl(timing)
+            val keyEx = opt
+            val descript = SRTFPageDescriptorFactoryImpl()
+            
+            return SRTFOption(opt, keyEx, descript, timing)
+        }
         
-        return SubPolicyCollection(
-            listOf<TransactionSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request>>(
-                MarkDetachablePolicy(),
-                DetachableSubPolicy(),
-                AddTagAliasSubPolicy()
-            ).plus(additionalPrepareSubPolicy),
-            listOf(RedirectSubPolicy(), RetrySubPolicy(), ResponseDisposeSubPolicy()),
-            listOf(),
-            listOf()
+        private fun getSessionInitStateImpl(
+            finishObserver: FinishObserver, detachObserver: DetachObserver, uniqueKeyRepository: UniqueKeyRepository
+        ): SessionInitStateImpl {
+            return SessionInitStateImpl(
+                SessionInfo(finishObserver, detachObserver),
+                SessionData(uniqueKeyRepository, SessionRepositoryImpl(detachObserver, finishObserver)),
+                SessionContext(LocalUniqueKeyTokenRepo(), none())
+            )
+        }
+        
+        private fun getPluginSubPolicyCollection(pluginDirectory: Option<String>): SubPolicyCollection {
+            return pluginDirectory.map {
+                PluginSelectorImpl(it).fold().subPolicyCollection
+            }.fold({ SubPolicyCollection(listOf(), listOf(), listOf(), listOf()) }, { it })
+        }
+        
+        private fun getSRTFSubPolicyCollection(option: SRTFOption): SubPolicyCollection {
+            return SubPolicyCollection(
+                listOf(),
+                listOf(SRTFLogSubPolicy(option.timing, option.descriptFac)),
+                listOf(),
+                listOf(SRTFCleanupSubPolicy(option.deq))
+            )
+        }
+        
+        private fun getDefaultSubPolicyCollection(controller: ConfigController): SubPolicyCollection {
+            val maxPages = controller.getSettings(MAX_PAGE_LIMIT_KEY).map {
+                it.toIntOrNull().toOption().map {
+                    LimitMaxPageSubPolicy<Request>(it)
+                }
+            }.flatten()
+            
+            val additionalPrepareSubPolicy = listOf(maxPages).filterOption()
+            
+            return SubPolicyCollection(
+                listOf<TransactionSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request>>(
+                    MarkDetachablePolicy(), DetachableSubPolicy(), AddTagAliasSubPolicy()
+                ).plus(additionalPrepareSubPolicy),
+                listOf(RedirectSubPolicy(), RetrySubPolicy(), ResponseDisposeSubPolicy()),
+                listOf(),
+                listOf()
+            )
+        }
+        
+        data class SRTFOption constructor(
+            val deq: SRTFOptimizationPolicy,
+            val keyEx: SRTFKeyExtractor,
+            val descriptFac: SRTFPageDescriptorFactory,
+            val timing: SRTFTimingRepository
         )
     }
 }

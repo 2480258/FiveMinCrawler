@@ -23,7 +23,7 @@ package com.fivemin.core.engine.transaction.finalizeRequest
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
-import com.fivemin.core.StubMockFactory
+import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.*
 import io.mockk.coVerify
 import io.mockk.every
@@ -64,8 +64,8 @@ class RedirectSubPolicyTest {
             .upgradeAsDocument("a")
         
         val fin = req.upgrade(getRedirectResponse())
-        val info = StubMockFactory.mockInfo()
-        val state = StubMockFactory.mockState()
+        val info = TaskMockFactory.createTaskInfo()
+        val state = TaskMockFactory.createSessionStarted<Request>()
         
         fin.result.map {
             it.responseBody.ifRedirect(

@@ -18,53 +18,42 @@
  *
  */
 
-package com.fivemin.core.engine.crawlingTask
+package com.fivemin.core.engine.transaction.finalizeRequest
 
-import arrow.core.toOption
 import com.fivemin.core.DocumentMockFactory
+import com.fivemin.core.DocumentMockFactory.Companion.getSuccResponse_Html
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
-import com.fivemin.core.ElemIterator
+import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsRequestDoc
 import com.fivemin.core.TaskMockFactory
-import com.fivemin.core.UriIterator
-import com.fivemin.core.engine.*
-import io.mockk.coVerify
+import com.fivemin.core.engine.Request
+import com.fivemin.core.engine.RequestType
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
-import org.testng.Assert.*
 import org.testng.annotations.Test
-import java.util.*
 
-class AddTagAliasSubPolicyTest {
+import org.testng.Assert.*
+import java.net.URI
 
-    var addtagPolicy = AddTagAliasSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request>()
-    var uriIt = ElemIterator(UriIterator())
-
-    private fun listTag(): Iterable<Tag> {
-        val aliasTag = Tag(EnumSet.of(TagFlag.ALIAS), "a", "b")
-        val notaliasTag = Tag(EnumSet.of(TagFlag.CONVERT_TO_ATTRIBUTE), "c", "d")
-
-        return listOf(aliasTag, notaliasTag)
-    }
-
+class ResponseDisposeSubPolicyTest {
+    
     @Test
     fun testProcess() {
-        val req =
-            DocumentMockFactory.getRequest(uriIt.gen(), RequestType.LINK, null, TagRepositoryImpl(listTag().toOption()))
-                .upgrade()
-
+        val disposeSubPolicy = ResponseDisposeSubPolicy<Request>()
+    
+        val src = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK).upgrade().upgradeAsDocument("a")
+        val response = src.upgradeAsRequestDoc().upgrade().getSuccResponse_Html()
+        val dest = src.upgrade(response)
+    
+        val info = TaskMockFactory.createTaskInfo()
         val state = TaskMockFactory.createSessionStarted<Request>()
-
+    
         runBlocking {
-            val proc = addtagPolicy.process(req, req.upgradeAsDocument("a"), TaskMockFactory.createTaskInfo(), state)
-
-            coVerify(exactly = 1) {
-                state.addAlias(any())
-            }
-
-            proc.await().swap().map {
-                it.printStackTrace()
-                fail()
-            }
+            disposeSubPolicy.process(src, dest, info, state)
+        }
+        
+        verify (exactly = 1){
+            response.releaseRequester()
         }
     }
 }

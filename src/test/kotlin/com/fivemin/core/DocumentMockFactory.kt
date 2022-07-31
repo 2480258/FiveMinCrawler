@@ -21,13 +21,7 @@
 package com.fivemin.core
 
 import arrow.core.*
-import com.fivemin.core.DocumentMockFactory.Companion.upgrade
-import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.engine.*
-import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactory
-import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactoryCollector
-import com.fivemin.core.engine.transaction.StringUniqueKeyProvider
-import com.fivemin.core.engine.transaction.UriUniqueKeyProvider
 import com.fivemin.core.engine.transaction.export.ExportAttributeInfo
 import com.fivemin.core.engine.transaction.export.ExportAttributeLocator
 import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
@@ -40,92 +34,10 @@ import com.fivemin.core.request.PreprocessedRequest
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.InvalidObjectException
 import java.net.URI
-
-class StubMockFactory {
-    companion object {
-        fun mockState(): SessionStartedState {
-            val state: SessionStartedState = mockk(relaxed = true)
-            val res: Deferred<Either<Throwable, Any>> = mockk()
-            
-            every {
-                state.addAlias(any())
-            } returns (Unit)
-            
-            coEvery {
-                state.retryAsync(any<suspend (SessionInitState) -> Deferred<Either<Throwable, Any>>>())
-            } returns (res)
-            
-            coEvery {
-                res.await()
-            } returns (mockk())
-            
-            coEvery {
-                state.getChildSession<Any>(any())
-            } coAnswers {
-                coroutineScope {
-                    async {
-                        Either.catch {
-                            DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK).upgrade().upgradeAsDocument("a").upgrade()
-                        }
-                    }
-                }
-            }
-            
-            return state
-        }
-        
-        fun mockInfo(): TaskInfo {
-            val provider = KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider())
-            val taskInfo: TaskInfo = mockk(relaxed = true)
-            
-            val createdTaskFac: CrawlerTaskFactory<Request> = mockk(relaxed = true)
-            val createdTask: CrawlerTask2<InitialTransaction<Request>,
-                    PrepareTransaction<Request>,
-                    FinalizeRequestTransaction<Request>, Request, Request, Request> =
-                mockk(relaxed = true)
-            
-            coEvery {
-                createdTask.start(any(), any(), any())
-            } coAnswers {
-                coroutineScope {
-                    async {
-                        Either.catch {
-                            DocumentMockFactory.getRequest(URI("https://aa.com"), RequestType.LINK).upgrade()
-                                .upgradeAsDocument("a")
-                                .upgrade()
-                        }
-                    }
-                }
-            }
-            
-            every {
-                taskInfo.createTask<Request>()
-            } returns (createdTaskFac)
-            
-            every {
-                createdTaskFac.get2<InitialTransaction<Request>,
-                        PrepareTransaction<Request>,
-                        FinalizeRequestTransaction<Request>>(any())
-            } answers {
-                createdTask
-            }
-            
-            every {
-                taskInfo.uniqueKeyProvider
-            } returns (provider)
-            
-            return taskInfo
-        }
-    }
-}
 
 class AttributeMockFactory {
     companion object {
@@ -203,7 +115,7 @@ class AttributeMockFactory {
             return mock
         }
         
-        fun getMultiSingleAttr(
+        fun getMultiStringAttr(
             name: String, value: Iterable<String>
         ): DocumentAttribute {
             val mock = mockk<DocumentAttribute>()
@@ -472,7 +384,7 @@ class DocumentMockFactory {
             return ret
         }
         
-        fun PreprocessedRequest<Request>.getCriticalBodyResponse(): ResponseData {
+        fun PreprocessedRequest<Request>.getCriticalErrorBodyResponse(): ResponseData {
             val bdy = mockk<ResponseData>()
             val result = mockk<CriticalErrorBody>()
             

@@ -81,8 +81,6 @@ class WSQueue constructor(
             wsKey, EnqueuedRequest(doc, info),
             score //ignored if same wsKey is already inserted
         )
-        
-        rotatingQueue.update(wsKey, score) //make sure keep updated
     }
     
     override suspend fun enqueue(doc: PreprocessedRequest<Request>, info: EnqueueRequestInfo) {
