@@ -20,12 +20,10 @@
 
 package com.fivemin.core.engine.transaction
 
-import com.fivemin.core.UniqueKeySerializer
 import com.fivemin.core.engine.*
 import kotlinx.serialization.Serializable
 import java.net.URI
 
-@Serializable(with = UniqueKeySerializer::class)
 data class StringUniqueKey(val src: String) : UniqueKey() {
     override fun eq(key: UniqueKey): Boolean {
         if (key is StringUniqueKey) {
@@ -50,7 +48,6 @@ data class StringUniqueKey(val src: String) : UniqueKey() {
     }
 }
 
-@Serializable(with = UniqueKeySerializer::class)
 data class UriUniqueKey(val uri: URI) : UniqueKey() {
     override fun eq(key: UniqueKey): Boolean {
         if (key is UriUniqueKey) {

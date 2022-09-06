@@ -3,7 +3,7 @@ argsText/*
 build/*
 buildOutputCleanup.lock
 outputFiles.bin
-13.tmp
+*.tmp
 FiveMinTest/build/*
 FiveMinTest/.gradle/*
 FiveMinDummyPlugin/build/*

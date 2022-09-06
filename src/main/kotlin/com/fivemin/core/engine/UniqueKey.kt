@@ -20,10 +20,6 @@
 
 package com.fivemin.core.engine
 
-import com.fivemin.core.UniqueKeySerializer
-import kotlinx.serialization.Serializable
-
-@Serializable(with = UniqueKeySerializer::class)
 abstract class UniqueKey {
     protected abstract fun eq(key: UniqueKey): Boolean
 
