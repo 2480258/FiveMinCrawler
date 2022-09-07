@@ -21,12 +21,14 @@
 package com.fivemin.core.engine
 
 import arrow.core.Either
-import arrow.core.computations.either
+import arrow.core.computations.*
+import arrow.core.computations.ResultEffect.bind
 import arrow.core.left
 import arrow.core.toOption
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.transaction.prepareRequest.TaskDetachedException
 import kotlinx.coroutines.*
+import arrow.core.continuations.*
 
 class TaskError constructor(val Error: Either<TaskCanceledException, Exception>)
 
@@ -45,11 +47,11 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
                 logger.debug(trans.request.getDebugInfo() + " < starting task")
                 coroutineScope {
                     async {
-                        val result = either<Throwable, S2> {
+                        val result = effect<Throwable, S2> {
                             val p1 = policy.progressAsync(trans, info, it).await().bind()
                             
                             p1
-                        }
+                        }.toEither()
                         
                         result.swap().map {
                             if (it is TaskDetachedException) {
@@ -90,13 +92,14 @@ constructor(
                 coroutineScope {
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
-                        val result = either<Throwable, S3> {
+                        
+                        val result = effect<Throwable, S3> {
                             val p1 = policy1.progressAsync(trans, info, state).await().bind()
                             val p2 = policy2.progressAsync(p1, info, state).await().bind()
-                            
+    
                             p2
-                        }
-                        
+                        }.toEither()
+    
                         result.swap().map {
                             if (it is TaskDetachedException) {
                             } else {
@@ -138,13 +141,13 @@ constructor(
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        val result = either<Throwable, S4> {
+                        val result = effect<Throwable, S4> {
                             val p1 = policy1.progressAsync(trans, info, state).await().bind()
                             val p2 = policy2.progressAsync(p1, info, state).await().bind()
                             val p3 = policy3.progressAsync(p2, info, state).await().bind()
                             
                             p3
-                        }
+                        }.toEither()
                         
                         result.swap().map {
                             if (it is TaskDetachedException) {
@@ -187,14 +190,14 @@ constructor(
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        val result = either<Throwable, S5> {
+                        val result = effect<Throwable, S5> {
                             val p1 = policy1.progressAsync(trans, info, state).await().bind()
                             val p2 = policy2.progressAsync(p1, info, state).await().bind()
                             val p3 = policy3.progressAsync(p2, info, state).await().bind()
                             val p4 = policy4.progressAsync(p3, info, state).await().bind()
                             
                             p4
-                        }
+                        }.toEither()
                         
                         result.swap().map {
                             if (it is TaskDetachedException) {
