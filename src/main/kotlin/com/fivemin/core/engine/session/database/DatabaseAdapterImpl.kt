@@ -51,7 +51,7 @@ class DatabaseAdapterFactoryImpl(private val jdbcUrl: String) {
             con = dataSource.getConnection()
             val statement = con.createStatement()
             
-            statement.executeUpdate("create table if not exists keys (id string primary key)")
+            statement.executeUpdate("create table if not exists keys (id string primary key, finalized integer)")
             statement.executeUpdate("create unique index if not exists keyindex on keys(id)")
             
         } finally {
@@ -82,9 +82,10 @@ class DatabaseAdapterImpl(private val dataSource: DataSource) : DatabaseAdapter 
             var insertPrepared : PreparedStatement? = null
             
             try {
-                insertPrepared = it.prepareStatement("insert or ignore into keys values(?)")
+                insertPrepared = it.prepareStatement("insert or ignore into keys values(?, ?)")
     
                 insertPrepared.setString(1, key)
+                insertPrepared.setInt(2, 0)
                 val result = insertPrepared.executeUpdate()
     
                 result >= 1
@@ -110,4 +111,39 @@ class DatabaseAdapterImpl(private val dataSource: DataSource) : DatabaseAdapter 
             }
         }
     }
+    
+    override fun finalizeKey(key: String): Boolean {
+        return ensureConnection {
+            var updatePrepared : PreparedStatement? = null
+            
+            try {
+                updatePrepared = it.prepareStatement("update keys set finalized = 1 where id = ?")
+                
+                updatePrepared.setString(1, key)
+                val result = updatePrepared.executeUpdate()
+    
+                result >= 1
+            } finally {
+                updatePrepared?.close()
+            }
+        }
+    }
+    
+    override fun removeNotFinalized(): Boolean {
+        return ensureConnection {
+            var removePrepared : PreparedStatement? = null
+            
+            try {
+                removePrepared = it.prepareStatement("delete from keys where finalized = 0")
+                
+                val result = removePrepared.executeUpdate()
+                
+                result >= 1
+            } finally {
+                removePrepared?.close()
+            }
+        }
+    }
+    
+    
 }

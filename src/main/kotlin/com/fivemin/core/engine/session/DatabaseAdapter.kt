@@ -30,4 +30,15 @@ interface DatabaseAdapter {
     Try to find key from DB
      */
     fun contains(key: String) : Boolean
+    
+    /**
+     *
+     * Atomically marks key as finalized
+     * */
+    fun finalizeKey(key: String) : Boolean
+    
+    /**
+     * Removes not finalized keys, returns 1 if at least a key has been removed
+     * */
+    fun removeNotFinalized() : Boolean
 }
