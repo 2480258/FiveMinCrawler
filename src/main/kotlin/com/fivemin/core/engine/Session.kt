@@ -111,6 +111,7 @@ interface SessionAddableAlias : SessionMarkDetachable {
         }
         
         val ret = func()
+        ret.await()
         
         return coroutineScope {
             select {

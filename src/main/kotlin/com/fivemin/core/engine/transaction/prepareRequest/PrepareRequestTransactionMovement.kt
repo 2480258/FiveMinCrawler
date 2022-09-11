@@ -34,17 +34,18 @@ class PrepareRequestTransactionMovement<Document : Request> (private val prePars
     companion object {
         private val logger = LoggerController.getLogger("PrepareRequestTransactionMovement")
     }
-
-    override suspend fun move(
+    
+    override suspend fun <Ret> move(
         source: InitialTransaction<Document>,
         info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, PrepareTransaction<Document>>> {
-        return coroutineScope {
+        state: SessionStartedState,
+        next: suspend (Deferred<Either<Throwable, PrepareTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
+    ): Deferred<Either<Throwable, Ret>> {
+        return next(coroutineScope {
             async {
                 logger.debug(source.request.getDebugInfo() + " < Creating prepare transaction")
                 preParser.generateInfo(source).toEither { PageNotFoundException() }
             }
-        }
+        })
     }
 }

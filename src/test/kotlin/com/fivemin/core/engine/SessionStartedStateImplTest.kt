@@ -20,6 +20,8 @@
 
 package com.fivemin.core.engine
 
+import arrow.core.Either
+import arrow.core.identity
 import arrow.core.none
 import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.session.*
@@ -30,6 +32,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import org.testng.annotations.Test
 
 import org.testng.Assert.*
@@ -61,14 +66,18 @@ class SessionStartedStateImplTest {
             )
         )
         
-        sess.addAlias(StringUniqueKey("a"))
-        sess.addAlias(StringUniqueKey("a"))
-        sess.addAlias(StringUniqueKey("a"))
+        runBlocking {
+            sess.addAlias(StringUniqueKey("a"), { coroutineScope { async { Either.catch {  } } }})
+            sess.addAlias(StringUniqueKey("a"), { coroutineScope { async { Either.catch {  } } }})
+            sess.addAlias(StringUniqueKey("a"), { coroutineScope { async { Either.catch {  } } }})
     
-        assertThrows {
-            sess.addAlias(StringUniqueKey("a"))
-    
+            assertThrows {
+                runBlocking {
+                    sess.addAlias(StringUniqueKey("a"), { coroutineScope { async { Either.catch {  } } }})
+                }
+            }
         }
+        
     }
     
     

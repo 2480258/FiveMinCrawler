@@ -34,41 +34,43 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
     companion object {
         private val logger = LoggerController.getLogger("FinalizeRequestTransactionMovement")
     }
-
-    override suspend fun move(
-        source: PrepareTransaction<Document>,
-        info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
-        val req = DocumentRequestImpl<Document>(source, DocumentRequestInfo(state.isDetachable))
-        val ret = requestWaiter.request<Document, ResponseData>(req)
-
-        return coroutineScope {
-            async {
-                logger.debug(source.request, "finalizing request transaction")
-
-                val r = ret.await() //waits asynchronously until request is done.
-                FinalizeRequestTransactionImpl<Document>(r, source.tags, source).right()
-            }
-        }
-    }
     
     override suspend fun <Ret> move(
         source: PrepareTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>>) -> Ret
-    ): Ret {
-        val req = DocumentRequestImpl<Document>(source, DocumentRequestInfo(state.isDetachable))
-        val ret = requestWaiter.request<Document, ResponseData>(req)
+        next: suspend (Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
+    ): Deferred<Either<Throwable, Ret>> {
+        var dest : Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>>? = null
+        
+        try {
+            val req = DocumentRequestImpl<Document>(source, DocumentRequestInfo(state.isDetachable))
+            val ret = requestWaiter.request<Document, ResponseData>(req)
     
-        return next(coroutineScope {
-            async {
-                logger.debug(source.request, "finalizing request transaction")
+            dest = coroutineScope {
+                async {
+                    logger.debug(source.request, "finalizing request transaction")
             
-                val r = ret.await() //waits asynchronously until request is done.
-                FinalizeRequestTransactionImpl<Document>(r, source.tags, source).right()
+                    val r = ret.await() //waits asynchronously until request is done.
+                    FinalizeRequestTransactionImpl<Document>(r, source.tags, source).right()
+                }
             }
-        })
+            
+            val result = next(dest)
+            result.await() // waits until finishes and release requester at finally declarations
+            
+            return result
+        } finally {
+            dest?.await()?.map {
+                releaseRequester(it)
+            }
+        }
+    }
+    
+    private fun releaseRequester(dest: FinalizeRequestTransaction<Document>) {
+        dest.result.map {
+            logger.debug(dest.request.getDebugInfo() + " < releasing requester")
+            it.releaseRequester()
+        }
     }
 }

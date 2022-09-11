@@ -35,33 +35,6 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
         private val logger = LoggerController.getLogger("SerializeTransactionMovementImpl")
     }
 
-    override suspend fun move(
-        source: FinalizeRequestTransaction<Document>,
-        info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, SerializeTransaction<Document>>> {
-        logger.debug(source.request.getDebugInfo() + " < serializing transaction")
-
-        return coroutineScope {
-            async {
-                Either.catch {
-                    postParser.getPostParseInfo(source, info, state).map {
-                        source.previous.ifDocument({ doc ->
-                            SerializeTransactionImpl<Document>(
-                                source.request,
-                                convertAttributeToTag(it.attribute, source.tags),
-                                it.attribute.toList(),
-                                SerializeOption(doc.requestOption, doc.parseOption, doc.containerOption)
-                            )
-                        }, {
-                            throw IllegalArgumentException("not support for serialization transaction of non-text based document")
-                        })
-                    }
-                }.flatten()
-            }
-        }
-    }
-
     private fun convertAttributeToTag(attr: Iterable<DocumentAttribute>, connect: TagRepository): TagRepositoryImpl {
         val ret = attr.map { x ->
             Pair(
@@ -79,6 +52,34 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
         }.filterOption()
 
         return TagRepositoryImpl(ret.toOption(), connect.toOption())
+    }
+    
+    override suspend fun <Ret> move(
+        source: FinalizeRequestTransaction<Document>,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Deferred<Either<Throwable, SerializeTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
+    ): Deferred<Either<Throwable, Ret>> {
+        logger.debug(source.request.getDebugInfo() + " < serializing transaction")
+    
+        return next(coroutineScope {
+            async {
+                Either.catch {
+                    postParser.getPostParseInfo(source, info, state).map {
+                        source.previous.ifDocument({ doc ->
+                            SerializeTransactionImpl<Document>(
+                                source.request,
+                                convertAttributeToTag(it.attribute, source.tags),
+                                it.attribute.toList(),
+                                SerializeOption(doc.requestOption, doc.parseOption, doc.containerOption)
+                            )
+                        }, {
+                            throw IllegalArgumentException("not support for serialization transaction of non-text based document")
+                        })
+                    }
+                }.flatten()
+            }
+        })
     }
 }
 

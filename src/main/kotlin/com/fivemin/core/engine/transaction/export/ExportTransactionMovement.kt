@@ -34,24 +34,7 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
     companion object {
         private val logger = LoggerController.getLogger("ExportTransactionMovement")
     }
-
-    override suspend fun move(
-        source: SerializeTransaction<Document>,
-        info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, ExportTransaction<Document>>> {
-        return coroutineScope {
-            async {
-                logger.debug(source.request, "exporting transaction")
-                val ret = parser.parse(source)
-
-                Either.catch {
-                    ExportTransactionImpl(source.request, source.tags, saveResult(ret))
-                }
-            }
-        }
-    }
-
+    
     private fun saveResult(handles: Iterable<ExportHandle>): Iterable<Either<Throwable, ExportResultToken>> {
         return handles.map { x ->
             state.create(x)
@@ -67,5 +50,23 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
             }
             ret
         }
+    }
+    
+    override suspend fun <Ret> move(
+        source: SerializeTransaction<Document>,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Deferred<Either<Throwable, ExportTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
+    ): Deferred<Either<Throwable, Ret>> {
+        return next(coroutineScope {
+            async {
+                logger.debug(source.request, "exporting transaction")
+                val ret = parser.parse(source)
+            
+                Either.catch {
+                    ExportTransactionImpl(source.request, source.tags, saveResult(ret))
+                }
+            }
+        })
     }
 }

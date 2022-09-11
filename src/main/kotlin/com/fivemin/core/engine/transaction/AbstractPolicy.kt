@@ -50,14 +50,16 @@ abstract class AbstractPolicy<SrcTrans : Transaction<Document>, DstTrans : Stric
             async {
                 val movement = movementFactory.getMovement()
                 val taskResult = movement.move(trans, info, state) {
-                    it.await().map {
-                        tailCall(trans, it, info, state, option.subPolicies, next)
+                    coroutineScope {
+                        async {
+                            it.await().map {
+                                tailCall(trans, it, info, state, option.subPolicies, next).await()
+                            }.flatten()
+                        }
                     }
-                }
+                }.await()
                 
-                taskResult.map {
-                    it.await()
-                }.flatten()
+                taskResult
             }
         }
     }
