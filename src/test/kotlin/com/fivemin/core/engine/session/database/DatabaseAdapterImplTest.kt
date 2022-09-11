@@ -63,4 +63,12 @@ class DatabaseAdapterImplTest {
         adapterImpl.insertKeyIfNone("test")
         assert(adapterImpl.contains("test"))
     }
+    
+    @Test
+    fun doFinalizeWhenKeyExistsTest() {
+        adapterImpl = getAdapter()
+        
+        adapterImpl.insertKeyIfNone("test")
+        assert(adapterImpl.finalizeKey("test"))
+    }
 }

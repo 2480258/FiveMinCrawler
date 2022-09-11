@@ -42,25 +42,28 @@ class LimitMaxPageSubPolicy<Document : Request> (private val maxPageNum: Int) :
      * Increase page count. if count is equals or exceeds, returns ExceedsMaxPageException.
      * Call only once for one document.
      */
-    override suspend fun process(
+    override suspend fun <Ret> process(
         source: InitialTransaction<Document>,
         dest: PrepareTransaction<Document>,
         info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, PrepareTransaction<Document>>> {
-        return coroutineScope {
-            async {
-                val cnt = pageCount.getAndIncrement()
+        state: SessionStartedState,
+        next: suspend (Deferred<Either<Throwable, PrepareTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
+    ): Deferred<Either<Throwable, Ret>> {
+        val cnt = pageCount.getAndIncrement()
     
-                if(cnt >= maxPageNum) {
+        return if(cnt >= maxPageNum) {
+            coroutineScope {
+                async {
                     ExceedsMaxPageException().left()
-                } else {
+                }
+            }
+        } else {
+            next(coroutineScope {
+                async {
                     dest.right()
                 }
-    
-            }
+            })
         }
-    
     }
 }
 

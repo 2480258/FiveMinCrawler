@@ -20,10 +20,7 @@
 
 package com.fivemin.core.engine
 
-import arrow.core.Either
-import arrow.core.computations.either
-import arrow.core.left
-import arrow.core.toOption
+import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.transaction.prepareRequest.TaskDetachedException
 import kotlinx.coroutines.*
@@ -45,11 +42,7 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
                 logger.debug(trans.request.getDebugInfo() + " < starting task")
                 coroutineScope {
                     async {
-                        val result = either<Throwable, S2> {
-                            val p1 = policy.progressAsync(trans, info, it).await().bind()
-                            
-                            p1
-                        }
+                        val result = policy.progressAsync(trans, info, it, ::identity).await()
                         
                         result.swap().map {
                             if (it is TaskDetachedException) {
@@ -76,8 +69,7 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
 
 class CrawlerTask2<S1 : Transaction<D1>, S2 : StrictTransaction<S1, D2>, S3 : StrictTransaction<S2, D3>, D1 : Request, D2 : Request, D3 : Request>
 constructor(
-    private val policy1: TransactionPolicy<S1, S2, D1, D2>,
-    private val policy2: TransactionPolicy<S2, S3, D2, D3>
+    private val policy1: TransactionPolicy<S1, S2, D1, D2>, private val policy2: TransactionPolicy<S2, S3, D2, D3>
 ) {
     companion object {
         private val logger = LoggerController.getLogger("CrawlerTask2")
@@ -90,12 +82,16 @@ constructor(
                 coroutineScope {
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
-                        val result = either<Throwable, S3> {
-                            val p1 = policy1.progressAsync(trans, info, state).await().bind()
-                            val p2 = policy2.progressAsync(p1, info, state).await().bind()
-                            
-                            p2
-                        }
+                        
+                        val result = policy1.progressAsync(trans, info, state) {
+                            coroutineScope {
+                                async {
+                                    it.await().map {
+                                        policy2.progressAsync(it, info, state, ::identity).await()
+                                    }.flatten()
+                                }
+                            }
+                        }.await()
                         
                         result.swap().map {
                             if (it is TaskDetachedException) {
@@ -138,13 +134,25 @@ constructor(
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        val result = either<Throwable, S4> {
-                            val p1 = policy1.progressAsync(trans, info, state).await().bind()
-                            val p2 = policy2.progressAsync(p1, info, state).await().bind()
-                            val p3 = policy3.progressAsync(p2, info, state).await().bind()
-                            
-                            p3
-                        }
+                        val result = policy1.progressAsync(trans, info, state) { it ->
+                            coroutineScope {
+                                async {
+                                    it.await().map {
+                                        policy2.progressAsync(it, info, state) { it ->
+                                            coroutineScope {
+                                                async {
+                                                    it.await().map {
+                                                        policy3.progressAsync(it, info, state, ::identity).await()
+                                                    }.flatten()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }.await().map {
+                            it.await()
+                        }.flatten()
                         
                         result.swap().map {
                             if (it is TaskDetachedException) {
@@ -187,14 +195,33 @@ constructor(
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        val result = either<Throwable, S5> {
-                            val p1 = policy1.progressAsync(trans, info, state).await().bind()
-                            val p2 = policy2.progressAsync(p1, info, state).await().bind()
-                            val p3 = policy3.progressAsync(p2, info, state).await().bind()
-                            val p4 = policy4.progressAsync(p3, info, state).await().bind()
-                            
-                            p4
-                        }
+                        val result = policy1.progressAsync(trans, info, state) { it ->
+                            coroutineScope {
+                                async {
+                                    it.await().map {
+                                        policy2.progressAsync(it, info, state) { it ->
+                                            coroutineScope {
+                                                async {
+                                                    it.await().map {
+                                                        policy3.progressAsync(it, info, state) { it ->
+                                                            coroutineScope {
+                                                                async {
+                                                                    it.await().map {
+                                                                        policy4.progressAsync(it, info, state, ::identity).await()
+                                                                    }.flatten()
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }.await().map {
+                            it.await()
+                        }.flatten()
                         
                         result.swap().map {
                             if (it is TaskDetachedException) {
@@ -203,7 +230,9 @@ constructor(
                             }
                         }
                         
-                        result
+                        result.map {
+                            it.await()
+                        }.flatten()
                     }
                 }
             }

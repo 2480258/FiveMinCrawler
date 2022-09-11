@@ -34,7 +34,7 @@ import kotlinx.coroutines.coroutineScope
  */
 class MarkDetachablePolicy<Document : Request> :
     TransactionSubPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document> {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("SessionDetachable")
     }
@@ -42,15 +42,16 @@ class MarkDetachablePolicy<Document : Request> :
     /**
      * Marks detachable on SessionState. Returns given transaction without any changes.
      */
-    override suspend fun process(
+    override suspend fun <Ret> process(
         source: InitialTransaction<Document>,
         dest: PrepareTransaction<Document>,
         info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, PrepareTransaction<Document>>> {
+        state: SessionStartedState,
+        next: suspend (Deferred<Either<Throwable, PrepareTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
+    ): Deferred<Either<Throwable, Ret>> {
         if (dest.ifDocument({
-            it.containerOption.workingSetMode == WorkingSetMode.Enabled
-        }, { false })
+                it.containerOption.workingSetMode == WorkingSetMode.Enabled
+            }, { false })
         ) {
             logger.debug(source.request.getDebugInfo() + " < Marked as detachable")
             state.setDetachable()
@@ -58,11 +59,11 @@ class MarkDetachablePolicy<Document : Request> :
             logger.debug(source.request.getDebugInfo() + " < Marked as non-detachable")
             state.setNonDetachable()
         }
-
-        return coroutineScope {
+        
+        return next(coroutineScope {
             async {
                 dest.right()
             }
-        }
+        })
     }
 }

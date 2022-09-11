@@ -52,4 +52,23 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
             }
         }
     }
+    
+    override suspend fun <Ret> move(
+        source: PrepareTransaction<Document>,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>>) -> Ret
+    ): Ret {
+        val req = DocumentRequestImpl<Document>(source, DocumentRequestInfo(state.isDetachable))
+        val ret = requestWaiter.request<Document, ResponseData>(req)
+    
+        return next(coroutineScope {
+            async {
+                logger.debug(source.request, "finalizing request transaction")
+            
+                val r = ret.await() //waits asynchronously until request is done.
+                FinalizeRequestTransactionImpl<Document>(r, source.tags, source).right()
+            }
+        })
+    }
 }

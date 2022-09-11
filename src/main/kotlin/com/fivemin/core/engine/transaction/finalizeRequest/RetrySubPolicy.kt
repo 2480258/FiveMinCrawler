@@ -20,7 +20,8 @@
 
 package com.fivemin.core.engine.transaction.finalizeRequest
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.right
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
@@ -31,20 +32,37 @@ import kotlinx.coroutines.delay
 
 class RetrySubPolicy<Document : Request> :
     TransactionSubPolicy<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document> {
-
+    
     private val RETRY_DELAY = 3000L
-
+    
     companion object {
         private val logger = LoggerController.getLogger("RetrySubPolicy")
     }
-
-    override suspend fun process(
+    
+    private suspend fun request(
         source: PrepareTransaction<Document>,
-        dest: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
-        return coroutineScope {
+        logger.debug(source.request, "trying to retry")
+        
+        return state.retryAsync {
+            delay(RETRY_DELAY)
+            
+            info.createTask<Document>()
+                .get1<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>>(source.request.documentType)
+                .start(source, info, it)
+        }
+    }
+    
+    override suspend fun <Ret> process(
+        source: PrepareTransaction<Document>,
+        dest: FinalizeRequestTransaction<Document>,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
+    ): Deferred<Either<Throwable, Ret>> {
+        return next(coroutineScope {
             async {
                 dest.result.fold({
                     request(source, info, state).await()
@@ -56,22 +74,6 @@ class RetrySubPolicy<Document : Request> :
                     }
                 })
             }
-        }
-    }
-
-    private suspend fun request(
-        source: PrepareTransaction<Document>,
-        info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
-        logger.debug(source.request, "trying to retry")
-
-        return state.retryAsync {
-            delay(RETRY_DELAY)
-
-            info.createTask<Document>()
-                .get1<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>>(source.request.documentType)
-                .start(source, info, it)
-        }
+        })
     }
 }

@@ -21,38 +21,55 @@
 package com.fivemin.core.engine.crawlingTask
 
 import arrow.core.Either
+import arrow.core.right
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTransaction<SrcTrans, Document>, Document : Request> :
     TransactionSubPolicy<SrcTrans, DstTrans, Document> {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("AddTagAliasSubPolicy")
     }
-
-    override suspend fun process(
+    
+    override suspend fun <Ret> process(
         source: SrcTrans,
         dest: DstTrans,
         info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, DstTrans>> {
+        state: SessionStartedState,
+        next: suspend (Deferred<Either<Throwable, DstTrans>>) -> Deferred<Either<Throwable, Ret>>
+    ): Deferred<Either<Throwable, Ret>> {
+        logger.debug(source.request, "adding tags")
+        val ret = info.uniqueKeyProvider.tagKey.create(dest.tags)
+        
+        return tailCall(source, dest, info, state, next, ret)
+    }
+    
+    suspend fun <Ret> tailCall(
+        source: SrcTrans,
+        dest: DstTrans,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Deferred<Either<Throwable, DstTrans>>) -> Deferred<Either<Throwable, Ret>>,
+        aliases: Iterable<UniqueKey>
+    ): Deferred<Either<Throwable, Ret>> {
         return coroutineScope {
             async {
-                Either.catch {
-                    logger.debug(source.request, "adding tags")
-                    var ret = info.uniqueKeyProvider.tagKey.create(dest.tags)
-
-                    ret.forEach {
-                        state.addAlias(it)
-
-                        logger.info(source.request.getDebugInfo() + " < [Tag]" + it.toString())
+                if (aliases.count() == 1) {
+                    state.addAlias(aliases.first()) {
+                        val ret = async {
+                            dest.right()
+                        }
+                        
+                        next(ret)
                     }
-
-                    dest
-                }
+                } else {
+                    tailCall(source, dest, info, state, next, aliases.drop(1))
+                }.await()
             }
         }
     }
