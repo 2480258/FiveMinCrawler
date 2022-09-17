@@ -24,6 +24,7 @@ import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.transaction.prepareRequest.TaskDetachedException
 import kotlinx.coroutines.*
+import arrow.core.continuations.*
 
 class TaskError constructor(val Error: Either<TaskCanceledException, Exception>)
 
@@ -43,6 +44,7 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
                 coroutineScope {
                     async {
                         val result = policy.progressAsync(trans, info, it, ::identity)
+
                         
                         result.swap().map {
                             if (it is TaskDetachedException) {
@@ -88,7 +90,6 @@ constructor(
                                 policy2.progressAsync(it, info, state, ::identity)
                             }.flatten()
                         }
-                        
                         result.swap().map {
                             if (it is TaskDetachedException) {
                             } else {
@@ -139,7 +140,6 @@ constructor(
                                 }
                             }.flatten()
                         }
-                        
                         
                         result.swap().map {
                             if (it is TaskDetachedException) {
@@ -195,8 +195,7 @@ constructor(
                                 }
                             }.flatten()
                         }
-                        
-                        
+                      
                         result.swap().map {
                             if (it is TaskDetachedException) {
                             } else {

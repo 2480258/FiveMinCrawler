@@ -84,7 +84,7 @@ val testCoverage by tasks.registering {
 group = "me.azure"
 version = "0.1"
 
-var arrow_version = "1.0.1"
+var arrow_version = "1.1.2"
 
 repositories {
     mavenCentral()
