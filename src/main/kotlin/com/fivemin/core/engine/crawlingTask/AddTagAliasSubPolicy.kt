@@ -54,15 +54,19 @@ class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTr
         next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>,
         aliases: Iterable<UniqueKey>
     ): Either<Throwable, Ret> {
-        
-        if (aliases.count() == 1) {
-            return state.addAlias(aliases.first()) {
+    
+        return if(aliases.count() == 0) {
+            next(dest.right())
+        } else if (aliases.count() == 1) {
+            state.addAlias(aliases.first()) {
                 val ret = dest.right()
-                
+        
                 next(ret)
             }
         } else {
-            return tailCall(source, dest, info, state, next, aliases.drop(1))
+            state.addAlias(aliases.first()) {
+                tailCall(source, dest, info, state, next, aliases.drop(1))
+            }
         }
     }
 }

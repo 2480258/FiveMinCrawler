@@ -137,9 +137,9 @@ class TaskMockFactory {
             val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
             val persister = UniqueKeyPersisterImpl(persistFactory.get())
             
-            var keyRepo = CompositeUniqueKeyRepository(
+            var keyRepo = spyk(CompositeUniqueKeyRepository(
                 persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
-            )
+            ))
             val fin = FinishObserverImpl()
             val sessRepo = SessionRepositoryImpl(keyRepo, FinishObserverImpl())
             
