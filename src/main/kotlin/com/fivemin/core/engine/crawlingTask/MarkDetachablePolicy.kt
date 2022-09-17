@@ -25,16 +25,13 @@ import arrow.core.right
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 
 /**
  * Subpolicy for marking wheather this document is detachable.
  */
 class MarkDetachablePolicy<Document : Request> :
     TransactionSubPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document> {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("SessionDetachable")
     }
@@ -42,27 +39,23 @@ class MarkDetachablePolicy<Document : Request> :
     /**
      * Marks detachable on SessionState. Returns given transaction without any changes.
      */
-    override suspend fun process(
+    override suspend fun <Ret> process(
         source: InitialTransaction<Document>,
         dest: PrepareTransaction<Document>,
         info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, PrepareTransaction<Document>>> {
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, PrepareTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
         if (dest.ifDocument({
-            it.containerOption.workingSetMode == WorkingSetMode.Enabled
-        }, { false })
-        ) {
+                it.containerOption.workingSetMode == WorkingSetMode.Enabled
+            }, { false })) {
             logger.debug(source.request.getDebugInfo() + " < Marked as detachable")
             state.setDetachable()
         } else {
             logger.debug(source.request.getDebugInfo() + " < Marked as non-detachable")
             state.setNonDetachable()
         }
-
-        return coroutineScope {
-            async {
-                dest.right()
-            }
-        }
+        
+        return next(dest.right())
     }
 }

@@ -20,8 +20,7 @@
 
 package com.fivemin.core.engine.transaction.finalizeRequest
 
-import arrow.core.Either
-import arrow.core.right
+import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.ExecuteRequestMovement
@@ -34,22 +33,35 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
     companion object {
         private val logger = LoggerController.getLogger("FinalizeRequestTransactionMovement")
     }
-
-    override suspend fun move(
+    
+    override suspend fun <Ret> move(
         source: PrepareTransaction<Document>,
         info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
-        val req = DocumentRequestImpl<Document>(source, DocumentRequestInfo(state.isDetachable))
-        val ret = requestWaiter.request<Document, ResponseData>(req)
-
-        return coroutineScope {
-            async {
-                logger.debug(source.request, "finalizing request transaction")
-
-                val r = ret.await() //waits asynchronously until request is done.
-                FinalizeRequestTransactionImpl<Document>(r, source.tags, source).right()
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, FinalizeRequestTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        var dest : Either<Throwable, FinalizeRequestTransaction<Document>>? = null
+        
+        try {
+            val req = DocumentRequestImpl<Document>(source, DocumentRequestInfo(state.isDetachable))
+            val ret = requestWaiter.request<Document, ResponseData>(req)
+    
+            dest = FinalizeRequestTransactionImpl<Document>(ret.await(), source.tags, source).right()
+            val result = next(dest)
+            
+            return result
+            
+        } finally {
+            dest?.map {
+                releaseRequester(it)
             }
+        }
+    }
+    
+    private fun releaseRequester(dest: FinalizeRequestTransaction<Document>) {
+        dest.result.map {
+            logger.debug(dest.request.getDebugInfo() + " < releasing requester")
+            it.releaseRequester()
         }
     }
 }

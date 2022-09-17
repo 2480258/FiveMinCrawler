@@ -21,6 +21,7 @@
 package com.fivemin.core.engine.crawlingTask
 
 
+import arrow.core.identity
 import arrow.core.toOption
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
@@ -48,15 +49,15 @@ internal class LimitMaxPageSubPolicyTest {
     @Test
     fun process() {
         runBlocking {
-            limitMaxPageSubPolicy.process(mockk(), mockk(), mockk(), mockk())
+            limitMaxPageSubPolicy.process(mockk(), mockk(), mockk(), mockk(), ::identity)
         }
         
         val result = runBlocking {
-            limitMaxPageSubPolicy.process(mockk(), mockk(), mockk(), mockk())
+            limitMaxPageSubPolicy.process(mockk(), mockk(), mockk(), mockk(), ::identity)
         }
         
         runBlocking {
-            result.await().map {
+            result.map {
                 fail()
             }
         }

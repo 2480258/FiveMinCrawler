@@ -21,46 +21,40 @@
 package com.fivemin.core.engine.crawlingTask
 
 import arrow.core.Either
-import arrow.core.right
 import arrow.core.left
+import arrow.core.right
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Subpolicy for limiting enitre crawling pages.
  */
-class LimitMaxPageSubPolicy<Document : Request> (private val maxPageNum: Int) :
-    TransactionSubPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document>{
+class LimitMaxPageSubPolicy<Document : Request>(private val maxPageNum: Int) :
+    TransactionSubPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document> {
     
-    val pageCount : AtomicInteger = AtomicInteger(0)
+    val pageCount: AtomicInteger = AtomicInteger(0)
     
     /**
      * Increase page count. if count is equals or exceeds, returns ExceedsMaxPageException.
      * Call only once for one document.
      */
-    override suspend fun process(
+    override suspend fun <Ret> process(
         source: InitialTransaction<Document>,
         dest: PrepareTransaction<Document>,
         info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, PrepareTransaction<Document>>> {
-        return coroutineScope {
-            async {
-                val cnt = pageCount.getAndIncrement()
-    
-                if(cnt >= maxPageNum) {
-                    ExceedsMaxPageException().left()
-                } else {
-                    dest.right()
-                }
-    
-            }
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, PrepareTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        val cnt = pageCount.getAndIncrement()
+        
+        return if (cnt >= maxPageNum) {
+            ExceedsMaxPageException().left()
+        } else {
+            next(
+                dest.right()
+            )
         }
-    
     }
 }
 

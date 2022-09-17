@@ -20,8 +20,8 @@
 
 package com.fivemin.core.engine
 
+import arrow.core.Either
 import arrow.core.none
-import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.session.*
 import com.fivemin.core.engine.session.bFilter.BloomFilterImpl
 import com.fivemin.core.engine.session.database.DatabaseAdapterFactoryImpl
@@ -30,29 +30,29 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
+import kotlinx.coroutines.runBlocking
+import org.testng.Assert.assertThrows
 import org.testng.annotations.Test
-
-import org.testng.Assert.*
 
 class SessionStartedStateImplTest {
     
     @Test
     fun testAddAlias_Throws() {
         val mock: BloomFilterFactory = mockk()
-    
+        
         every {
             mock.createEmpty()
         } returns (BloomFilterImpl(100, 0.00000001))
-    
+        
         val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
         val persister = UniqueKeyPersisterImpl(persistFactory.get())
-    
+        
         var keyRepo = CompositeUniqueKeyRepository(
             persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
         )
         val fin = FinishObserverImpl()
         val sessRepo = SessionRepositoryImpl(keyRepo, FinishObserverImpl())
-    
+        
         val sess: SessionDetachableStartedStateImpl = spyk(
             SessionDetachableStartedStateImpl(
                 SessionInfo(fin, keyRepo),
@@ -61,14 +61,18 @@ class SessionStartedStateImplTest {
             )
         )
         
-        sess.addAlias(StringUniqueKey("a"))
-        sess.addAlias(StringUniqueKey("a"))
-        sess.addAlias(StringUniqueKey("a"))
-    
-        assertThrows {
-            sess.addAlias(StringUniqueKey("a"))
-    
+        runBlocking {
+            sess.addAlias(StringUniqueKey("a"), { Either.catch { } })
+            sess.addAlias(StringUniqueKey("a"), { Either.catch { } })
+            sess.addAlias(StringUniqueKey("a"), { Either.catch { } })
+            
+            assertThrows {
+                runBlocking {
+                    sess.addAlias(StringUniqueKey("a"), { Either.catch { } })
+                }
+            }
         }
+        
     }
     
     
@@ -83,9 +87,11 @@ class SessionStartedStateImplTest {
         val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
         val persister = UniqueKeyPersisterImpl(persistFactory.get())
         
-        val keyRepo = spyk(CompositeUniqueKeyRepository(
-            persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
-        ))
+        val keyRepo = spyk(
+            CompositeUniqueKeyRepository(
+                persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
+            )
+        )
         val fin = FinishObserverImpl()
         val sessRepo = SessionRepositoryImpl(keyRepo, FinishObserverImpl())
         
@@ -99,7 +105,7 @@ class SessionStartedStateImplTest {
         
         sess.setDetachable()
         
-        verify (exactly = 1) {
+        verify(exactly = 1) {
             keyRepo.notifyMarkedDetachable(any())
         }
     }
@@ -115,9 +121,11 @@ class SessionStartedStateImplTest {
         val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
         val persister = UniqueKeyPersisterImpl(persistFactory.get())
         
-        val keyRepo = spyk(CompositeUniqueKeyRepository(
-            persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
-        ))
+        val keyRepo = spyk(
+            CompositeUniqueKeyRepository(
+                persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
+            )
+        )
         val fin = FinishObserverImpl()
         val sessRepo = SessionRepositoryImpl(keyRepo, FinishObserverImpl())
         
@@ -131,7 +139,7 @@ class SessionStartedStateImplTest {
         
         sess.setNonDetachable()
         
-        verify (exactly = 1) {
+        verify(exactly = 1) {
             keyRepo.notifyMarkedNotDetachable(any())
         }
     }

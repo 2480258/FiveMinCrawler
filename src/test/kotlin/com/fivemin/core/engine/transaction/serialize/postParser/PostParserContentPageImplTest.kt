@@ -104,7 +104,7 @@ class PostParserContentPageImplTest {
             )
 
             var ret =
-                pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await()
+                pp.extract(creq, TaskMockFactory.createTaskInfo(policySet = TaskMockFactory.createPolicySet2()), TaskMockFactory.createSessionStarted<Any>()).await()
                     .fold({ fail() }) {
                         assertEquals(it.count(), 1)
                     }

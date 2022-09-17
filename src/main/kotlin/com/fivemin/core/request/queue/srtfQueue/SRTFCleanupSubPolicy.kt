@@ -20,54 +20,46 @@
 
 package com.fivemin.core.request.queue.srtfQueue
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.Some
+import arrow.core.flatten
+import arrow.core.none
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlin.time.Duration
 
-class SRTFCleanupSubPolicy constructor(private val srtfOptimizationPolicy: SRTFOptimizationPolicy) : TransactionSubPolicy<SerializeTransaction<Request>, ExportTransaction<Request>, Request> {
-    override suspend fun process(
-        source: SerializeTransaction<Request>,
-        dest: ExportTransaction<Request>,
-        info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, ExportTransaction<Request>>> {
-        return coroutineScope {
-            async {
-                srtfOptimizationPolicy.removeToken(dest.request.token)
-                
-                Either.Right(dest)
-            }
-        }
-    }
-}
-
-class SRTFLogSubPolicy constructor(private val timingRepo: SRTFTimingRepository, private val descriptorFactory: SRTFPageDescriptorFactory) : TransactionSubPolicy<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request> {
-    override suspend fun process(
+class SRTFLogSubPolicy constructor(
+    private val timingRepo: SRTFTimingRepository,
+    private val descriptorFactory: SRTFPageDescriptorFactory,
+    private val srtfOptimizationPolicy: SRTFOptimizationPolicy
+) : TransactionSubPolicy<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request> {
+    override suspend fun <Ret> process(
         source: PrepareTransaction<Request>,
         dest: FinalizeRequestTransaction<Request>,
         info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, FinalizeRequestTransaction<Request>>> {
-        return coroutineScope {
-            async {
-                val time = dest.result.map {
-                    it.responseBody.ifSucc({
-                                           Some(it.responseTime)
-                    }, {
-                        none()
-                    })
-                }.orNone().flatten()
-                
-                time.map {
-                    timingRepo.reportTiming(descriptorFactory.convertTo(source), it.duration)
-                }
-                
-                Either.Right(dest)
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        try {
+            val time = dest.result.map {
+                it.responseBody.ifSucc({
+                    Some(it.responseTime)
+                }, {
+                    none()
+                })
+            }.orNone().flatten()
+    
+            time.map {
+                timingRepo.reportTiming(descriptorFactory.convertTo(source), it.duration)
             }
+    
+            val result = next(Either.Right(dest))
+            return result
+            
+        } finally {
+            srtfOptimizationPolicy.removeToken(dest.request.token)
         }
     }
 }

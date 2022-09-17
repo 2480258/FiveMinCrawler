@@ -356,9 +356,9 @@ class CrawlerFactory {
         private fun getSRTFSubPolicyCollection(option: SRTFOption): SubPolicyCollection {
             return SubPolicyCollection(
                 listOf(),
-                listOf(SRTFLogSubPolicy(option.timing, option.descriptFac)),
+                listOf(SRTFLogSubPolicy(option.timing, option.descriptFac, option.deq)),
                 listOf(),
-                listOf(SRTFCleanupSubPolicy(option.deq))
+                listOf()
             )
         }
         
@@ -375,7 +375,7 @@ class CrawlerFactory {
                 listOf<TransactionSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request>>(
                     MarkDetachablePolicy(), DetachableSubPolicy(), AddTagAliasSubPolicy()
                 ).plus(additionalPrepareSubPolicy),
-                listOf(RedirectSubPolicy(), RetrySubPolicy(), ResponseDisposeSubPolicy()),
+                listOf(RedirectSubPolicy(), RetrySubPolicy()),
                 listOf(),
                 listOf()
             )

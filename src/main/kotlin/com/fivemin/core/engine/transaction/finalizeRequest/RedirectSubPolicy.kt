@@ -20,12 +20,17 @@
 
 package com.fivemin.core.engine.transaction.finalizeRequest
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.flatten
+import arrow.core.right
+import arrow.core.toOption
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.InitialTransactionImpl
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
 import java.net.URI
 
 /**
@@ -33,58 +38,58 @@ import java.net.URI
  */
 class RedirectSubPolicy<Document : Request> :
     TransactionSubPolicy<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document> {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("RedirectSubPolicy")
     }
-
-    override suspend fun process(
-        source: PrepareTransaction<Document>,
-        dest: FinalizeRequestTransaction<Document>,
-        info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
-        return coroutineScope {
-            async {
-                dest.result.map { responseData ->
-                    responseData.responseBody.ifRedirectAsync({ redirectResponseBody ->
-                        val redirectLoc = createsRedirectURL(redirectResponseBody, responseData)
-                        val doc: Document = source.request.copyWith(redirectLoc.toOption()) as Document //kotlin has no 'self type' so cast it.
-
-                        withContext(Dispatchers.Default) {
-                            state.getChildSession {
-                                async {
-                                    logger.info(doc.getDebugInfo() + " < redirect destination")
-                                    info.createTask<Document>().get2<
-                                        InitialTransaction<Document>,
-                                        PrepareTransaction<Document>,
-                                        FinalizeRequestTransaction<Document>>(
-                                        doc.documentType
-                                    )
-                                        .start(InitialTransactionImpl<Document>(InitialOption(), TagRepositoryImpl(), doc), info, it).await()
-                                }
-                            }
-                        }.await()
-                    }, {
-                        withContext(Dispatchers.Default) {
-                            dest.right()
-                        }
-                    })
-                }.flatten()
-            }
-        }
-    }
     
     private fun createsRedirectURL(
-        responseBody: RedirectResponseBody,
-        responseData: ResponseData
+        responseBody: RedirectResponseBody, responseData: ResponseData
     ): URI {
         var loc = responseBody.redirectDest
-    
+        
         if (!loc.isAbsolute) {
             loc =
                 URI(responseData.responseBody.requestBody.currentUri.scheme + "://" + responseData.responseBody.requestBody.currentUri.authority + loc)
         }
         return loc
+    }
+    
+    override suspend fun <Ret> process(
+        source: PrepareTransaction<Document>,
+        dest: FinalizeRequestTransaction<Document>,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, FinalizeRequestTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        return next(
+            dest.result.map { responseData ->
+                responseData.responseBody.ifRedirectAsync({ redirectResponseBody ->
+                    val redirectLoc = createsRedirectURL(redirectResponseBody, responseData)
+                    val doc: Document =
+                        source.request.copyWith(redirectLoc.toOption()) as Document //kotlin has no 'self type' so cast it.
+                    
+                    withContext(Dispatchers.Default) {
+                        state.getChildSession {
+                            async {
+                                logger.info(doc.getDebugInfo() + " < redirect destination")
+                                info.createTask<Document>()
+                                    .get2<InitialTransaction<Document>, PrepareTransaction<Document>, FinalizeRequestTransaction<Document>>(
+                                        doc.documentType
+                                    ).start(
+                                        InitialTransactionImpl<Document>(
+                                            InitialOption(), TagRepositoryImpl(), doc
+                                        ), info, it
+                                    ).await()
+                            }
+                        }
+                    }.await()
+                }, {
+                    withContext(Dispatchers.Default) {
+                        dest.right()
+                    }
+                })
+            }.flatten()
+        )
     }
 }

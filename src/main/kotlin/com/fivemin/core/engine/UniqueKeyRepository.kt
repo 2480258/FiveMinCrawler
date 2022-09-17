@@ -41,4 +41,6 @@ interface UniqueKeyRepository {
     fun addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken
     
     fun addUniqueKey(key: UniqueKey): UniqueKeyToken
+    
+    fun finalizeUniqueKey(key: UniqueKey)
 }

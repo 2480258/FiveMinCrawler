@@ -25,8 +25,6 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.ExecuteSerializeMovement
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import java.util.*
 
 class SerializeTransactionMovementImpl<Document : Request>(private val postParser: PostParser<Document>) :
@@ -34,34 +32,7 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
     companion object {
         private val logger = LoggerController.getLogger("SerializeTransactionMovementImpl")
     }
-
-    override suspend fun move(
-        source: FinalizeRequestTransaction<Document>,
-        info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, SerializeTransaction<Document>>> {
-        logger.debug(source.request.getDebugInfo() + " < serializing transaction")
-
-        return coroutineScope {
-            async {
-                Either.catch {
-                    postParser.getPostParseInfo(source, info, state).map {
-                        source.previous.ifDocument({ doc ->
-                            SerializeTransactionImpl<Document>(
-                                source.request,
-                                convertAttributeToTag(it.attribute, source.tags),
-                                it.attribute.toList(),
-                                SerializeOption(doc.requestOption, doc.parseOption, doc.containerOption)
-                            )
-                        }, {
-                            throw IllegalArgumentException("not support for serialization transaction of non-text based document")
-                        })
-                    }
-                }.flatten()
-            }
-        }
-    }
-
+    
     private fun convertAttributeToTag(attr: Iterable<DocumentAttribute>, connect: TagRepository): TagRepositoryImpl {
         val ret = attr.map { x ->
             Pair(
@@ -77,8 +48,34 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
                 none()
             }
         }.filterOption()
-
+        
         return TagRepositoryImpl(ret.toOption(), connect.toOption())
+    }
+    
+    override suspend fun <Ret> move(
+        source: FinalizeRequestTransaction<Document>,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, SerializeTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        logger.debug(source.request.getDebugInfo() + " < serializing transaction")
+        
+        return next(
+            Either.catch {
+                postParser.getPostParseInfo(source, info, state).map {
+                    source.previous.ifDocument({ doc ->
+                        SerializeTransactionImpl<Document>(
+                            source.request,
+                            convertAttributeToTag(it.attribute, source.tags),
+                            it.attribute.toList(),
+                            SerializeOption(doc.requestOption, doc.parseOption, doc.containerOption)
+                        )
+                    }, {
+                        throw IllegalArgumentException("not support for serialization transaction of non-text based document")
+                    })
+                }
+            }.flatten()
+        )
     }
 }
 

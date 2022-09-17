@@ -21,6 +21,7 @@
 package com.fivemin.core.engine.transaction.serialize
 
 import arrow.core.Either
+import arrow.core.identity
 import com.fivemin.core.AttributeMockFactory
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
@@ -70,7 +71,7 @@ class SerializeTransactionMovementImplTest {
                 .upgrade()
         
         val result = runBlocking {
-            serial.move(doc, info, state).await()
+            serial.move(doc, info, state, ::identity)
         }
         
         result.fold({ throw it }, {
@@ -107,7 +108,7 @@ class SerializeTransactionMovementImplTest {
                 .upgrade()
         
         val result = runBlocking {
-            serial.move(doc, info, state).await()
+            serial.move(doc, info, state, ::identity)
         }
         
         result.fold({ throw it }, {
@@ -142,7 +143,7 @@ class SerializeTransactionMovementImplTest {
                 .upgrade()
         
         val result = runBlocking {
-            serial.move(doc, info, state).await()
+            serial.move(doc, info, state, ::identity)
         }
         
         result.fold({ throw it }, {

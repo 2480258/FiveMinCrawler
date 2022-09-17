@@ -20,11 +20,7 @@
 
 package com.fivemin.core.engine
 
-import arrow.core.Either
-import arrow.core.computations.*
-import arrow.core.computations.ResultEffect.bind
-import arrow.core.left
-import arrow.core.toOption
+import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.transaction.prepareRequest.TaskDetachedException
 import kotlinx.coroutines.*
@@ -47,11 +43,8 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
                 logger.debug(trans.request.getDebugInfo() + " < starting task")
                 coroutineScope {
                     async {
-                        val result = effect<Throwable, S2> {
-                            val p1 = policy.progressAsync(trans, info, it).await().bind()
-                            
-                            p1
-                        }.toEither()
+                        val result = policy.progressAsync(trans, info, it, ::identity)
+
                         
                         result.swap().map {
                             if (it is TaskDetachedException) {
@@ -78,8 +71,7 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
 
 class CrawlerTask2<S1 : Transaction<D1>, S2 : StrictTransaction<S1, D2>, S3 : StrictTransaction<S2, D3>, D1 : Request, D2 : Request, D3 : Request>
 constructor(
-    private val policy1: TransactionPolicy<S1, S2, D1, D2>,
-    private val policy2: TransactionPolicy<S2, S3, D2, D3>
+    private val policy1: TransactionPolicy<S1, S2, D1, D2>, private val policy2: TransactionPolicy<S2, S3, D2, D3>
 ) {
     companion object {
         private val logger = LoggerController.getLogger("CrawlerTask2")
@@ -93,13 +85,11 @@ constructor(
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        val result = effect<Throwable, S3> {
-                            val p1 = policy1.progressAsync(trans, info, state).await().bind()
-                            val p2 = policy2.progressAsync(p1, info, state).await().bind()
-    
-                            p2
-                        }.toEither()
-    
+                        val result = policy1.progressAsync(trans, info, state) {
+                            it.map {
+                                policy2.progressAsync(it, info, state, ::identity)
+                            }.flatten()
+                        }
                         result.swap().map {
                             if (it is TaskDetachedException) {
                             } else {
@@ -141,13 +131,15 @@ constructor(
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        val result = effect<Throwable, S4> {
-                            val p1 = policy1.progressAsync(trans, info, state).await().bind()
-                            val p2 = policy2.progressAsync(p1, info, state).await().bind()
-                            val p3 = policy3.progressAsync(p2, info, state).await().bind()
-                            
-                            p3
-                        }.toEither()
+                        val result = policy1.progressAsync(trans, info, state) { it ->
+                            it.map {
+                                policy2.progressAsync(it, info, state) { it ->
+                                    it.map {
+                                        policy3.progressAsync(it, info, state, ::identity)
+                                    }.flatten()
+                                }
+                            }.flatten()
+                        }
                         
                         result.swap().map {
                             if (it is TaskDetachedException) {
@@ -190,15 +182,20 @@ constructor(
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        val result = effect<Throwable, S5> {
-                            val p1 = policy1.progressAsync(trans, info, state).await().bind()
-                            val p2 = policy2.progressAsync(p1, info, state).await().bind()
-                            val p3 = policy3.progressAsync(p2, info, state).await().bind()
-                            val p4 = policy4.progressAsync(p3, info, state).await().bind()
-                            
-                            p4
-                        }.toEither()
-                        
+                        val result = policy1.progressAsync(trans, info, state) { it ->
+                            it.map {
+                                policy2.progressAsync(it, info, state) { it ->
+                                    it.map {
+                                        policy3.progressAsync(it, info, state) { it ->
+                                            it.map {
+                                                policy4.progressAsync(it, info, state, ::identity)
+                                            }.flatten()
+                                        }
+                                    }.flatten()
+                                }
+                            }.flatten()
+                        }
+                      
                         result.swap().map {
                             if (it is TaskDetachedException) {
                             } else {

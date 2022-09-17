@@ -26,7 +26,7 @@ class SRTFOption(val deq: SRTFOptimizationPolicy, val keyEx: SRTFKeyExtractor, v
     val policies: SubPolicyCollection
     
     init {
-        policies = SubPolicyCollection(listOf(), listOf(SRTFLogSubPolicy(timingRepo, descriptFac)), listOf(), listOf(SRTFCleanupSubPolicy(deq)))
+        policies = SubPolicyCollection(listOf(), listOf(SRTFLogSubPolicy(timingRepo, descriptFac, deq)), listOf(), listOf())
     }
 }
 

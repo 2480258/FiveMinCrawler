@@ -119,6 +119,11 @@ class CompositeUniqueKeyRepository(
         return token
     }
     
+    override fun finalizeUniqueKey(key: UniqueKey) {
+        logger.debug("$key < finalized uniqueKey")
+        persister.finalizeKey(key)
+    }
+    
     override fun notifyMarkedDetachable(tokens: Iterable<UniqueKeyToken>) {
         tokens.forEach {
             conveyToDetachable(it)

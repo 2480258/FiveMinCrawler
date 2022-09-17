@@ -24,17 +24,14 @@ import arrow.core.Either
 import arrow.core.flatten
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
-data class AbstractPolicyOption<
-    in SrcTrans : Transaction<Document>,
-    DstTrans : StrictTransaction<SrcTrans, Document>,
-    out Document : Request>(val subPolicies: Iterable<TransactionSubPolicy<SrcTrans, DstTrans, Document>>)
+data class AbstractPolicyOption<SrcTrans : Transaction<Document>, DstTrans : StrictTransaction<SrcTrans, Document>, out Document : Request>(
+    val subPolicies: Iterable<TransactionSubPolicy<SrcTrans, DstTrans, Document>>
+)
 
-abstract class AbstractPolicy<
-    in SrcTrans : Transaction<Document>,
-    DstTrans : StrictTransaction<SrcTrans, Document>,
-    Document : Request>(
+abstract class AbstractPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTransaction<SrcTrans, Document>, Document : Request>(
     private val option: AbstractPolicyOption<SrcTrans, DstTrans, Document>,
     private val movementFactory: TransactionMovementFactory<SrcTrans, DstTrans, Document>
 ) : TransactionPolicy<SrcTrans, DstTrans, Document, Document> {
@@ -42,32 +39,40 @@ abstract class AbstractPolicy<
         private val logger = LoggerController.getLogger("AbstractPolicy")
     }
     
-    override suspend fun progressAsync(
+    override suspend fun <Ret> progressAsync(
         trans: SrcTrans,
         info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, DstTrans>> {
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        val movement = movementFactory.getMovement()
+        val taskResult = movement.move(trans, info, state) {
+            it.map {
+                tailCall(trans, it, info, state, option.subPolicies, next)
+            }.flatten()
+        }
+        
+        return taskResult
+    }
+    
+    suspend fun <Ret> tailCall(
+        trans: SrcTrans,
+        dest: DstTrans,
+        info: TaskInfo,
+        state: SessionStartedState,
+        policies: Iterable<TransactionSubPolicy<SrcTrans, DstTrans, Document>>,
+        next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
         return coroutineScope {
             async {
-                Either.catch {
-                    val movement = movementFactory.getMovement()
-                    val taskResult = movement.move(trans, info, state)
-
-                    val spResult = option.subPolicies.fold(taskResult) { acc, transactionSubPolicy ->
-                        coroutineScope {
-                            async {
-                                val dstTrans = acc.await()
-
-                                dstTrans.map {
-                                    transactionSubPolicy.process(trans, it, info, state).await()
-                                }.flatten()
-                            } // https://typelevel.org/cats/datatypes/Either.html
-                        }
+                if (policies.count() == 1) {
+                    policies.first().process(trans, dest, info, state, next)
+                } else {
+                    policies.first().process(trans, dest, info, state) {
+                        tailCall(trans, dest, info, state, policies.drop(1), next)
                     }
-
-                    spResult.await()
-                }.flatten()
+                }
             }
-        }
+        }.await()
     }
 }

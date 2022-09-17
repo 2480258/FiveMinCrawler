@@ -28,7 +28,7 @@ interface TransactionMovement<
     in SrcTrans : Transaction<Request>,
     out DstTrans : StrictTransaction<SrcTrans, Document>,
     out Document : Request> {
-    suspend fun move(source: SrcTrans, info: TaskInfo, state: SessionStartedState): Deferred<Either<Throwable, DstTrans>>
+    suspend fun <Ret> move(source: SrcTrans, info: TaskInfo, state: SessionStartedState, next : suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>): Either<Throwable, Ret>
 }
 
 interface PrepareRequestMovement<Document : Request> :

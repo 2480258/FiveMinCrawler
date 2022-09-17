@@ -20,6 +20,7 @@
 
 package com.fivemin.core.engine.transaction.prepareRequest
 
+import arrow.core.identity
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
@@ -46,7 +47,7 @@ class DetachableSubPolicyTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
         
         val result = runBlocking {
-            detachSubPolicy.process(doc, prep, info, state).await()
+            detachSubPolicy.process(doc, prep, info, state, ::identity)
         }
         
         result.fold({ throw NullPointerException() }, {
@@ -64,7 +65,7 @@ class DetachableSubPolicyTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
         
         val result = runBlocking {
-            detachSubPolicy.process(doc, prep, info, state).await()
+            detachSubPolicy.process(doc, prep, info, state, ::identity)
         }
         
         result.fold({ throw NullPointerException() }, {
@@ -82,7 +83,7 @@ class DetachableSubPolicyTest {
         val state = TaskMockFactory.createDetachableSessionStarted<Request>()
         
         val result = runBlocking {
-            detachSubPolicy.process(doc, prep, info, state).await()
+            detachSubPolicy.process(doc, prep, info, state, ::identity)
         }
         
         coVerify {

@@ -20,59 +20,55 @@
 
 package com.fivemin.core.engine.transaction.prepareRequest
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 
 class TaskDetachedException : Exception()
 
 class DetachableSubPolicy<Document : Request> :
     TransactionSubPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document> {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("DetachableSubPolicy")
     }
-
-    override suspend fun process(
+    
+    override suspend fun <Ret> process(
         source: InitialTransaction<Document>,
         dest: PrepareTransaction<Document>,
         info: TaskInfo,
-        state: SessionStartedState
-    ): Deferred<Either<Throwable, PrepareTransaction<Document>>> {
-        return coroutineScope {
-            async {
-                val isWorkingSet = if (dest.ifDocument({
-                    it.containerOption.workingSetMode == WorkingSetMode.Enabled
-                }, { false })
-                ) {
-                    val task = info.createTask<Document>()
-                        .get4<InitialTransaction<Document>, PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, ExportTransaction<Document>>(
-                            dest.request.documentType
-                        )
-
-                    val detached = state.ifDetachable {
-                        it.detach {
-                            logger.debug(source.request, "trying to detach")
-
-                            task.start(source, info, it).await().swap().orNone()
-                        }
-                    }
-
-                    if (detached.isNotEmpty()) {
-                        TaskDetachedException().left()
-                    } else {
-                        dest.right()
-                    }
-                } else {
-                    dest.right()
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, PrepareTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        val isWorkingSet = if (dest.ifDocument({
+                it.containerOption.workingSetMode == WorkingSetMode.Enabled
+            }, { false })) {
+            val task = info.createTask<Document>()
+                .get4<InitialTransaction<Document>, PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, ExportTransaction<Document>>(
+                    dest.request.documentType
+                )
+            
+            val detached = state.ifDetachable {
+                it.detach {
+                    logger.debug(source.request, "trying to detach")
+                    
+                    task.start(source, info, it).await().swap().orNone()
                 }
-
-                isWorkingSet
             }
+            
+            if (detached.isNotEmpty()) {
+                TaskDetachedException().left()
+            } else {
+                dest.right()
+            }
+        } else {
+            dest.right()
         }
+        
+        return next(isWorkingSet)
     }
 }
+

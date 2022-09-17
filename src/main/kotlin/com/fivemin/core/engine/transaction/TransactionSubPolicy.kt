@@ -27,5 +27,5 @@ import kotlinx.coroutines.Deferred
 interface TransactionSubPolicy <in SrcTrans : Transaction<Document>,
     DstTrans : StrictTransaction<SrcTrans, Document>,
     out Document : Request> {
-    suspend fun process(source: SrcTrans, dest: DstTrans, info: TaskInfo, state: SessionStartedState): Deferred<Either<Throwable, DstTrans>>
+    suspend fun <Ret> process(source: SrcTrans, dest: DstTrans, info: TaskInfo, state: SessionStartedState, next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable,Ret>): Either<Throwable, Ret>
 }
