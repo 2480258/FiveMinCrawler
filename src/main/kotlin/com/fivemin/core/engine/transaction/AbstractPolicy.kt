@@ -55,7 +55,7 @@ abstract class AbstractPolicy<SrcTrans : Transaction<Document>, DstTrans : Stric
         return taskResult
     }
     
-    suspend fun <Ret> tailCall(
+    private suspend fun <Ret> tailCall(
         trans: SrcTrans,
         dest: DstTrans,
         info: TaskInfo,

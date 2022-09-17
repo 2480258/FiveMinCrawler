@@ -71,4 +71,34 @@ class DatabaseAdapterImplTest {
         adapterImpl.insertKeyIfNone("test")
         assert(adapterImpl.finalizeKey("test"))
     }
+    
+    @Test
+    fun doFinalizeTwiceWhenKeyExistsTest() {
+        adapterImpl = getAdapter()
+        
+        adapterImpl.insertKeyIfNone("test")
+        adapterImpl.finalizeKey("test")
+        assert(!adapterImpl.finalizeKey("test"))
+    }
+    
+    @Test
+    fun test_removeFinalizedWith_NotFinalized() {
+        adapterImpl = getAdapter()
+    
+        adapterImpl.insertKeyIfNone("test")
+        adapterImpl.removeNotFinalized()
+        
+        assert(adapterImpl.insertKeyIfNone("test"))
+    }
+    
+    @Test
+    fun test_removeFinalizedWith_Finalized() {
+        adapterImpl = getAdapter()
+        
+        adapterImpl.insertKeyIfNone("test")
+        adapterImpl.finalizeKey("test")
+        adapterImpl.removeNotFinalized()
+        
+        assert(!adapterImpl.insertKeyIfNone("test"))
+    }
 }

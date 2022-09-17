@@ -30,11 +30,121 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.testng.Assert.assertThrows
 import org.testng.annotations.Test
 
 class SessionStartedStateImplTest {
+    
+    @Test
+    fun testAddAlias_NotFinalize_EitherLeft() {
+        val mock: BloomFilterFactory = mockk()
+        
+        every {
+            mock.createEmpty()
+        } returns (BloomFilterImpl(100, 0.00000001))
+        
+        val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
+        val persister = UniqueKeyPersisterImpl(persistFactory.get())
+        
+        var keyRepo = spyk(CompositeUniqueKeyRepository(
+            persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
+        ))
+        val fin = FinishObserverImpl()
+        val sessRepo = SessionRepositoryImpl(keyRepo, FinishObserverImpl())
+        
+        val sess: SessionDetachableStartedStateImpl = spyk(
+            SessionDetachableStartedStateImpl(
+                SessionInfo(fin, keyRepo),
+                SessionData(keyRepo, sessRepo),
+                SessionContext(LocalUniqueKeyTokenRepo(), none())
+            )
+        )
+    
+    
+        runBlocking {
+            sess.addAlias(StringUniqueKey("a"), { Either.Left(IllegalArgumentException()) })
+        }
+        
+        verify(exactly = 0) {
+            keyRepo.finalizeUniqueKey(any())
+        }
+    }
+    
+    @Test
+    fun testAddAlias_NotFinalize_WhenThrows() {
+        val mock: BloomFilterFactory = mockk()
+    
+        every {
+            mock.createEmpty()
+        } returns (BloomFilterImpl(100, 0.00000001))
+    
+        val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
+        val persister = UniqueKeyPersisterImpl(persistFactory.get())
+    
+        var keyRepo = spyk(CompositeUniqueKeyRepository(
+            persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
+        ))
+        val fin = FinishObserverImpl()
+        val sessRepo = SessionRepositoryImpl(keyRepo, FinishObserverImpl())
+    
+        val sess: SessionDetachableStartedStateImpl = spyk(
+            SessionDetachableStartedStateImpl(
+                SessionInfo(fin, keyRepo),
+                SessionData(keyRepo, sessRepo),
+                SessionContext(LocalUniqueKeyTokenRepo(), none())
+            )
+        )
+    
+        assertThrows {
+            runBlocking {
+                async {
+                    sess.addAlias<Int>(StringUniqueKey("a"), { throw IllegalAccessException() })
+                }
+            }
+        }
+    
+        verify(exactly = 0) {
+            keyRepo.finalizeUniqueKey(any())
+        }
+    }
+    
+    
+    @Test
+    fun testAddAlias_Finalize() {
+        val mock: BloomFilterFactory = mockk()
+    
+        every {
+            mock.createEmpty()
+        } returns (BloomFilterImpl(100, 0.00000001))
+    
+        val persistFactory = DatabaseAdapterFactoryImpl("jdbc:sqlite::memory:")
+        val persister = UniqueKeyPersisterImpl(persistFactory.get())
+    
+        var keyRepo = spyk(CompositeUniqueKeyRepository(
+            persister, BloomFilterCache(mock), TemporaryUniqueKeyRepository(), UniqueKeyTokenFactory()
+        ))
+        val fin = FinishObserverImpl()
+        val sessRepo = SessionRepositoryImpl(keyRepo, FinishObserverImpl())
+    
+        val sess: SessionDetachableStartedStateImpl = spyk(
+            SessionDetachableStartedStateImpl(
+                SessionInfo(fin, keyRepo),
+                SessionData(keyRepo, sessRepo),
+                SessionContext(LocalUniqueKeyTokenRepo(), none())
+            )
+        )
+    
+        runBlocking {
+            sess.addAlias(StringUniqueKey("a"), { Either.catch { } })
+        }
+        
+        verify(exactly = 1) {
+            keyRepo.finalizeUniqueKey(any())
+        }
+    }
     
     @Test
     fun testAddAlias_Throws() {
