@@ -117,7 +117,7 @@ class DatabaseAdapterImpl(private val dataSource: DataSource) : DatabaseAdapter 
             var updatePrepared : PreparedStatement? = null
             
             try {
-                updatePrepared = it.prepareStatement("update keys set finalized = 1 where id = ?")
+                updatePrepared = it.prepareStatement("update keys set finalized = 1 where id = ? and finalized = 0")
                 
                 updatePrepared.setString(1, key)
                 val result = updatePrepared.executeUpdate()
