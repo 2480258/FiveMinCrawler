@@ -40,29 +40,22 @@ class SRTFLogSubPolicy constructor(
         dest: FinalizeRequestTransaction<Request>,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, FinalizeRequestTransaction<Request>>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>> {
+        next: suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
         try {
-            val result = next(coroutineScope {
-                async {
-                    val time = dest.result.map {
-                        it.responseBody.ifSucc({
-                            Some(it.responseTime)
-                        }, {
-                            none()
-                        })
-                    }.orNone().flatten()
-            
-                    time.map {
-                        timingRepo.reportTiming(descriptorFactory.convertTo(source), it.duration)
-                    }
-            
-                    Either.Right(dest)
-                }
-            })
-            
-            result.await() // waits until request finishes
-            
+            val time = dest.result.map {
+                it.responseBody.ifSucc({
+                    Some(it.responseTime)
+                }, {
+                    none()
+                })
+            }.orNone().flatten()
+    
+            time.map {
+                timingRepo.reportTiming(descriptorFactory.convertTo(source), it.duration)
+            }
+    
+            val result = next(Either.Right(dest))
             return result
             
         } finally {

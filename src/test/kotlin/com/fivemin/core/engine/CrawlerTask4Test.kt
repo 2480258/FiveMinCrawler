@@ -77,7 +77,7 @@ class CrawlerTask4Test {
     
     @Test
     fun testStart_With_Succ_Policy() {
-        val policySet = TaskMockFactory.createPolicySet()
+        val policySet = TaskMockFactory.createPolicySet4()
         
         val crawlerTask = CrawlerTask4(
             policySet.find<InitialTransaction<Request>, PrepareTransaction<Request>>(),

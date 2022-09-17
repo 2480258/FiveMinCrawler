@@ -39,13 +39,12 @@ class PrepareRequestTransactionMovement<Document : Request> (private val prePars
         source: InitialTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, PrepareTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>> {
-        return next(coroutineScope {
-            async {
-                logger.debug(source.request.getDebugInfo() + " < Creating prepare transaction")
-                preParser.generateInfo(source).toEither { PageNotFoundException() }
-            }
-        })
+        next: suspend (Either<Throwable, PrepareTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        
+        logger.debug(source.request.getDebugInfo() + " < Creating prepare transaction")
+        val result = preParser.generateInfo(source).toEither { PageNotFoundException() }
+        
+        return next(result)
     }
 }

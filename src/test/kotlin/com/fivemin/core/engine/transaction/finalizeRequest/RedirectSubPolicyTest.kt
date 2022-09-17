@@ -20,6 +20,7 @@
 
 package com.fivemin.core.engine.transaction.finalizeRequest
 
+import arrow.core.identity
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
@@ -78,7 +79,7 @@ class RedirectSubPolicyTest {
         }
         
         runBlocking {
-            val result = redirectSubPolicy.process(req, fin, info, state).await()
+            val result = redirectSubPolicy.process(req, fin, info, state, ::identity)
         }
         coVerify(exactly = 1) {
             state.getChildSession<Any>(any())

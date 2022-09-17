@@ -24,7 +24,6 @@ import arrow.core.Either
 import arrow.core.flatten
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
@@ -44,24 +43,16 @@ abstract class AbstractPolicy<SrcTrans : Transaction<Document>, DstTrans : Stric
         trans: SrcTrans,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, DstTrans>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>> {
-        return coroutineScope {
-            async {
-                val movement = movementFactory.getMovement()
-                val taskResult = movement.move(trans, info, state) {
-                    coroutineScope {
-                        async {
-                            it.await().map {
-                                tailCall(trans, it, info, state, option.subPolicies, next).await()
-                            }.flatten()
-                        }
-                    }
-                }.await()
-                
-                taskResult
-            }
+        next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        val movement = movementFactory.getMovement()
+        val taskResult = movement.move(trans, info, state) {
+            it.map {
+                tailCall(trans, it, info, state, option.subPolicies, next)
+            }.flatten()
         }
+        
+        return taskResult
     }
     
     suspend fun <Ret> tailCall(
@@ -70,8 +61,8 @@ abstract class AbstractPolicy<SrcTrans : Transaction<Document>, DstTrans : Stric
         info: TaskInfo,
         state: SessionStartedState,
         policies: Iterable<TransactionSubPolicy<SrcTrans, DstTrans, Document>>,
-        next: suspend (Deferred<Either<Throwable, DstTrans>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>> {
+        next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
         return coroutineScope {
             async {
                 if (policies.count() == 1) {

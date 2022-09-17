@@ -28,6 +28,6 @@ interface TransactionPolicy<in InTrans : Transaction<D1>, out OutTrans : Transac
         trans: InTrans,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, OutTrans>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>>
+        next: suspend (Either<Throwable, OutTrans>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret>
 }

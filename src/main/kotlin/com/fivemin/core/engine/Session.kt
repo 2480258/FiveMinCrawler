@@ -24,7 +24,6 @@ import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.transaction.prepareRequest.TaskDetachedException
 import kotlinx.coroutines.*
-import kotlinx.coroutines.selects.select
 
 suspend fun <T> SessionStartedState.ifDetachable(func: suspend (SessionDetachableStartedState) -> T): Option<T> {
     return if (this is SessionDetachableStartedState) {
@@ -98,8 +97,8 @@ interface SessionAddableAlias : SessionMarkDetachable {
      * Can throw if key is duplicated more than max retry.
      */
     suspend fun <T> addAlias(
-        key: UniqueKey, func: suspend () -> Deferred<Either<Throwable, T>>
-    ): Deferred<Either<Throwable, T>> {
+        key: UniqueKey, func: suspend () -> Either<Throwable, T>
+    ): Either<Throwable, T> {
         
         logger.debug(info.token.tokenNumber.toString() + " < Adding alias [" + key.toString() + "]")
         
@@ -111,19 +110,12 @@ interface SessionAddableAlias : SessionMarkDetachable {
         }
         
         val ret = func()
-        ret.await()
         
-        return coroutineScope {
-            select {
-                ret.onAwait.invoke {
-                    it.map {
-                        data.KeyRepo.finalizeUniqueKey(key)
-                    }
-                    
-                    ret
-                }
-            }
+        ret.map {
+            data.KeyRepo.finalizeUniqueKey(key)
         }
+        
+        return ret
     }
     
     private fun addAliasInternal(key: UniqueKey): UniqueKeyToken {
@@ -210,9 +202,9 @@ interface SessionStartable : SessionAddableAlias {
         key: UniqueKey, func: suspend (SessionStartedState) -> Deferred<Either<Throwable, T>>
     ): Deferred<Either<Throwable, T>> {
         
-        return coroutineScope {
-            async {
-                info.doRegisteredTask {
+        return info.doRegisteredTask {
+            coroutineScope {
+                async {
                     addAlias(key) {
                         logger.debug(key.toString() + " < creating SessionStartable")
                         
@@ -222,9 +214,9 @@ interface SessionStartable : SessionAddableAlias {
                             SessionStartedStateImpl(info, data, context)
                         }
                         
-                        func(state)
+                        func(state).await()
                     }
-                }.await()
+                }
             }
         }
     }

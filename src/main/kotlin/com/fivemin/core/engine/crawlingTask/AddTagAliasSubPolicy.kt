@@ -25,9 +25,6 @@ import arrow.core.right
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 
 class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTransaction<SrcTrans, Document>, Document : Request> :
     TransactionSubPolicy<SrcTrans, DstTrans, Document> {
@@ -41,8 +38,8 @@ class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTr
         dest: DstTrans,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, DstTrans>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>> {
+        next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
         logger.debug(source.request, "adding tags")
         val ret = info.uniqueKeyProvider.tagKey.create(dest.tags)
         
@@ -54,23 +51,18 @@ class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTr
         dest: DstTrans,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, DstTrans>>) -> Deferred<Either<Throwable, Ret>>,
+        next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>,
         aliases: Iterable<UniqueKey>
-    ): Deferred<Either<Throwable, Ret>> {
-        return coroutineScope {
-            async {
-                if (aliases.count() == 1) {
-                    state.addAlias(aliases.first()) {
-                        val ret = async {
-                            dest.right()
-                        }
-                        
-                        next(ret)
-                    }
-                } else {
-                    tailCall(source, dest, info, state, next, aliases.drop(1))
-                }.await()
+    ): Either<Throwable, Ret> {
+        
+        if (aliases.count() == 1) {
+            return state.addAlias(aliases.first()) {
+                val ret = dest.right()
+                
+                next(ret)
             }
+        } else {
+            return tailCall(source, dest, info, state, next, aliases.drop(1))
         }
     }
 }

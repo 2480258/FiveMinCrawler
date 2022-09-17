@@ -21,22 +21,19 @@
 package com.fivemin.core.engine.crawlingTask
 
 import arrow.core.Either
-import arrow.core.right
 import arrow.core.left
+import arrow.core.right
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Subpolicy for limiting enitre crawling pages.
  */
-class LimitMaxPageSubPolicy<Document : Request> (private val maxPageNum: Int) :
-    TransactionSubPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document>{
+class LimitMaxPageSubPolicy<Document : Request>(private val maxPageNum: Int) :
+    TransactionSubPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document> {
     
-    val pageCount : AtomicInteger = AtomicInteger(0)
+    val pageCount: AtomicInteger = AtomicInteger(0)
     
     /**
      * Increase page count. if count is equals or exceeds, returns ExceedsMaxPageException.
@@ -47,22 +44,16 @@ class LimitMaxPageSubPolicy<Document : Request> (private val maxPageNum: Int) :
         dest: PrepareTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, PrepareTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>> {
+        next: suspend (Either<Throwable, PrepareTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
         val cnt = pageCount.getAndIncrement()
-    
-        return if(cnt >= maxPageNum) {
-            coroutineScope {
-                async {
-                    ExceedsMaxPageException().left()
-                }
-            }
+        
+        return if (cnt >= maxPageNum) {
+            ExceedsMaxPageException().left()
         } else {
-            next(coroutineScope {
-                async {
-                    dest.right()
-                }
-            })
+            next(
+                dest.right()
+            )
         }
     }
 }

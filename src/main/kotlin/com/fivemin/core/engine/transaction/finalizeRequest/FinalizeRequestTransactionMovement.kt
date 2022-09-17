@@ -20,8 +20,7 @@
 
 package com.fivemin.core.engine.transaction.finalizeRequest
 
-import arrow.core.Either
-import arrow.core.right
+import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.ExecuteRequestMovement
@@ -39,29 +38,21 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
         source: PrepareTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>> {
-        var dest : Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>>? = null
+        next: suspend (Either<Throwable, FinalizeRequestTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        var dest : Either<Throwable, FinalizeRequestTransaction<Document>>? = null
         
         try {
             val req = DocumentRequestImpl<Document>(source, DocumentRequestInfo(state.isDetachable))
             val ret = requestWaiter.request<Document, ResponseData>(req)
     
-            dest = coroutineScope {
-                async {
-                    logger.debug(source.request, "finalizing request transaction")
-            
-                    val r = ret.await() //waits asynchronously until request is done.
-                    FinalizeRequestTransactionImpl<Document>(r, source.tags, source).right()
-                }
-            }
-            
+            dest = FinalizeRequestTransactionImpl<Document>(ret.await(), source.tags, source).right()
             val result = next(dest)
-            result.await() // waits until finishes and release requester at finally declarations
             
             return result
+            
         } finally {
-            dest?.await()?.map {
+            dest?.map {
                 releaseRequester(it)
             }
         }

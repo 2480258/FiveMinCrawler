@@ -20,6 +20,7 @@
 
 package com.fivemin.core.engine.transaction.finalizeRequest
 
+import arrow.core.identity
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.getCriticalErrorBodyResponse
 import com.fivemin.core.DocumentMockFactory.Companion.getSuccResponse_Html
@@ -53,7 +54,7 @@ class RetrySubPolicyTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
         
         runBlocking {
-            retry.process(src, dest, info, state).await()
+            retry.process(src, dest, info, state, ::identity)
         }
         
         coVerify (exactly = 1){
@@ -73,7 +74,7 @@ class RetrySubPolicyTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
         
         val result = runBlocking {
-            retry.process(src, dest, info, state).await()
+            retry.process(src, dest, info, state, ::identity)
         }
         
         result.fold({

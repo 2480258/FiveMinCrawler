@@ -34,26 +34,3 @@ import org.testng.annotations.Test
 
 import org.testng.Assert.*
 import java.net.URI
-
-class ResponseDisposeSubPolicyTest {
-    
-    @Test
-    fun testProcess() {
-        val disposeSubPolicy = ResponseDisposeSubPolicy<Request>()
-    
-        val src = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK).upgrade().upgradeAsDocument("a")
-        val response = src.upgradeAsRequestDoc().upgrade().getSuccResponse_Html()
-        val dest = src.upgrade(response)
-    
-        val info = TaskMockFactory.createTaskInfo()
-        val state = TaskMockFactory.createSessionStarted<Request>()
-    
-        runBlocking {
-            disposeSubPolicy.process(src, dest, info, state)
-        }
-        
-        verify (exactly = 1){
-            response.releaseRequester()
-        }
-    }
-}

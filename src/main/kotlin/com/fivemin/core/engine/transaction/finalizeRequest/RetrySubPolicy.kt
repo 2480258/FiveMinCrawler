@@ -26,8 +26,6 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 
 class RetrySubPolicy<Document : Request> :
@@ -40,9 +38,7 @@ class RetrySubPolicy<Document : Request> :
     }
     
     private suspend fun request(
-        source: PrepareTransaction<Document>,
-        info: TaskInfo,
-        state: SessionStartedState
+        source: PrepareTransaction<Document>, info: TaskInfo, state: SessionStartedState
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
         logger.debug(source.request, "trying to retry")
         
@@ -60,20 +56,18 @@ class RetrySubPolicy<Document : Request> :
         dest: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>> {
-        return next(coroutineScope {
-            async {
-                dest.result.fold({
+        next: suspend (Either<Throwable, FinalizeRequestTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        return next(
+            dest.result.fold({
+                request(source, info, state).await()
+            }, {
+                if (it.responseBody is CriticalErrorBody || it.responseBody is RecoverableErrorBody) {
                     request(source, info, state).await()
-                }, {
-                    if (it.responseBody is CriticalErrorBody || it.responseBody is RecoverableErrorBody) {
-                        request(source, info, state).await()
-                    } else {
-                        dest.right()
-                    }
-                })
-            }
-        })
+                } else {
+                    dest.right()
+                }
+            })
+        )
     }
 }

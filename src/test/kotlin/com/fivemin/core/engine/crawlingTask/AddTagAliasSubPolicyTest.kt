@@ -20,6 +20,8 @@
 
 package com.fivemin.core.engine.crawlingTask
 
+import arrow.core.Either
+import arrow.core.identity
 import arrow.core.toOption
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
@@ -29,6 +31,8 @@ import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.UriIterator
 import com.fivemin.core.engine.*
 import io.mockk.coVerify
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.testng.Assert.*
 import org.testng.annotations.Test
@@ -55,13 +59,13 @@ class AddTagAliasSubPolicyTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
 
         runBlocking {
-            val proc = addtagPolicy.process(req, req.upgradeAsDocument("a"), TaskMockFactory.createTaskInfo(), state)
+            val proc = addtagPolicy.process(req, req.upgradeAsDocument("a"), TaskMockFactory.createTaskInfo(), state, ::identity)
 
             coVerify(exactly = 1) {
-                state.addAlias(any())
+                state.addAlias<Any>(any(), any())
             }
 
-            proc.await().swap().map {
+            proc.swap().map {
                 it.printStackTrace()
                 fail()
             }

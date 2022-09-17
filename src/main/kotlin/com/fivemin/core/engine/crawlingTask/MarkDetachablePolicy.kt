@@ -25,9 +25,6 @@ import arrow.core.right
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 
 /**
  * Subpolicy for marking wheather this document is detachable.
@@ -47,12 +44,11 @@ class MarkDetachablePolicy<Document : Request> :
         dest: PrepareTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, PrepareTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>> {
+        next: suspend (Either<Throwable, PrepareTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
         if (dest.ifDocument({
                 it.containerOption.workingSetMode == WorkingSetMode.Enabled
-            }, { false })
-        ) {
+            }, { false })) {
             logger.debug(source.request.getDebugInfo() + " < Marked as detachable")
             state.setDetachable()
         } else {
@@ -60,10 +56,6 @@ class MarkDetachablePolicy<Document : Request> :
             state.setNonDetachable()
         }
         
-        return next(coroutineScope {
-            async {
-                dest.right()
-            }
-        })
+        return next(dest.right())
     }
 }

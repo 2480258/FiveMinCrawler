@@ -20,6 +20,7 @@
 
 package com.fivemin.core.engine.crawlingTask
 
+import arrow.core.identity
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
@@ -50,7 +51,7 @@ class MarkDetachablePolicyTest {
         
         
         runBlocking {
-            detach.process(init, preproc, TaskMockFactory.createTaskInfo(), state)
+            detach.process(init, preproc, TaskMockFactory.createTaskInfo(), state, ::identity)
         }
         
         verify { state.setDetachable() }
@@ -69,7 +70,7 @@ class MarkDetachablePolicyTest {
         
         
         runBlocking {
-            detach.process(init, preproc, TaskMockFactory.createTaskInfo(), state)
+            detach.process(init, preproc, TaskMockFactory.createTaskInfo(), state, ::identity)
         }
         
         verify { state.setNonDetachable() }

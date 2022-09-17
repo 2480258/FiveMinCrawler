@@ -24,13 +24,10 @@ import arrow.core.Either
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.ExecuteExportMovement
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 
 class ExportTransactionMovement<Document : Request>(private val parser: ExportParser, private val state: ExportState) :
     ExecuteExportMovement<Document> {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("ExportTransactionMovement")
     }
@@ -40,11 +37,11 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
             state.create(x)
         }.map {
             val ret = it.save()
-
+            
             ret.mapLeft { x ->
                 logger.warn(it.info.token.fileName.name.name + " < not exported due to: " + x.message)
             }
-
+            
             ret.map { x ->
                 logger.info(it.info.token.fileName.name.name + " < exported")
             }
@@ -56,17 +53,13 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
         source: SerializeTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, ExportTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>> {
-        return next(coroutineScope {
-            async {
-                logger.debug(source.request, "exporting transaction")
-                val ret = parser.parse(source)
-            
-                Either.catch {
-                    ExportTransactionImpl(source.request, source.tags, saveResult(ret))
-                }
-            }
+        next: suspend (Either<Throwable, ExportTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        logger.debug(source.request, "exporting transaction")
+        val ret = parser.parse(source)
+        
+        return next(Either.catch {
+            ExportTransactionImpl(source.request, source.tags, saveResult(ret))
         })
     }
 }

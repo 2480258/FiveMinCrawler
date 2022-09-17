@@ -28,7 +28,9 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.InitialTransactionImpl
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
 import java.net.URI
 
 /**
@@ -58,38 +60,36 @@ class RedirectSubPolicy<Document : Request> :
         dest: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState,
-        next: suspend (Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>>) -> Deferred<Either<Throwable, Ret>>
-    ): Deferred<Either<Throwable, Ret>> {
-        return next(coroutineScope {
-            async {
-                dest.result.map { responseData ->
-                    responseData.responseBody.ifRedirectAsync({ redirectResponseBody ->
-                        val redirectLoc = createsRedirectURL(redirectResponseBody, responseData)
-                        val doc: Document =
-                            source.request.copyWith(redirectLoc.toOption()) as Document //kotlin has no 'self type' so cast it.
-                        
-                        withContext(Dispatchers.Default) {
-                            state.getChildSession {
-                                async {
-                                    logger.info(doc.getDebugInfo() + " < redirect destination")
-                                    info.createTask<Document>()
-                                        .get2<InitialTransaction<Document>, PrepareTransaction<Document>, FinalizeRequestTransaction<Document>>(
-                                            doc.documentType
-                                        ).start(
-                                            InitialTransactionImpl<Document>(
-                                                InitialOption(), TagRepositoryImpl(), doc
-                                            ), info, it
-                                        ).await()
-                                }
+        next: suspend (Either<Throwable, FinalizeRequestTransaction<Document>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        return next(
+            dest.result.map { responseData ->
+                responseData.responseBody.ifRedirectAsync({ redirectResponseBody ->
+                    val redirectLoc = createsRedirectURL(redirectResponseBody, responseData)
+                    val doc: Document =
+                        source.request.copyWith(redirectLoc.toOption()) as Document //kotlin has no 'self type' so cast it.
+                    
+                    withContext(Dispatchers.Default) {
+                        state.getChildSession {
+                            async {
+                                logger.info(doc.getDebugInfo() + " < redirect destination")
+                                info.createTask<Document>()
+                                    .get2<InitialTransaction<Document>, PrepareTransaction<Document>, FinalizeRequestTransaction<Document>>(
+                                        doc.documentType
+                                    ).start(
+                                        InitialTransactionImpl<Document>(
+                                            InitialOption(), TagRepositoryImpl(), doc
+                                        ), info, it
+                                    ).await()
                             }
-                        }.await()
-                    }, {
-                        withContext(Dispatchers.Default) {
-                            dest.right()
                         }
-                    })
-                }.flatten()
-            }
-        })
+                    }.await()
+                }, {
+                    withContext(Dispatchers.Default) {
+                        dest.right()
+                    }
+                })
+            }.flatten()
+        )
     }
 }
