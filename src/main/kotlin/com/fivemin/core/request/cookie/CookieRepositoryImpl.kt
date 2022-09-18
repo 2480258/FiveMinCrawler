@@ -31,28 +31,27 @@ class CookieRepositoryImpl(private val container: CustomCookieJar) : CookieRepos
 
     private val lock = ReentrantLock()
 
-    override fun getAllCookies(): Either<Throwable, Iterable<HttpCookie>> {
+    override fun getAllCookies_Interlocked(): Either<Throwable, Iterable<HttpCookie>> {
         lock.withLock {
             return container.cookieStore.cookies.right()
         }
     }
 
-    override fun reset() {
+    override fun reset_Interlocked() {
         lock.withLock {
             container.cookieStore.removeAll()
         }
     }
 
-    override fun download(repo: CookieRepository) {
+    override fun downloadFrom_Interlocked(repo: CookieRepository) {
         lock.withLock {
             if (repo == this) {
                 return
             }
 
-            var src = repo.getAllCookies()
-            var dst = getAllCookies()
+            var src = repo.getAllCookies_Interlocked()
 
-            reset()
+            reset_Interlocked()
             src.map { it ->
                 it.forEach {
                     container.cookieStore.add(URI(it.domain), it)

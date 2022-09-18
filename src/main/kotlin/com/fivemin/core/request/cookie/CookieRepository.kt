@@ -24,9 +24,9 @@ import arrow.core.Either
 import java.net.HttpCookie
 
 interface CookieRepository {
-    fun getAllCookies(): Either<Throwable, Iterable<HttpCookie>>
+    fun getAllCookies_Interlocked(): Either<Throwable, Iterable<HttpCookie>>
 
-    fun reset()
+    fun reset_Interlocked()
 
-    fun download(repo: CookieRepository)
+    fun downloadFrom_Interlocked(repo: CookieRepository)
 }

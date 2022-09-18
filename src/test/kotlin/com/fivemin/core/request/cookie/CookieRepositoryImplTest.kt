@@ -43,7 +43,7 @@ class CookieRepositoryImplTest {
     @Test
     fun testGetAllCookies() {
         jar.cookieStore.add(uriIt.gen(), HttpCookie("a", "b"))
-        repo.getAllCookies().fold({ fail() }) {
+        repo.getAllCookies_Interlocked().fold({ fail() }) {
             assertEquals(it.count(), 1)
         }
     }
@@ -51,8 +51,8 @@ class CookieRepositoryImplTest {
     @Test
     fun testReset() {
         jar.cookieStore.add(uriIt.gen(), HttpCookie("a", "b"))
-        repo.reset()
-        repo.getAllCookies().fold({ fail() }) {
+        repo.reset_Interlocked()
+        repo.getAllCookies_Interlocked().fold({ fail() }) {
             assertEquals(it.count(), 0)
         }
     }
@@ -67,8 +67,8 @@ class CookieRepositoryImplTest {
         var secondJar = CustomCookieJar()
         var secondRepo = CookieRepositoryImpl(secondJar)
 
-        secondRepo.download(repo)
-        repo.getAllCookies().fold({ fail() }) {
+        secondRepo.downloadFrom_Interlocked(repo)
+        repo.getAllCookies_Interlocked().fold({ fail() }) {
             assertEquals(it.count(), 1)
         }
     }
