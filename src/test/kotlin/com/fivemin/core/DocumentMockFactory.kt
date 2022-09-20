@@ -503,6 +503,10 @@ class DocumentMockFactory {
                 ret.getDebugInfo()
             } returns ("[" + token.tokenNumber + "]: " + ret.target.path + (ret.target.query ?: ""))
             
+            every {
+                ret.headerOption
+            } returns (PerRequestHeaderProfile(none(), none(), none(), uri))
+            
             return ret
         }
         
