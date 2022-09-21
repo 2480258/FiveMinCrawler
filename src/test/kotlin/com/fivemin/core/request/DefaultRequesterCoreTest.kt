@@ -21,6 +21,7 @@
 package com.fivemin.core.request
 
 import arrow.core.Some
+import arrow.core.none
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
@@ -43,21 +44,19 @@ class DefaultRequesterCoreTest {
     
     val performedReqA = PerformedRequesterInfo(RequesterEngineInfo("Default"), RequesterSlotInfo(0))
     val performedReqB = PerformedRequesterInfo(RequesterEngineInfo("Default"), RequesterSlotInfo(1))
+    val performedReqC = PerformedRequesterInfo(RequesterEngineInfo("Default"), RequesterSlotInfo(2))
     
     val factory = CookieControllerImpl(listOf(CookieSyncGradiant(performedReqA, listOf(performedReqB))))
     
     fun generateCore(info: PerformedRequesterInfo, userAgent: String): DefaultRequesterCore {
-        val io : DirectIO = mockk()
+        val io: DirectIO = mockk()
         
         every {
             io.getToken(any())
         } returns (mockk())
         
         return DefaultRequesterCore(
-            RequesterExtraImpl(),
-            info,
-            RequesterConfig(factory),
-            RequesterAdapterImpl(
+            RequesterExtraImpl(), info, RequesterConfig(factory), RequesterAdapterImpl(
                 CustomCookieJar(),
                 ResponseAdapterImpl(info, MemoryFilterFactoryImpl(io, HtmlDocumentFactoryImpl())),
                 RequestHeaderProfile(userAgent = Some(userAgent))
@@ -66,48 +65,235 @@ class DefaultRequesterCoreTest {
     }
     
     @Test
-    fun testRequestWith_CookiePropagated() {
+    fun testRequestWith_UserAgent() {
+        val coreA = generateCore(performedReqA, "abc")
+        
+        val cookieMakeDoc = DocumentMockFactory.getHttpRequest(
+            URI("http://127.0.0.1:3000/headerReflect"), RequestType.LINK)
+            .upgrade().upgradeAsDocument("a").upgradeAsRequestDoc().upgrade()
+        
+        val ret = runBlocking {
+            coreA.request(DequeuedRequest(cookieMakeDoc, DequeuedRequestInfo())).await()
+        }
+        
+        ret.fold({ fail() }, {
+            it.responseBody.ifHttpSucc({
+                it.body.ifString({
+                    it.openStreamAsStringAndDispose {
+                        val r = it.readText().lowercase()
+                        if (!(r.contains("useragent: abc"))
+                        ) else {
+                            fail()
+                        }
+                    }
+                }, {
+                    fail()
+                })
+            }, {
+                fail()
+            })
+        })
+    }
+    
+    @Test
+    fun testRequestWith_UserAgentOverride() {
+        val coreA = generateCore(performedReqA, "abc")
+    
+        val cookieMakeDoc = DocumentMockFactory.getHttpRequest(
+            URI("http://127.0.0.1:3000/headerReflect"), RequestType.LINK, profile = PerRequestHeaderProfile(
+                Some(
+                    RequestHeaderProfile(
+                        userAgent = Some("abc123")
+                    )
+                ),
+                none(),
+                none(),
+                URI("http://127.0.0.1:3000/headerReflect")
+            )
+        ).upgrade().upgradeAsDocument("a").upgradeAsRequestDoc().upgrade()
+    
+        val ret = runBlocking {
+            coreA.request(DequeuedRequest(cookieMakeDoc, DequeuedRequestInfo())).await()
+        }
+    
+        ret.fold({ fail() }, {
+            it.responseBody.ifHttpSucc({
+                it.body.ifString({
+                    it.openStreamAsStringAndDispose {
+                        val r = it.readText().lowercase()
+                        if (!(r.contains("useragent: abc123"))
+                        ) else {
+                            fail()
+                        }
+                    }
+                }, {
+                    fail()
+                })
+            }, {
+                fail()
+            })
+        })
+    }
+    
+    @Test
+    fun testRequestWith_Header() {
+        val coreA = generateCore(performedReqA, "abc")
+        
+        val cookieMakeDoc = DocumentMockFactory.getHttpRequest(
+            URI("http://127.0.0.1:3000/headerReflect"), RequestType.LINK, profile = PerRequestHeaderProfile(
+                Some(
+                    RequestHeaderProfile(
+                        acceptEncoding = Some("gzip"),
+                        acceptLanguage = Some("1234"),
+                        connection = Some("Close"),
+                        te = Some("trailers"),
+                        userAgent = Some("abc")
+                    )
+                ),
+                Some("unsafe_url"),
+                Some(URI("https://aaa.com")),
+                URI("http://127.0.0.1:3000/headerReflect")
+            )
+        ).upgrade().upgradeAsDocument("a").upgradeAsRequestDoc().upgrade()
+        
+        val ret = runBlocking {
+            coreA.request(DequeuedRequest(cookieMakeDoc, DequeuedRequestInfo())).await()
+        }
+        
+        ret.fold({ fail() }, {
+            it.responseBody.ifHttpSucc({
+                it.body.ifString({
+                    it.openStreamAsStringAndDispose {
+                        val r = it.readText().lowercase()
+                        if (!(r.contains("encoding: gzip")
+                                    and r.contains("language: 1234")
+                                    and r.contains("connection: close")
+                                    and r.contains("te: trailers")
+                                    and r.contains("useragent: abc")
+                                    and r.contains("referrer: https://aaa.com"))
+                        ) else {
+                            fail()
+                        }
+                    }
+                }, {
+                    fail()
+                })
+            }, {
+                fail()
+            })
+        })
+    }
+    
+    @Test
+    fun testRequestWith_CookieIgnored() {
+        val coreA = generateCore(performedReqA, "abc")
+        val coreC = generateCore(performedReqC, "abc")
+        
+        val cookieMakeDoc =
+            DocumentMockFactory.getHttpRequest(URI("http://127.0.0.1:3000/cookieMake"), RequestType.LINK).upgrade()
+                .upgradeAsDocument("a").upgradeAsRequestDoc().upgrade()
+        
+        val cookieReflectDoc =
+            DocumentMockFactory.getHttpRequest(URI("http://127.0.0.1:3000/cookieReflect"), RequestType.LINK).upgrade()
+                .upgradeAsDocument("a").upgradeAsRequestDoc().upgrade()
+        
+        val ret = runBlocking {
+            coreA.request(DequeuedRequest(cookieMakeDoc, DequeuedRequestInfo())).await()
+            coreC.request(DequeuedRequest(cookieReflectDoc, DequeuedRequestInfo())).await()
+        }
+        
+        ret.fold({ fail() }, {
+            it.responseBody.ifHttpSucc({
+                it.body.ifString({
+                    it.openStreamAsStringAndDispose {
+                        val r = it.readText()
+                        if (r.contentEquals("null")) {
+                        
+                        } else {
+                            fail()
+                        }
+                    }
+                }, {
+                    fail()
+                })
+            }, {
+                fail()
+            })
+        })
+    }
+    
+    @Test
+    fun testRequestWith_Cookie() {
+        val coreA = generateCore(performedReqA, "abc")
+        
+        val cookieMakeDoc =
+            DocumentMockFactory.getHttpRequest(URI("http://127.0.0.1:3000/cookieMake"), RequestType.LINK).upgrade()
+                .upgradeAsDocument("a").upgradeAsRequestDoc().upgrade()
+        
+        val cookieReflectDoc =
+            DocumentMockFactory.getHttpRequest(URI("http://127.0.0.1:3000/cookieReflect"), RequestType.LINK).upgrade()
+                .upgradeAsDocument("a").upgradeAsRequestDoc().upgrade()
+        
+        val ret = runBlocking {
+            coreA.request(DequeuedRequest(cookieMakeDoc, DequeuedRequestInfo())).await()
+            coreA.request(DequeuedRequest(cookieReflectDoc, DequeuedRequestInfo())).await()
+        }
+        
+        ret.fold({ fail() }, {
+            it.responseBody.ifHttpSucc({
+                it.body.ifString({
+                    it.openStreamAsStringAndDispose {
+                        val r = it.readText()
+                        if (r.contains("CookieMake1") and r.contains("CookieMake2")) {
+                        
+                        } else {
+                            fail()
+                        }
+                    }
+                }, {
+                    fail()
+                })
+            }, {
+                fail()
+            })
+        })
+    }
+    
+    @Test
+    fun testRequestWith_CookiePropagatedBetweenRequesters() {
         val coreA = generateCore(performedReqA, "abc")
         val coreB = generateCore(performedReqB, "abc")
         
         val cookieMakeDoc =
-            DocumentMockFactory.getHttpRequest(URI("http://127.0.0.1:3000/cookieMake"), RequestType.LINK)
-                .upgrade()
-                .upgradeAsDocument("a")
-                .upgradeAsRequestDoc()
-                .upgrade()
+            DocumentMockFactory.getHttpRequest(URI("http://127.0.0.1:3000/cookieMake"), RequestType.LINK).upgrade()
+                .upgradeAsDocument("a").upgradeAsRequestDoc().upgrade()
         
         val cookieReflectDoc =
-            DocumentMockFactory.getHttpRequest(URI("http://127.0.0.1:3000/cookieReflect"), RequestType.LINK)
-                .upgrade()
-                .upgradeAsDocument("a")
-                .upgradeAsRequestDoc()
-                .upgrade()
+            DocumentMockFactory.getHttpRequest(URI("http://127.0.0.1:3000/cookieReflect"), RequestType.LINK).upgrade()
+                .upgradeAsDocument("a").upgradeAsRequestDoc().upgrade()
         
         val ret = runBlocking {
             coreA.request(DequeuedRequest(cookieMakeDoc, DequeuedRequestInfo())).await()
             coreB.request(DequeuedRequest(cookieReflectDoc, DequeuedRequestInfo())).await()
         }
         
-        ret.map {
+        ret.fold({ fail() }, {
             it.responseBody.ifHttpSucc({
-                it.body.ifString(
-                    {
-                        it.openStreamAsStringAndDispose {
-                            val r = it.readText()
-                            if (r.contains("CookieMake1") and r.contains("CookieMake2")) {
-                            
-                            } else {
-                                fail()
-                            }
+                it.body.ifString({
+                    it.openStreamAsStringAndDispose {
+                        val r = it.readText()
+                        if (r.contains("CookieMake1") and r.contains("CookieMake2")) {
+                        
+                        } else {
+                            fail()
                         }
-                    }, {
-                        fail()
                     }
-                )
+                }, {
+                    fail()
+                })
             }, {
                 fail()
             })
-        }
+        })
     }
 }
