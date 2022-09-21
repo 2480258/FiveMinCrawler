@@ -469,7 +469,7 @@ class DocumentMockFactory {
         }
         
         fun getHttpRequest(
-            uri: URI, type: RequestType, parent: RequestToken? = null, tags: TagRepository? = null
+            uri: URI, type: RequestType, parent: RequestToken? = null, tags: TagRepository? = null, profile: PerRequestHeaderProfile? = null
         ): HttpRequest {
             val ret = mockk<HttpRequest>()
             
@@ -505,7 +505,7 @@ class DocumentMockFactory {
             
             every {
                 ret.headerOption
-            } returns (PerRequestHeaderProfile(none(), none(), none(), uri))
+            } returns (profile ?: PerRequestHeaderProfile(none(), none(), none(), uri))
             
             return ret
         }
