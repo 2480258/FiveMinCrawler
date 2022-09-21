@@ -64,7 +64,7 @@ class HttpRequestProcedureTest {
 
     fun mockAdapter(jar: CustomCookieJar): RequesterAdapterImpl {
         val impl = mockk<RequesterAdapterImpl>()
-
+        val cookieRepo = CookieRepositoryImpl(jar)
         coEvery {
             impl.requestAsync(any())
         } coAnswers {
@@ -78,6 +78,10 @@ class HttpRequestProcedureTest {
                 }
             }
         }
+        
+        every {
+            impl.cookieRepository
+        } returns (cookieRepo)
 
         return impl
     }
