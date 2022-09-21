@@ -21,6 +21,7 @@
 package com.fivemin.core.request.queue.srtfQueue
 
 import arrow.core.flatten
+import arrow.core.getOrNone
 import arrow.core.toOption
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -35,6 +36,8 @@ interface RotatingQueue<Score : Comparable<Score>, UniversalKey, Value> {
     fun enqueue(key: UniversalKey, value: Value, score: Score)
     
     fun update(originalKey: UniversalKey, score: Score)
+    
+    fun removeKey(key: UniversalKey) : Boolean
 }
 
 
@@ -57,7 +60,8 @@ class RotatingQueueNode<UniversalKey, Value, Score : Comparable<Score>> construc
 }
 //https://www.boost.org/sgi/stl/StrictWeakOrdering.html
 
-class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> : RotatingQueue<Score, UniversalKey, Value> {
+class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey : Any, Value> :
+    RotatingQueue<Score, UniversalKey, Value> {
     
     
     private val table = ConcurrentHashMap<UniversalKey, Score>()
@@ -169,6 +173,26 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey, Value> : Rotati
             if (firstQueue.firstEntry().value.size != 0) return true
         }
         return false
+    }
+    
+    override fun removeKey(key: UniversalKey): Boolean {
+        try {
+            lock.lock()
+            val keyScore = table.getOrNone(key)
+            
+            return keyScore.map {
+                val keyTable = data[it]?.remove(key) != null
+                
+                if ((data[it]?.isEmpty()) == true) {
+                    data.remove(it)
+                }
+                table.remove(key)
+                
+                keyTable
+            }.fold({ false }, { true })
+        } finally {
+            lock.unlock()
+        }
     }
     
     /**

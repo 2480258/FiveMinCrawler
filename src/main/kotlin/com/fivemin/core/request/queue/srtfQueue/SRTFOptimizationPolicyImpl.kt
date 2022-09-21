@@ -25,6 +25,7 @@ import arrow.core.Some
 import arrow.core.computations.option
 import arrow.core.toOption
 import com.fivemin.core.engine.*
+import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
 import com.fivemin.core.request.PreprocessedRequest
 import com.fivemin.core.request.queue.DequeueOptimizationPolicy
 import kotlinx.coroutines.sync.Mutex
@@ -159,13 +160,13 @@ class SRTFOptimizationPolicyImpl(private val timingRepository: SRTFTimingReposit
         }
     }
     
-    override suspend fun extractWorkingSetKey(req: PreprocessedRequest<Request>): RequestToken {
+    override suspend fun extractWorkingSetKey(req: DocumentRequest<Request>): RequestToken {
         return lock.withLock {
-            val ws = if (req.request.info.detachState == DetachableState.WANT)
-                addAsWorkingSet_ReturnsWorkingSet(req.request.request.request.token)
-            else addParentMap_ReturnsWorkingSet(req.request.request.request.token, req.request.request.request.parent)
+            val ws = if (req.info.detachState == DetachableState.WANT)
+                addAsWorkingSet_ReturnsWorkingSet(req.request.request.token)
+            else addParentMap_ReturnsWorkingSet(req.request.request.token, req.request.request.parent)
             
-            ws.fold({ req.request.request.request.token }, { it })
+            ws.fold({ req.request.request.token }, { it })
         }
     }
     

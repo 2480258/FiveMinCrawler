@@ -31,11 +31,13 @@ import kotlinx.coroutines.Deferred
 
 data class RequestTaskOption(val selector: RequesterSelector, val queue: RequestQueue)
 
+class RequestUnknownException() : Exception()
+
 class RequesterTaskImpl(private val option: RequestTaskOption) : RequesterTask {
     override suspend fun <Document : Request, Resp : ResponseData> run(request: DocumentRequest<Document>): Deferred<Either<Throwable, Resp>> {
         var handle = TaskWaitHandle<Either<Throwable, Resp>>()
 
-        return handle.runAsync {
+        return handle.runAsync ({
             arrow.core.computations.option {
                 val mapped = option.selector.schedule<Document, Resp>(request).bind()
                 var preprocess =
@@ -43,18 +45,23 @@ class RequesterTaskImpl(private val option: RequestTaskOption) : RequesterTask {
                 option.queue.enqueue(
                     preprocess,
                     EnqueueRequestInfo { y ->
-                        var ret = y.map {
-                            try {
-                                mapped.requester.request(it).await()
-                            } catch (e: Exception) {
-                                e.left()
-                            }
-                        }.flatten()
-            
-                        handle.registerResult(ret)
+                        var ret : Either<Throwable, Resp>? = null
+                        try {
+                            ret = y.map {
+                                try {
+                                    mapped.requester.request(it).await()
+                                } catch (e: Exception) {
+                                    e.left()
+                                }
+                            }.flatten()
+                        } finally {
+                            handle.registerResult(ret ?: RequestUnknownException().left())
+                        }
                     }
                 )
             }
-        }
+        }, {
+            option.queue.cancelWSSet(request)
+        })
     }
 }

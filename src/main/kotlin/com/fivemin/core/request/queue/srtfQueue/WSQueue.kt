@@ -24,6 +24,7 @@ import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.RequestToken
+import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
 import com.fivemin.core.request.*
 import com.fivemin.core.request.queue.DequeueOptimizationPolicy
 import com.fivemin.core.request.queue.EnqueuedRequest
@@ -34,7 +35,7 @@ import kotlin.time.ExperimentalTime
 
 
 interface SRTFKeyExtractor {
-    suspend fun extractWorkingSetKey(req: PreprocessedRequest<Request>): RequestToken
+    suspend fun extractWorkingSetKey(req: DocumentRequest<Request>): RequestToken
 }
 
 class WSQueue constructor(
@@ -70,7 +71,7 @@ class WSQueue constructor(
     private suspend fun enqueueInternal(doc: PreprocessedRequest<Request>, info: EnqueueRequestInfo) {
         optimizationPolicy.update(doc.request.request, srtfPageFactory.convertTo(doc.request.request))
     
-        val wsKey = srtfKeyExtractor.extractWorkingSetKey(doc)
+        val wsKey = srtfKeyExtractor.extractWorkingSetKey(doc.request)
         val score = optimizationPolicy.getScore(doc).fold(
             { 0.1 }, //We can't do anything so download fastly.
             {
@@ -85,6 +86,10 @@ class WSQueue constructor(
     
     override suspend fun enqueue(doc: PreprocessedRequest<Request>, info: EnqueueRequestInfo) {
         enqueueInternal(doc, info)
+    }
+    
+    override suspend fun cancelWSSet(doc: DocumentRequest<Request>): Boolean {
+        return rotatingQueue.removeKey(srtfKeyExtractor.extractWorkingSetKey(doc))
     }
     
     private suspend fun work() {

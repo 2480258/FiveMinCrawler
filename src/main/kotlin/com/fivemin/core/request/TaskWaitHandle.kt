@@ -21,6 +21,7 @@
 package com.fivemin.core.request
 
 import com.fivemin.core.LoggerController
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -50,7 +51,7 @@ class TaskWaitHandle<T> {
         }
     }
     
-    suspend fun runAsync(act: suspend () -> Unit): Deferred<T> {
+    suspend fun runAsync(act: suspend () -> Unit, onCancel: suspend () -> Unit): Deferred<T> {
         return coroutineScope {
             async {
                 semaphore.acquire()
@@ -58,7 +59,12 @@ class TaskWaitHandle<T> {
                 try {
                     act()
                 } finally {
-                    semaphore.acquire() // registerResult() should be called in act() so acquire again (prevent reuse)
+                    try {
+                        semaphore.acquire() // registerResult() should be called in act() so acquire again (prevent reuse)
+                    } catch (e: CancellationException) {
+                        onCancel()
+                        throw e
+                    }
                 }
                 
                 result!!

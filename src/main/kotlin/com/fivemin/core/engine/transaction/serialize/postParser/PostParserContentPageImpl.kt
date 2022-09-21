@@ -36,11 +36,11 @@ class PostParserContentPageImpl<Document : Request>(
     private val inteInfoFactory: InternalContentInfoFactory<Document>,
     private val attributeFactory: DocumentAttributeFactory
 ) : PostParserContentPage<Document> {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("PostParserContentPageImpl")
     }
-
+    
     override suspend fun extract(
         req: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
@@ -53,17 +53,17 @@ class PostParserContentPageImpl<Document : Request>(
                         val internals = processIntAttribute(req)
                         val externals = processExtAttributes(req, info, state)
                         val links = processLinks(req, info, state)
-
+                        
                         links.toList().awaitAll() // wait until all child link downloaded
-
+                        
                         val finished = externals.map { y ->
                             y.await()
                         }.filterOption()
-
+                        
                         val ret = internals.fold({ finished }) { x ->
                             finished.plus(x)
                         }
-
+                        
                         ret.toOption()
                     } else {
                         none()
@@ -74,7 +74,7 @@ class PostParserContentPageImpl<Document : Request>(
             }
         }
     }
-
+    
     private suspend fun processIntAttribute(req: FinalizeRequestTransaction<Document>): Option<Iterable<DocumentAttribute>> {
         return inteInfoFactory.get(req).map {
             it.map { x ->
@@ -89,26 +89,26 @@ class PostParserContentPageImpl<Document : Request>(
             }.filterOption()
         }
     }
-
+    
     private suspend fun processExtAttributes(
         req: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
         state: SessionStartedState
     ): Iterable<Deferred<Option<DocumentAttribute>>> {
         val attr = attrInfoFactory.get(req)
-
+        
         return attr.linkInfo.map { requestLinkInfo ->
             val ret = requestLinkInfo.requests.map { httpRequest ->
                 val task = info.createTask<HttpRequest>().get2<
-                    InitialTransaction<HttpRequest>,
-                    PrepareTransaction<HttpRequest>,
-                    FinalizeRequestTransaction<HttpRequest>>(DocumentType.NATIVE_HTTP)
-
+                        InitialTransaction<HttpRequest>,
+                        PrepareTransaction<HttpRequest>,
+                        FinalizeRequestTransaction<HttpRequest>>(DocumentType.NATIVE_HTTP)
+                
                 state.getChildSession {
                     task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), httpRequest), info, it)
                 }
             }
-
+            
             if (ret.any()) {
                 finalizeAttribute(requestLinkInfo, ret).toOption()
             } else {
@@ -117,7 +117,7 @@ class PostParserContentPageImpl<Document : Request>(
             }
         }.filterOption()
     }
-
+    
     private suspend fun finalizeAttribute(
         x: RequestLinkInfo,
         ret: Iterable<Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>>>
@@ -126,15 +126,15 @@ class PostParserContentPageImpl<Document : Request>(
             async {
                 val finished = ret.toList().awaitAll().map {
                     val downloaded = it
-
+                    
                     downloaded.swap().map {
                         logger.warn(it)
                     }
-
+                    
                     downloaded.orNull().toOption()
                 }.filterOption()
                 val info = DocumentAttributeInfo(x.name)
-
+                
                 if (!finished.any()) {
                     none()
                 } else if (finished.count() == 1) {
@@ -145,7 +145,7 @@ class PostParserContentPageImpl<Document : Request>(
             }
         }
     }
-
+    
     private suspend fun processLinks(
         request: FinalizeRequestTransaction<Document>,
         info: TaskInfo,
@@ -155,17 +155,17 @@ class PostParserContentPageImpl<Document : Request>(
         return links.linkInfo.map { x ->
             val ret = x.requests.map { y ->
                 val task = info.createTask<HttpRequest>().get4<
-                    InitialTransaction<HttpRequest>,
-                    PrepareTransaction<HttpRequest>,
-                    FinalizeRequestTransaction<HttpRequest>,
-                    SerializeTransaction<HttpRequest>,
-                    ExportTransaction<HttpRequest>>(DocumentType.NATIVE_HTTP)
-
+                        InitialTransaction<HttpRequest>,
+                        PrepareTransaction<HttpRequest>,
+                        FinalizeRequestTransaction<HttpRequest>,
+                        SerializeTransaction<HttpRequest>,
+                        ExportTransaction<HttpRequest>>(DocumentType.NATIVE_HTTP)
+                
                 state.getChildSession {
                     task.start(InitialTransactionImpl(x.option, TagRepositoryImpl(), y), info, it)
                 }
             }
-
+            
             if (ret.any()) {
                 ret.toOption()
             } else {
