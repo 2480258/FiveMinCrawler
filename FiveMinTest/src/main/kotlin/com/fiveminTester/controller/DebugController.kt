@@ -91,8 +91,19 @@ class DebugController {
     
     @GetMapping("cookieReflect")
     fun cookieReflect(request: HttpServletRequest, response: HttpServletResponse) {
-        val data = request.cookies.joinToString("<br/>") {
+        val data = request.cookies?.joinToString("<br/>") {
             it.name + it.value + it.domain + it.isHttpOnly + it.path + it.secure
+        }
+    
+        returnString(response, data ?: "null")
+    }
+    
+    @GetMapping("headerReflect")
+    fun headerReflect(request: HttpServletRequest, response: HttpServletResponse) {
+        val data = request.headerNames.toList().map {
+            Pair(it, request.getHeader(it))
+        }.joinToString("<br/>") {
+            "${it.first}: ${it.second}"
         }
     
         returnString(response, data)
