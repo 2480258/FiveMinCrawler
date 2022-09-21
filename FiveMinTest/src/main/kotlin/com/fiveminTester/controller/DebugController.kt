@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.io.File
+import javax.servlet.http.Cookie
 import javax.servlet.http.HttpServletResponse
 import javax.servlet.http.HttpServletRequest
 
@@ -82,6 +83,21 @@ class DebugController {
         returnHtml(response, "assets/referrertest.html")
     }
     
+    @GetMapping("cookieMake")
+    fun cookieMake(request: HttpServletRequest, response: HttpServletResponse) {
+        response.addCookie(Cookie("CookieMake1", "CookieMade1!"))
+        response.addCookie(Cookie("CookieMake2", "CookieMade2!"))
+    }
+    
+    @GetMapping("cookieReflect")
+    fun cookieReflect(request: HttpServletRequest, response: HttpServletResponse) {
+        val data = request.cookies.joinToString("<br/>") {
+            it.name + it.value + it.domain + it.isHttpOnly + it.path + it.secure
+        }
+    
+        returnString(response, data)
+    }
+    
     private fun returnsBytes(response: HttpServletResponse, path: String) {
         try {
             response.status = 200
@@ -104,6 +120,18 @@ class DebugController {
             val html = File(path).readText()
             
             response.writer.print(html)
+        } finally {
+            response.writer.close()
+        }
+    }
+    
+    private fun returnString(response: HttpServletResponse, text: String) {
+        try {
+            response.contentType = "text/html"
+            response.characterEncoding = "utf-8"
+            response.status = 200
+        
+            response.writer.print(text)
         } finally {
             response.writer.close()
         }

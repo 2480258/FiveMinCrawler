@@ -20,10 +20,16 @@
 
 package com.fivemin.core.request.cookie
 
-class OutwardPolicy(val destination: List<CookieRepository>) {
-    fun syncTo(source: CookieRepository) {
+interface OutwardPolicy {
+    fun syncTo(source: CookieRepository)
+}
+
+class OutwardPolicyImpl(private val destination: List<CookieRepository>) : OutwardPolicy {
+    override fun syncTo(source: CookieRepository) {
         destination.forEach {
-            it.download(source)
+            it.downloadFrom_Interlocked(source)
         }
     }
 }
+
+

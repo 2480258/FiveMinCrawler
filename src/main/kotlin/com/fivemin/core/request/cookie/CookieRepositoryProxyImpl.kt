@@ -29,9 +29,9 @@ class CookieRepositoryProxyImpl(private val solver: CookieRepositoryReferenceSol
     CookieRepository {
     var cache: Either<Throwable, CookieRepository>? = null
 
-    override fun getAllCookies(): Either<Throwable, Iterable<HttpCookie>> {
+    override fun getAllCookies_Interlocked(): Either<Throwable, Iterable<HttpCookie>> {
         return getRepo().map {
-            it.getAllCookies()
+            it.getAllCookies_Interlocked()
         }.flatten()
     }
 
@@ -43,15 +43,15 @@ class CookieRepositoryProxyImpl(private val solver: CookieRepositoryReferenceSol
         return cache!!
     }
 
-    override fun download(repo: CookieRepository) {
+    override fun downloadFrom_Interlocked(repo: CookieRepository) {
         getRepo().map {
-            it.download(repo)
+            it.downloadFrom_Interlocked(repo)
         }
     }
 
-    override fun reset() {
+    override fun reset_Interlocked() {
         getRepo().map {
-            it.reset()
+            it.reset_Interlocked()
         }
     }
 }

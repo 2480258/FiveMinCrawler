@@ -28,6 +28,8 @@ import com.fivemin.core.request.cookie.* // ktlint-disable no-unused-imports
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import okhttp3.Cookie
 import okhttp3.Headers
@@ -51,7 +53,7 @@ class HttpRequestProcedureTest {
 
         every {
             cookieFac.create(any(), any())
-        } returns (CookieResolveTargetImpl(CookieRepositoryImpl(jar), OutwardPolicy(listOf(destRepo))))
+        } returns (CookieResolveTargetImpl(CookieRepositoryImpl(jar), OutwardPolicyImpl(listOf(destRepo))))
 
         prod = HttpRequestProcedure(
             PerformedRequesterInfo(RequesterEngineInfo("a"), RequesterSlotInfo(0)),
@@ -62,7 +64,7 @@ class HttpRequestProcedureTest {
 
     fun mockAdapter(jar: CustomCookieJar): RequesterAdapterImpl {
         val impl = mockk<RequesterAdapterImpl>()
-
+        val cookieRepo = CookieRepositoryImpl(jar)
         coEvery {
             impl.requestAsync(any())
         } coAnswers {
@@ -70,8 +72,16 @@ class HttpRequestProcedureTest {
 
             jar.saveFromResponse(URI("http://aaa.com").toHttpUrlOrNull()!!, cookie)
 
-            mockk()
+            coroutineScope {
+                async {
+                    mockk()
+                }
+            }
         }
+        
+        every {
+            impl.cookieRepository
+        } returns (cookieRepo)
 
         return impl
     }
@@ -82,7 +92,7 @@ class HttpRequestProcedureTest {
             prod.request(mockk())
         }
 
-        destRepo.getAllCookies().fold({ fail() }) {
+        destRepo.getAllCookies_Interlocked().fold({ fail() }) {
             assertEquals(it.count(), 1)
             assertEquals(it.first().domain, "aaa.com")
             assertEquals(it.first().name, "NAME")

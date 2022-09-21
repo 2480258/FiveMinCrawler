@@ -27,6 +27,8 @@ import com.fivemin.core.engine.PerRequestHeaderProfile
 import com.fivemin.core.request.RequestHeaderProfile
 import com.fivemin.core.request.RequesterAdapter
 import com.fivemin.core.request.TaskWaitHandle
+import com.fivemin.core.request.cookie.CookieRepository
+import com.fivemin.core.request.cookie.CookieRepositoryImpl
 import com.fivemin.core.request.cookie.CustomCookieJar
 import kotlinx.coroutines.Deferred
 import okhttp3.*
@@ -48,10 +50,13 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
     companion object {
         private val logger = LoggerController.getLogger("RequesterAdapterImpl")
     }
-
+    
+    override val cookieRepository: CookieRepository
+    
     init {
         val builder = OkHttpClient.Builder()
-
+        cookieRepository = CookieRepositoryImpl(cookieJar)
+        
         client = builder
             .cookieJar(cookieJar)
             // .bypassInvalidCA()
@@ -59,7 +64,7 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
             .followSslRedirects(false)
             .build()
     }
-
+    
     override suspend fun requestAsync(uri: com.fivemin.core.engine.Request): Deferred<Either<Throwable, com.fivemin.core.engine.ResponseBody>> {
         val waiter = TaskWaitHandle<Either<Throwable, com.fivemin.core.engine.ResponseBody>>()
 
@@ -69,7 +74,7 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
             }
         }
     }
-
+    
     private fun <T> requestInternal(uri: com.fivemin.core.engine.Request, act: (Either<Throwable, com.fivemin.core.engine.ResponseBody>) -> T) {
         val request = Request.Builder()
 

@@ -32,7 +32,7 @@ class CookieControllerImpl(val gradiant: List<CookieSyncGradiant>) : CookieResol
 
         return CookieResolveTargetImpl(
             cookieRepo,
-            OutwardPolicy(
+            OutwardPolicyImpl(
                 gradiant.filter {
                     it.source == info
                 }.flatMap {

@@ -34,12 +34,10 @@ import kotlinx.coroutines.coroutineScope
 
 class HttpRequestProcedure(info: PerformedRequesterInfo, config: RequesterConfig, private val adapter: RequesterAdapter) :
     CookiedRequester {
-    override val cookieRepository: CookieRepository
     private val target: CookieResolveTarget
 
     init {
-        cookieRepository = CookieRepositoryImpl(CustomCookieJar())
-        target = config.targetFactory.create(info, cookieRepository)
+        target = config.targetFactory.create(info, adapter.cookieRepository)
     }
 
     suspend fun request(request: Request): Deferred<Either<Throwable, ResponseBody>> {
