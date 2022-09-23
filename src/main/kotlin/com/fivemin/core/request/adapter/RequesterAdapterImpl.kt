@@ -32,6 +32,7 @@ import com.fivemin.core.request.cookie.CookieRepositoryImpl
 import com.fivemin.core.request.cookie.CustomCookieJar
 import kotlinx.coroutines.Deferred
 import okhttp3.*
+import ru.gildor.coroutines.okhttp.await
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
@@ -68,7 +69,7 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
     override suspend fun requestAsync(uri: com.fivemin.core.engine.Request): Deferred<Either<Throwable, com.fivemin.core.engine.ResponseBody>> {
         val waiter = TaskWaitHandle<Either<Throwable, com.fivemin.core.engine.ResponseBody>>()
 
-        return waiter.run({
+        return waiter.runAsync({
             requestInternal(uri) {
                 waiter.registerResult(it)
             }
@@ -77,7 +78,7 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
         })
     }
     
-    private fun <T> requestInternal(uri: com.fivemin.core.engine.Request, act: (Either<Throwable, com.fivemin.core.engine.ResponseBody>) -> T) {
+    private suspend fun <T> requestInternal(uri: com.fivemin.core.engine.Request, act: (Either<Throwable, com.fivemin.core.engine.ResponseBody>) -> T) {
         val request = Request.Builder()
 
         request.url(uri.target.toURL())
@@ -94,7 +95,7 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
         act(
             Either.catch {
                 logger.debug(requesterBuilt.url.toString() + " < requesting")
-                client.newCall(requesterBuilt).execute()
+                client.newCall(requesterBuilt).await()
             }.fold({
                 logger.info(requesterBuilt.url.toString() + " < received")
                 logger.warn(it)

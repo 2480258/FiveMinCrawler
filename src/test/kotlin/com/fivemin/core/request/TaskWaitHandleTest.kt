@@ -20,8 +20,11 @@
 
 package com.fivemin.core.request
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Semaphore
 import org.testng.annotations.Test
 
 import org.testng.Assert.*
@@ -37,15 +40,89 @@ class TaskWaitHandleTest {
     }
 
     @Test
+    fun testRunAsyncCanceled() {
+        var num = 0
+        val semaphore = Semaphore(1, 1)
+        
+        runBlocking {
+            coroutineScope {
+                val job = async {
+                    handle.runAsync ({
+                        semaphore.acquire()
+                        handle.registerResult(42)
+                    }, {
+                        num = 1
+                    }).await()
+                }
+                
+                async {
+                    delay(1000)
+                    job.cancel()
+                }
+            }
+            
+        }
+        
+        assertEquals(num, 1)
+    }
+    
+    
+    @Test
+    fun testRunCanceled() {
+        var num = 0
+        val semaphore = Semaphore(1, 1)
+        
+        runBlocking {
+            coroutineScope {
+                val job = async {
+                    handle.run ({
+                        Thread.sleep(3000)
+                        handle.registerResult(42)
+                    }, {
+                        num = 1
+                    }).await()
+                }
+                
+                async {
+                    delay(1000)
+                    job.cancel()
+                }
+            }
+            
+        }
+        
+        assertEquals(num, 1)
+    }
+    
+    @Test
     fun testRun() {
         var num = 0
 
         runBlocking {
-            num = handle.run {
+            num = handle.run ({
                 Thread.sleep(3000)
                 handle.registerResult(42)
-            }.await()
+            }, {
+            
+            }).await()
 
+            assertEquals(num, 42)
+        }
+    }
+    
+    
+    @Test
+    fun testRunAsync() {
+        var num = 0
+        
+        runBlocking {
+            num = handle.runAsync ({
+                delay(3000)
+                handle.registerResult(42)
+            }, {
+            
+            }).await()
+            
             assertEquals(num, 42)
         }
     }
