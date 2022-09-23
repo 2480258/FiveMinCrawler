@@ -31,8 +31,6 @@ import kotlinx.coroutines.Deferred
 
 data class RequestTaskOption(val selector: RequesterSelector, val queue: RequestQueue)
 
-class RequestUnknownException() : Exception()
-
 class RequesterTaskImpl(private val option: RequestTaskOption) : RequesterTask {
     override suspend fun <Document : Request, Resp : ResponseData> run(request: DocumentRequest<Document>): Deferred<Either<Throwable, Resp>> {
         var handle = TaskWaitHandle<Either<Throwable, Resp>>()
@@ -54,8 +52,8 @@ class RequesterTaskImpl(private val option: RequestTaskOption) : RequesterTask {
                                     e.left()
                                 }
                             }.flatten()
-                        } finally {
-                            handle.registerResult(ret ?: RequestUnknownException().left())
+                        } catch(e: Exception) {
+                            handle.registerResult(ret ?: e.left())
                         }
                     }
                 )

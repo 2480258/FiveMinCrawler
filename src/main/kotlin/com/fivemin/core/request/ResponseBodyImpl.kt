@@ -47,6 +47,8 @@ class RecoverableErrorBodyImpl(
 
 class CriticalErrorBodyImpl(override val requestBody: RequestBody, override val error: Option<Throwable>) : CriticalErrorBody
 
+class CanceledResponseBodyImpl(override val requestBody: RequestBody) : CanceledResponseBody
+
 class SuccessBodyImpl(
     override val requestBody: RequestBody,
     override val code: Int,
@@ -55,3 +57,4 @@ class SuccessBodyImpl(
     override val contentType: MediaType,
     override val responseTime: ResponseTime
 ) : HttpSuccessBody
+

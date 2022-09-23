@@ -68,11 +68,13 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
     override suspend fun requestAsync(uri: com.fivemin.core.engine.Request): Deferred<Either<Throwable, com.fivemin.core.engine.ResponseBody>> {
         val waiter = TaskWaitHandle<Either<Throwable, com.fivemin.core.engine.ResponseBody>>()
 
-        return waiter.run {
+        return waiter.run({
             requestInternal(uri) {
                 waiter.registerResult(it)
             }
-        }
+        }, {
+            client.dispatcher.cancelAll()
+        })
     }
     
     private fun <T> requestInternal(uri: com.fivemin.core.engine.Request, act: (Either<Throwable, com.fivemin.core.engine.ResponseBody>) -> T) {
@@ -97,6 +99,12 @@ class RequesterAdapterImpl(cookieJar: CustomCookieJar, private val responseAdapt
                 logger.info(requesterBuilt.url.toString() + " < received")
                 logger.warn(it)
 
+                if(it.message?.lowercase()?.contains("canceled") == true) {
+                    return@fold Either.catch {
+                        responseAdapterImpl.createWithCanceled(uri, requesterBuilt)
+                    }.flatten()
+                }
+                
                 Either.catch {
                     responseAdapterImpl.createWithError(uri, it.toOption(), requesterBuilt)
                 }.flatten()

@@ -35,7 +35,7 @@ class TaskWaitHandle<T> {
         private val logger = LoggerController.getLogger("TaskWaitHandle")
     }
 
-    suspend fun run(act: () -> Unit): Deferred<T> {
+    suspend fun run(act: () -> Unit, onCancel: suspend () -> Unit): Deferred<T> {
         return coroutineScope {
             async {
                 semaphore.acquire()
@@ -43,7 +43,12 @@ class TaskWaitHandle<T> {
                 try {
                     act()
                 } finally {
-                    semaphore.acquire() // registerResult() should be called in act() so acquire again (prevent reuse)
+                    try {
+                        semaphore.acquire() // registerResult() should be called in act() so acquire again (prevent reuse)
+                    } catch (e: CancellationException) {
+                        onCancel()
+                        throw e
+                    }
                 }
 
                 result!!

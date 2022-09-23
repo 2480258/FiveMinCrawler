@@ -56,6 +56,15 @@ class ResponseAdapterImpl(
             CriticalErrorBodyImpl(createRequestBody(original.target, req), ex)
         }
     }
+    
+    override fun createWithCanceled(
+        original: com.fivemin.core.engine.Request,
+        req: Request
+    ): Either<Throwable, ResponseBody> {
+        return Either.catch {
+            CanceledResponseBodyImpl(createRequestBody(original.target, req))
+        }
+    }
 
     private fun parseCharset(resp: Response): Option<Charset> {
         return resp.headers["Content-Type"].toOption().map { //Content-Type means decompress algorithm.
@@ -126,7 +135,7 @@ class ResponseAdapterImpl(
             ).right()
         }
     }
-
+    
     private fun createRequestBody(originalUri: URI, req: Request): com.fivemin.core.engine.RequestBody {
         return com.fivemin.core.engine.RequestBody(originalUri, req.url.toUri(), NetworkHeader(req.headers.toList()))
     }

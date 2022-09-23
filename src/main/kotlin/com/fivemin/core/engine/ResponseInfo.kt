@@ -184,6 +184,10 @@ interface RedirectResponseBody : HttpResponseReceivedBody {
     val redirectDest: URI
 }
 
+interface CanceledResponseBody : ResponseBody {
+
+}
+
 data class RequestBody(
     val originalUri: URI,
     val currentUri: URI,
