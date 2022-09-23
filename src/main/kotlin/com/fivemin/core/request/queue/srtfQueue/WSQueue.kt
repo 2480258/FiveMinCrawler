@@ -88,8 +88,10 @@ class WSQueue constructor(
         enqueueInternal(doc, info)
     }
     
-    override suspend fun cancelWSSet(doc: DocumentRequest<Request>): Boolean {
-        return rotatingQueue.removeKey(srtfKeyExtractor.extractWorkingSetKey(doc))
+    override suspend fun cancelWSSet(doc: DocumentRequest<Request>): Int {
+        val removedCount = rotatingQueue.removeKey(srtfKeyExtractor.extractWorkingSetKey(doc))
+        logger.info(doc.request.request, "$removedCount document (working set children) has been canceled.")
+        return removedCount
     }
     
     private suspend fun work() {

@@ -28,7 +28,7 @@ import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
 interface RequestQueue {
     suspend fun enqueue(doc: PreprocessedRequest<Request>, info: EnqueueRequestInfo)
     
-    suspend fun cancelWSSet(doc: DocumentRequest<Request>) : Boolean
+    suspend fun cancelWSSet(doc: DocumentRequest<Request>) : Int
 }
 
 data class EnqueueRequestInfo(val callBack: suspend (Either<Throwable, DequeuedRequest>) -> Unit)

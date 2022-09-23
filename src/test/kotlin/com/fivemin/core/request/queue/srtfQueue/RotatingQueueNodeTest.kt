@@ -20,197 +20,61 @@
 
 package com.fivemin.core.request.queue.srtfQueue
 
-import io.mockk.every
-import io.mockk.mockk
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
 
 import org.testng.Assert.*
-import java.lang.Math.abs
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.PriorityBlockingQueue
-import java.util.concurrent.atomic.AtomicInteger
-import kotlin.random.Random
+import org.testng.annotations.BeforeMethod
 
 class RotatingQueueNodeTest {
-    lateinit var queue: RotatingQueueImpl<Int, Int, Int>
+    lateinit var node : RotatingQueueNode<Int, Int, Int>
     
     @BeforeMethod
     fun setUp() {
-        queue = RotatingQueueImpl()
-    }
-    
-    fun assertQueueEmpty() {
-        assertEquals(queue.queueSize, 1)
-        assertEquals(queue.listSize, 0)
-        assertEquals(queue.tableSize, 1)
+        node = RotatingQueueNode(-1)
     }
     
     @Test
     fun testOffer() {
-        queue.enqueue(1, 1, 1)
-        val ret = queue.dequeue()
-        
-        assertEquals(ret, 1)
-        
-        assertQueueEmpty()
-    }
+        node.offer(0, 0)
+        node.offer(0, 1)
+        node.offer(1, 1)
     
-    @Test
-    fun testOrder() {
-        queue.enqueue(4, 4, 4)
-        queue.enqueue(3, 3, 3)
-        queue.enqueue(2, 2, 2)
-        queue.enqueue(1, 1, 1)
-        
-        assertEquals(queue.dequeue(), 1)
-        assertEquals(queue.dequeue(), 2)
-        assertEquals(queue.dequeue(), 3)
-        assertEquals(queue.dequeue(), 4)
-    
-        assertQueueEmpty()
-    }
-    
-    @Test
-    fun testDuplicated() {
-        queue.enqueue(41, 4, 4)
-        queue.enqueue(31, 3, 3)
-        queue.enqueue(22, 2, 2)
-        queue.enqueue(21, 2, 2)
-        queue.enqueue(11, 1, 1)
-        
-        assertEquals(queue.dequeue(), 1)
-        assertEquals(queue.dequeue(), 2)
-        assertEquals(queue.dequeue(), 2)
-        assertEquals(queue.dequeue(), 3)
-        assertEquals(queue.dequeue(), 4)
-    
-        assertQueueEmpty()
-    }
-    
-    @Test
-    fun testUpdate() {
-        queue.enqueue(4, 4, 4)
-        queue.enqueue(3, 3, 3)
-        queue.enqueue(2, 2, 2)
-        queue.enqueue(1, 1, 1)
-        queue.update(1, 5)
-        
-        assertEquals(queue.dequeue(), 2)
-        assertEquals(queue.dequeue(), 3)
-        assertEquals(queue.dequeue(), 4)
-        assertEquals(queue.dequeue(), 1)
-    
-        assertQueueEmpty()
-    }
-    
-    @Test
-    fun testSameKeyUpdate() {
-        queue.enqueue(4, 4, 4)
-        queue.enqueue(3, 3, 3)
-        queue.enqueue(2, 2, 2)
-        queue.enqueue(1, 1, 1)
-        queue.update(1, 1)
-        
-        assertEquals(queue.dequeue(), 1)
-        assertEquals(queue.dequeue(), 2)
-        assertEquals(queue.dequeue(), 3)
-        assertEquals(queue.dequeue(), 4)
-    
-        assertQueueEmpty()
-    }
-    
-    @Test
-    fun testThrowsOnNotExistKeyUpdate() {
-        assertThrows {
-            queue.update(1, 1)
-        }
-    }
-    
-    @Test
-    fun testDuplicatedKey() {
-        queue.enqueue(4, 4, 4)
-        queue.enqueue(4, 3, 3)
-    
-        assertEquals(queue.dequeue(), 3)
-        assertEquals(queue.dequeue(), 4)
-        
-        assertQueueEmpty()
-    }
-    
-    @Test
-    fun testDuplicationKeyUpdate() {
-        queue.enqueue(400, 4, 40)
-        queue.enqueue(300, 3, 10)
-        queue.enqueue(300, 3, 40)
-        queue.enqueue(100, 1, 40)
-    
-        queue.update(300, 30)
-    
-        assertEquals(queue.dequeue(), 3)
-        assertEquals(queue.dequeue(), 3)
+        assertEquals(node.size, 3)
     }
     
     @Test
     fun testPoll() {
-        runBlocking {
-            GlobalScope.launch { assertEquals(queue.dequeue(), 1) }
-            delay(500)
-            queue.enqueue(1, 1, 1)
-        }
+        node.offer(-1, 1)
+        node.offer(-3, 3)
+        node.offer(-2, 2)
+    
+        assertEquals(node.poll(), -1)
+        assertEquals(node.poll(), -2)
+        assertEquals(node.poll(), -3)
+        
+        assertEquals(node.size, 0)
+        assert(node.__test_assert_not_contains_list())
     }
     
+    @Test
+    fun testRemoveAll() {
+        node.offer(0, 0)
+        node.offer(0, 1)
+        node.offer(1, 1)
+        node.offer(-1, 1)
+        node.offer(-3, 3)
+        node.offer(-2, 2)
     
-    //@Test - Too much time taken
-    fun testMultiThreaded() {
-        val count = AtomicInteger()
-        val threads = ConcurrentHashMap<Thread, Any>()
-        val samples = 1000000
-        val randoms = Random(1)
+        assertEquals(node.size, 6)
         
-        for (i in 0 until 10000) {
-            val t = Thread {
-                for (j in 0 until samples / 1000) {
-                    val ret = queue.dequeue()
-                    count.incrementAndGet()
-                    
-                    //println("get result: " + ret)
-                }
-            }
-            t.start()
-            threads[t] = ""
-        }
-        
-        for (i in 0 until 10000) {
-            val t = Thread {
-                for (j in 0 until samples / 1000) {
-                    try {
-                        queue.enqueue((i * 1000) + j, (abs(randoms.nextInt()) % 5000), (abs(randoms.nextInt()) % 5000))
-                        //println("enqueue finished: " + (i * 100) + j)
-                        queue.update(
-                            (i * 1000) + j,
-                            (randoms.nextInt())
-                        )
-                        //println("update finished: " + (i * 100) + j)
-                    } catch (e: Exception) {
-                        //println(e.toString())
-                    }
-                }
-            }
-            t.start()
-            threads[t] = ""
-        }
-        
-        for (th in threads) {
-            th.key.join()
-        }
-        
-        assertEquals(count.toInt(), 10000000)
-        
-        assertQueueEmpty()
+        node.removeAll()
+    
+        assertEquals(node.size, 0)
+        assert(node.__test_assert_not_contains_list())
+    }
+    
+    @Test
+    fun testPollWhenEmpty() {
+        assertEquals(node.poll(), null)
     }
 }

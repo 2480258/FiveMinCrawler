@@ -24,8 +24,7 @@ import arrow.core.flatten
 import arrow.core.getOrNone
 import arrow.core.toOption
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -37,36 +36,80 @@ interface RotatingQueue<Score : Comparable<Score>, UniversalKey, Value> {
     
     fun update(originalKey: UniversalKey, score: Score)
     
-    fun removeKey(key: UniversalKey) : Boolean
+    fun removeKey(key: UniversalKey): Int
 }
 
 
 class RotatingQueueNode<UniversalKey, Value, Score : Comparable<Score>> constructor(val key: UniversalKey) {
     
-    private val queue = ConcurrentSkipListMap<Score, Value>()
+    private val queue = TreeMap<Score, LinkedList<Value>>() // Lower score is better.
+    private val lock = ReentrantLock()
     
     val size: Int
         get() {
-            return queue.size
+            lock.withLock {
+                return queue.map {
+                    it.value.size
+                }.sum()
+            }
         }
     
     fun offer(value: Value, score: Score) {
-        queue[score] = value
+        lock.withLock {
+            offer_interal(value, score)
+        }
     }
     
     fun poll(): Value? {
-        return queue.pollFirstEntry()?.value
+        lock.withLock {
+            return poll_internal()
+        }
+    }
+    
+    fun removeAll() {
+        lock.withLock {
+            queue.clear()
+        }
+    }
+    
+    private fun ensureKeyList(score: Score) {
+        if (!queue.containsKey(score)) {
+            queue[score] = LinkedList()
+        }
+    }
+    
+    private fun offer_interal(value: Value, score: Score) {
+        ensureKeyList(score)
+        queue[score]!!.add(value)
+    }
+    
+    private fun poll_internal(): Value? {
+        val entry = queue.firstEntry()
+        try {
+            return entry?.value?.removeFirstOrNull()
+        } finally {
+            if (entry != null) {
+                if (!entry.value.any()) {
+                    queue.remove(entry.key)
+                }
+            }
+        }
+    }
+    
+    fun __test_assert_not_contains_list(): Boolean {
+        lock.withLock {
+            return queue.size == 0
+        }
     }
 }
-//https://www.boost.org/sgi/stl/StrictWeakOrdering.html
 
 class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey : Any, Value> :
     RotatingQueue<Score, UniversalKey, Value> {
     
     
-    private val table = ConcurrentHashMap<UniversalKey, Score>()
+    private val table = HashMap<UniversalKey, Score>()
     private val data =
-        Collections.synchronizedSortedMap(TreeMap<Score, TreeMap<UniversalKey, RotatingQueueNode<UniversalKey, Value, Score>>>())
+        TreeMap<Score, TreeMap<UniversalKey, RotatingQueueNode<UniversalKey, Value, Score>>>()  // Lower score is better.
     
     private val lock = ReentrantLock()
     private val condition: Condition = lock.newCondition()
@@ -95,17 +138,14 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey : Any, Value> :
     
     
     override fun dequeue(): Value {
-        try {
-            lock.lock()
+        lock.withLock {
             return dequeue_internal()
-        } finally {
-            lock.unlock()
         }
     }
     
     private fun waitFirstQueue() {
         while (data.isEmpty()) {
-            condition.await()
+            condition.await(100, TimeUnit.MILLISECONDS)
         }
     }
     
@@ -113,32 +153,46 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey : Any, Value> :
         condition.signalAll()
     }
     
-    private fun get_queue(): RotatingQueueNode<UniversalKey, Value, Score> {
+    private fun get_First(): Triple<Score, UniversalKey, RotatingQueueNode<UniversalKey, Value, Score>> {
         if (data.size == 0) {
             waitFirstQueue()
-            get_queue()
+            get_First()
         }
+    
+        val score = data.firstKey()
         
-        return data[data.firstKey()].toOption().fold({
+        return data[score].toOption().fold({
             waitFirstQueue()
-            get_queue()
+            get_First()
         }, {
-            it.firstEntry().value
+            val entry = it.firstEntry()
+            Triple(score, entry.key, entry.value)
         })
     }
     
     private fun dequeue_internal(): Value {
-        val firstQueue = get_queue()
+        val firstQueue = get_First()
         return elem_from_queue(firstQueue)
     }
     
-    private fun elem_from_queue(firstQueue: RotatingQueueNode<UniversalKey, Value, Score>): Value {
-        return firstQueue.poll().toOption().fold({
+    private fun elem_from_queue(firstQueue: Triple<Score, UniversalKey, RotatingQueueNode<UniversalKey, Value, Score>>): Value {
+        val result = firstQueue.third.poll().toOption().fold({
             replaceHead()
             dequeue_internal()
         }) {
             it
         }
+        
+        if(data[firstQueue.first]!![firstQueue.second]?.size == 0) {
+            data[firstQueue.first]?.remove(firstQueue.second)
+            table.remove(firstQueue.second)
+        }
+        
+        if((data[firstQueue.first]?.isEmpty()) == true) {
+            data.remove(firstQueue.first)
+        }
+        
+        return result
     }
     
     /**
@@ -168,30 +222,36 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey : Any, Value> :
         if (data.size == 0) return false
         
         val firstQueue = data[data.firstKey()] ?: return true
-        synchronized(firstQueue) {
-            if (firstQueue.size == 0) return true
-            if (firstQueue.firstEntry().value.size != 0) return true
-        }
+        
+        if (firstQueue.size == 0) return true
+        if (firstQueue.firstEntry().value.size != 0) return true
+        
         return false
     }
     
-    override fun removeKey(key: UniversalKey): Boolean {
-        try {
-            lock.lock()
+    override fun removeKey(key: UniversalKey): Int {
+        lock.withLock {
             val keyScore = table.getOrNone(key)
             
-            return keyScore.map {
-                val keyTable = data[it]?.remove(key) != null
+            val result = keyScore.map {
+                val keyTable = data[it]?.get(key)
+                
+                val removeCount = keyTable?.size
+                keyTable?.removeAll()
+                
+                if ((data[it]?.get(key)?.size) == 0) { // Will always true but for safe....
+                    data[it]?.remove(key)
+                    table.remove(key)
+                }
                 
                 if ((data[it]?.isEmpty()) == true) {
                     data.remove(it)
                 }
-                table.remove(key)
                 
-                keyTable
-            }.fold({ false }, { true })
-        } finally {
-            lock.unlock()
+                removeCount.toOption()
+            }.flatten().fold({ 0 }, { it })
+            
+            return result
         }
     }
     
@@ -202,11 +262,9 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey : Any, Value> :
      * Value: what to dequeue.
      */
     override fun enqueue(key: UniversalKey, value: Value, score: Score) {
-        try {
-            lock.lock()
+        lock.withLock {
             enqueue_internal(key, value, score)
-        } finally {
-            lock.unlock()
+            releaseWait()
         }
     }
     
@@ -224,7 +282,6 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey : Any, Value> :
         }
         dataElem.offer(value, score)
         
-        releaseWait()
         
     }
     
@@ -238,15 +295,17 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey : Any, Value> :
     
     
     override fun update(originalKey: UniversalKey, score: Score) {
-        try {
-            lock.lock()
+        lock.withLock {
             update_internal(originalKey, score)
-        } finally {
-            lock.unlock()
+            releaseWait()
         }
     }
     
     private fun update_internal(originalKey: UniversalKey, score: Score) {
+        if (!table.containsKey(originalKey)) {
+            return
+        }
+        
         val tableKey = table.remove(originalKey!!)!! //why is this nullable?
         val source = data[tableKey]!!
         
@@ -262,7 +321,5 @@ class RotatingQueueImpl<Score : Comparable<Score>, UniversalKey : Any, Value> :
         
         val destList = ensureKeyExists(originalKey, score)
         destList[originalKey] = wantToMove
-        
-        releaseWait()
     }
 }

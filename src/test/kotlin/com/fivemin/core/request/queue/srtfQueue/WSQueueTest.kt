@@ -60,7 +60,7 @@ class WSQueueTest {
         val handle = TaskWaitHandle<Boolean>()
         
         val result = runBlocking {
-            handle.runAsync {
+            handle.runAsync ({
                 que.enqueue(req, EnqueueRequestInfo {
                     it.bimap({
                         handle.registerResult(false)
@@ -68,8 +68,8 @@ class WSQueueTest {
                         handle.registerResult(true)
                     })
                 })
-            }.await()
-    
+            }, {}).await()
+            
         }
     
         assert(result)
