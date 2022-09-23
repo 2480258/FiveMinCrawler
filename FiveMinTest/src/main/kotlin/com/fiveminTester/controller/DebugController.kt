@@ -109,6 +109,14 @@ class DebugController {
         returnString(response, data)
     }
     
+    @GetMapping("timeOut")
+    fun timeOut(request: HttpServletRequest, response: HttpServletResponse) {
+        while(true) {
+            response.writer.print("a")
+            Thread.sleep(1)
+        }
+    }
+    
     private fun returnsBytes(response: HttpServletResponse, path: String) {
         try {
             response.status = 200

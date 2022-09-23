@@ -22,6 +22,7 @@ package com.fivemin.core.request.adapter
 
 import arrow.core.Either
 import com.fivemin.core.DocumentMockFactory
+import com.fivemin.core.engine.CanceledResponseBody
 import com.fivemin.core.engine.MemoryFilter
 import com.fivemin.core.engine.RequestType
 import com.fivemin.core.request.MemoryFilterFactory
@@ -29,8 +30,10 @@ import com.fivemin.core.request.RequestHeaderProfile
 import com.fivemin.core.request.cookie.CustomCookieJar
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.testng.Assert.*
+import org.testng.Assert.fail
 import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
 import java.net.URI
@@ -71,6 +74,32 @@ class RequesterAdapterImplTest {
         }
     }
     
+    @Test
+    fun testRequestAsyncCancels() {
+        runBlocking {
+            val result = coroutineScope {
+                req = RequesterAdapterImpl(CustomCookieJar(), mockResponseAdapterThrows(), RequestHeaderProfile())
+                val job = req.requestAsync(
+                    DocumentMockFactory.getRequest(
+                        URI("http://localhost:3000/timeOut"), RequestType.LINK
+                    )
+                )
+                
+                
+                launch {
+                    job.cancel()
+                }
+                
+                job
+            }.await()
+            
+            result.fold({ fail() }, {
+                if (it !is CanceledResponseBody) {
+                    fail()
+                }
+            })
+        }
+    }
     
     @Test
     fun testRequestAsync() {

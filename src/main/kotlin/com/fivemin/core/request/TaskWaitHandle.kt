@@ -30,7 +30,7 @@ import kotlinx.coroutines.sync.Semaphore
 class TaskWaitHandle<T> {
     private var result: T? = null
     private val semaphore = Semaphore(1)
-
+    
     companion object {
         private val logger = LoggerController.getLogger("TaskWaitHandle")
     }
@@ -55,10 +55,10 @@ class TaskWaitHandle<T> {
             }
         }
     }
-
+    
     fun registerResult(_result: T) {
         logger.debug("registerResult: " + semaphore.hashCode())
-
+        
         try {
             result = _result
         } finally {
