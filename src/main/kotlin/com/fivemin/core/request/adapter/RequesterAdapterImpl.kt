@@ -33,11 +33,10 @@ import com.fivemin.core.request.TaskWaitHandle
 import com.fivemin.core.request.cookie.CookieRepository
 import com.fivemin.core.request.cookie.CookieRepositoryImpl
 import com.fivemin.core.request.cookie.CustomCookieJar
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import ru.gildor.coroutines.okhttp.await
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
@@ -74,12 +73,15 @@ class RequesterAdapterImpl(
     
     override suspend fun requestAsync(uri: com.fivemin.core.engine.Request): Deferred<Either<Throwable, com.fivemin.core.engine.ResponseBody>> {
         val waiter = TaskWaitHandle<Either<Throwable, com.fivemin.core.engine.ResponseBody>>()
-        
-        return waiter.runAsync({
+        val ret = waiter.runAsync({
+            println("1")
             requestInternal(uri) {
+                println("2")
                 waiter.registerResult(it)
+                println("3")
             }
         }, {
+            println("4")
             val cancel = client.dispatcher.runningCalls().singleOrNull {
                 it.request().url.toUri().equals(uri)
             }
@@ -89,6 +91,8 @@ class RequesterAdapterImpl(
                 logger.info("$uri < canceled")
             }
         })
+        println("5")
+        return ret
     }
     
     private suspend fun <T> requestInternal(
@@ -109,10 +113,15 @@ class RequesterAdapterImpl(
                 }
                 
                 val requesterBuilt = request.build()
-                
                 val result = Either.catch {
                     logger.debug(requesterBuilt.url.toString() + " < requesting")
-                    client.newCall(requesterBuilt).await()
+                    val call = client.newCall(requesterBuilt)
+                    val handle = TaskWaitHandle<Response>()
+                    handle.runAsync({
+                        handle.registerResult(call.execute())
+                    }, {
+                        call.cancel()
+                    }).await()
                 }.fold({
                     logger.info(requesterBuilt.url.toString() + " < received")
                     logger.warn(it)
@@ -133,7 +142,6 @@ class RequesterAdapterImpl(
                         responseAdapterImpl.createWithReceived(uri, it, requesterBuilt)
                     }.flatten()
                 })
-                
                 act(result)
             }
         }

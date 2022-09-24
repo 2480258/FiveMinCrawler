@@ -21,48 +21,57 @@
 package com.fivemin.core.request
 
 import com.fivemin.core.LoggerController
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.*
+import kotlinx.coroutines.GlobalScope.coroutineContext
 
 class TaskWaitHandle<T> {
-    private var result: T? = null
-    private val semaphore = Semaphore(1)
+    private var result = CompletableDeferred<T>()
     
     companion object {
         private val logger = LoggerController.getLogger("TaskWaitHandle")
     }
     
     suspend fun runAsync(act: suspend () -> Unit, onCancel: suspend () -> Unit): Deferred<T> {
-        return coroutineScope {
-            async {
-                semaphore.acquire()
-                
+        val job = with(CoroutineScope(coroutineContext)) {
+            launch {
                 try {
                     act()
-                } finally {
-                    try {
-                        semaphore.acquire() // registerResult() should be called in act() so acquire again (prevent reuse)
-                    } catch (e: CancellationException) {
-                        onCancel()
-                        throw e
-                    }
+                } catch (e: Exception) {
+                    result.completeExceptionally(e)
                 }
-                
-                result!!
+            }
+        }
+        
+        result.invokeOnCompletion { e ->
+            whenCancel(e, onCancel)
+            job.cancel()
+        }
+        
+        return result
+    }
+    
+    private fun whenCancel(e: Throwable?, onCancel: suspend () -> Unit) {
+        when (e) {
+            null -> {
+                return
+            }
+            is CancellationException -> {
+                runBlocking {
+                    onCancel()
+                }
+            
+                logger.debug("${this.hashCode()} < exiting with cancel")
+                result.completeExceptionally(e)
+            }
+            else -> {
+                logger.debug("${this.hashCode()} < exiting with error: ${e}")
+                result.completeExceptionally(e)
             }
         }
     }
     
     fun registerResult(_result: T) {
-        logger.debug("registerResult: " + semaphore.hashCode())
-        
-        try {
-            result = _result
-        } finally {
-            semaphore.release()
-        }
+        logger.debug("registerResult: " + this.hashCode())
+        result!!.complete(_result)
     }
 }

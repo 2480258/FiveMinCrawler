@@ -92,7 +92,7 @@ repositories {
 
 dependencies {
     implementation("io.arrow-kt:arrow-core:$arrow_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
@@ -113,6 +113,7 @@ dependencies {
     
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.12.4")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.6.4")
 }
 
 tasks.jar {

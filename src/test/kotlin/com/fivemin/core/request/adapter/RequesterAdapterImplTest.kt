@@ -30,8 +30,9 @@ import com.fivemin.core.request.RequestHeaderProfile
 import com.fivemin.core.request.cookie.CustomCookieJar
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.testng.Assert.fail
 import org.testng.annotations.BeforeMethod
@@ -76,28 +77,37 @@ class RequesterAdapterImplTest {
     
     @Test
     fun testRequestAsyncCancels() {
-        runBlocking {
-            val result = coroutineScope {
-                req = RequesterAdapterImpl(CustomCookieJar(), mockResponseAdapterThrows(), RequestHeaderProfile())
-                val job = req.requestAsync(
+        req = RequesterAdapterImpl(CustomCookieJar(), mockResponseAdapterThrows(), RequestHeaderProfile())
+        val result = runBlocking {
+            val job = async {
+                println("test1")
+                val ret = req.requestAsync(
                     DocumentMockFactory.getRequest(
                         URI("http://localhost:3000/timeOut"), RequestType.LINK
                     )
                 )
-                
-                
-                launch {
-                    job.cancel()
-                }
-                
-                job
-            }.await()
+                println("test2")
+                ret
+            }
+            async {
+                delay(1000)
+                println("canceling")
+                job.cancel()
+                println("cancel ok")
+            }
             
-            result.fold({ fail() }, {
-                if (it !is CanceledResponseBody) {
-                    fail()
-                }
-            })
+            job
+            
+        }
+        
+        runBlocking {
+            coroutineScope {
+                result.await().await().fold({ fail() }, {
+                    if (it !is CanceledResponseBody) {
+                        fail()
+                    }
+                })
+            }
         }
     }
     
