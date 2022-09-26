@@ -36,6 +36,7 @@ import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import ru.gildor.coroutines.okhttp.await
+import java.io.IOException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
@@ -75,7 +76,7 @@ class RequesterAdapterImpl(
                 requestInternal(uri)
             }
             
-            job.invokeOnCompletion { e ->
+            job.invokeOnCompletion { e -> // it may be useless. okhttp request may be automatically canceled? Not sure.
                 if (e != null) {
                     if ((e is CancellationException)) {
                         val calls = client.dispatcher.runningCalls()
@@ -119,6 +120,10 @@ class RequesterAdapterImpl(
         }.fold({
             logger.info(requesterBuilt.url.toString() + " < received")
             logger.warn(it)
+            
+            if ((it is IOException) and (it.message?.lowercase()?.contains("canceled") == true)) {
+                throw CancellationException() // okhttp throws IOException when canceled so prevent from retrying. just for ensure.
+            }
             
             Either.catch {
                 responseAdapterImpl.createWithError(uri, it.toOption(), requesterBuilt)
