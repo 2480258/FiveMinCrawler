@@ -32,10 +32,7 @@ import com.fivemin.core.request.RequesterAdapter
 import com.fivemin.core.request.cookie.CookieRepository
 import com.fivemin.core.request.cookie.CookieRepositoryImpl
 import com.fivemin.core.request.cookie.CustomCookieJar
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import ru.gildor.coroutines.okhttp.await
@@ -73,26 +70,30 @@ class RequesterAdapterImpl(
     }
     
     override suspend fun requestAsync(uri: com.fivemin.core.engine.Request): Deferred<Either<Throwable, com.fivemin.core.engine.ResponseBody>> {
-        val ret = GlobalScope.async {
-            requestInternal(uri)
-        }
-        
-        ret.invokeOnCompletion { e ->
-            if (e != null) {
-                if ((e is CancellationException)) {
-                    val calls = client.dispatcher.runningCalls()
+        val ret = coroutineScope {
+            val job = async {
+                requestInternal(uri)
+            }
+            
+            job.invokeOnCompletion { e ->
+                if (e != null) {
+                    if ((e is CancellationException)) {
+                        val calls = client.dispatcher.runningCalls()
+                
+                        if(calls.isNotEmpty()) {
+                            val callList = calls.joinToString(", ") {
+                                it.request().url.toUri().toString()
+                            }
                     
-                    if(calls.isNotEmpty()) {
-                        val callList = calls.joinToString(", ") {
-                            it.request().url.toUri().toString()
+                            logger.info("canceling calls: ${callList}")
                         }
-                        
-                        logger.info("canceling calls: ${callList}")
+                
+                        client.dispatcher.cancelAll()
                     }
-                    
-                    client.dispatcher.cancelAll()
                 }
             }
+            
+            job
         }
         
         return ret
