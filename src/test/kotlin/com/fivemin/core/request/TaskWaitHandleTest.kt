@@ -39,6 +39,17 @@ class TaskWaitHandleTest {
     }
     
     @Test
+    fun testAsyncCancelCoroutine() {
+        assertThrows {
+            runBlocking {
+                handle.runAsync({
+                    throw IllegalArgumentException()
+                }, {}).await()
+            }
+        }
+    }
+    
+    @Test
     fun testAsyncException() {
         assertThrows {
             runBlocking {

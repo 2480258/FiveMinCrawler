@@ -22,7 +22,6 @@ package com.fivemin.core.request
 
 import arrow.core.Option
 import com.fivemin.core.engine.*
-import java.lang.Exception
 import java.net.URI
 
 class AutomaticRedirectResponseBodyImpl(
@@ -45,9 +44,8 @@ class RecoverableErrorBodyImpl(
     override val responseHeader: NetworkHeader
 ) : RecoverableErrorBody
 
-class CriticalErrorBodyImpl(override val requestBody: RequestBody, override val error: Option<Throwable>) : CriticalErrorBody
-
-class CanceledResponseBodyImpl(override val requestBody: RequestBody) : CanceledResponseBody
+class CriticalErrorBodyImpl(override val requestBody: RequestBody, override val error: Option<Throwable>) :
+    CriticalErrorBody
 
 class SuccessBodyImpl(
     override val requestBody: RequestBody,

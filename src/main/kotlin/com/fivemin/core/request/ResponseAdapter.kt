@@ -38,9 +38,4 @@ interface ResponseAdapter {
         resp: Response,
         req: Request
     ): Either<Throwable, ResponseBody>
-    
-    fun createWithCanceled(
-        original: com.fivemin.core.engine.Request,
-        req: Request
-    ): Either<Throwable, ResponseBody>
 }

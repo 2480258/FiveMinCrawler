@@ -22,7 +22,6 @@ package com.fivemin.core.request.adapter
 
 import arrow.core.Either
 import com.fivemin.core.DocumentMockFactory
-import com.fivemin.core.engine.CanceledResponseBody
 import com.fivemin.core.engine.MemoryFilter
 import com.fivemin.core.engine.RequestType
 import com.fivemin.core.request.MemoryFilterFactory
@@ -30,10 +29,8 @@ import com.fivemin.core.request.RequestHeaderProfile
 import com.fivemin.core.request.cookie.CustomCookieJar
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import org.testng.Assert.assertThrows
 import org.testng.Assert.fail
 import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
@@ -77,36 +74,44 @@ class RequesterAdapterImplTest {
     
     @Test
     fun testRequestAsyncCancels() {
-        req = RequesterAdapterImpl(CustomCookieJar(), mockResponseAdapterThrows(), RequestHeaderProfile())
-        val result = runBlocking {
-            val job = async {
-                println("test1")
-                val ret = req.requestAsync(
-                    DocumentMockFactory.getRequest(
-                        URI("http://localhost:3000/timeOut"), RequestType.LINK
-                    )
-                )
-                println("test2")
-                ret
-            }
-            async {
-                delay(1000)
-                println("canceling")
-                job.cancel()
-                println("cancel ok")
-            }
-            
-            job
-            
-        }
         
+        
+        val filterMock: MemoryFilter = mockk()
+        every {
+            filterMock.write(any(), any(), any())
+        } returns (mockk())
+        
+        every {
+            filterMock.flushAndExportAndDispose()
+        } returns (mockk())
+        
+        every {
+            filterMock.close()
+        } returns (mockk())
+        
+        val mock: MemoryFilterFactory = mockk()
+        
+        every {
+            mock.createHtmlFilter(any(), any(), any())
+        } returns (filterMock)
+        
+        
+        
+        req = RequesterAdapterImpl(CustomCookieJar(), ResponseAdapterImpl(mockk(), mock), RequestHeaderProfile())
         runBlocking {
-            coroutineScope {
-                result.await().await().fold({ fail() }, {
-                    if (it !is CanceledResponseBody) {
-                        fail()
-                    }
-                })
+            val ret = GlobalScope.async {
+                req.requestAsync(DocumentMockFactory.getRequest(URI("http://localhost:3000/timeOut"), RequestType.LINK))
+            }
+            launch {
+                assert(!ret.isCompleted)
+                
+                ret.cancelAndJoin()
+            }
+            
+            assertThrows {
+                runBlocking {
+                    ret.await()
+                }
             }
         }
     }
