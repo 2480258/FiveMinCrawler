@@ -99,7 +99,7 @@ class RequesterAdapterImplTest {
         
         req = RequesterAdapterImpl(CustomCookieJar(), ResponseAdapterImpl(mockk(), mock), RequestHeaderProfile())
         runBlocking {
-            val ret = GlobalScope.async {
+            val ret = async {
                 req.requestAsync(DocumentMockFactory.getRequest(URI("http://localhost:3000/timeOut"), RequestType.LINK))
             }
             launch {
@@ -108,7 +108,7 @@ class RequesterAdapterImplTest {
                 ret.cancelAndJoin()
             }
             
-            assertThrows {
+            assertThrows(CancellationException::class.java) {
                 runBlocking {
                     ret.await()
                 }
