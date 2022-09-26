@@ -22,7 +22,6 @@ package com.fivemin.core.request
 
 import com.fivemin.core.LoggerController
 import kotlinx.coroutines.*
-import kotlinx.coroutines.GlobalScope.coroutineContext
 
 class TaskWaitHandle<T> {
     private var result = CompletableDeferred<T>()
@@ -32,13 +31,11 @@ class TaskWaitHandle<T> {
     }
     
     suspend fun runAsync(act: suspend () -> Unit, onCancel: suspend () -> Unit): Deferred<T> {
-        val job = with(CoroutineScope(coroutineContext)) {
-            launch {
-                try {
-                    act()
-                } catch (e: Exception) {
-                    result.completeExceptionally(e)
-                }
+        val job = CoroutineScope(Dispatchers.IO).launch {
+            try {
+                act()
+            } catch (e: Exception) {
+                result.completeExceptionally(e)
             }
         }
         
@@ -59,7 +56,7 @@ class TaskWaitHandle<T> {
                 runBlocking {
                     onCancel()
                 }
-            
+                
                 logger.debug("${this.hashCode()} < exiting with cancel")
                 result.completeExceptionally(e)
             }
