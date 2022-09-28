@@ -168,6 +168,16 @@ class RotatingQueueTest {
         assertQueueEmpty()
     }
     
+    
+    @Test
+    fun testCancelNone() {
+        assertEquals(queue.removeKey(100), 0)
+        assertEquals(queue.removeKey(300), 0)
+        assertEquals(queue.removeKey(400), 0)
+        
+        assertQueueEmpty()
+    }
+    
     @Test
     fun testSameKeyValueUpdate() {
         queue.enqueue(4, 4, 4)
