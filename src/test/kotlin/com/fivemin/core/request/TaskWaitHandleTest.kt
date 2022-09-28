@@ -111,4 +111,39 @@ class TaskWaitHandleTest {
             assertEquals(num, 42)
         }
     }
+    
+    @Test
+    fun testForceFinishIfNot() {
+        runBlocking {
+            val ret = handle.runAsync({
+                delay(3000)
+            }, {
+            
+            })
+        
+            handle.forceFinishIfNot()
+            assert(ret.isCompleted)
+            assert(ret.getCompletionExceptionOrNull() is IllegalStateException)
+        }
+    }
+    
+    
+    @Test
+    fun testRedundentForceFinishIfNot() {
+        runBlocking {
+            val semaphore = Semaphore(1, 1)
+            val ret = handle.runAsync({
+                handle.registerResult(100)
+                semaphore.release()
+            }, {
+            
+            })
+            
+            semaphore.acquire()
+            handle.forceFinishIfNot()
+            assert(ret.isCompleted)
+            assertEquals(ret.await(), 100)
+            assert(ret.getCompletionExceptionOrNull() == null)
+        }
+    }
 }

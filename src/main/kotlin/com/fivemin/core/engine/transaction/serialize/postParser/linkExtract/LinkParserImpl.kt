@@ -120,22 +120,22 @@ class LinkParserImpl : LinkParser {
 
             var temp: URI? = null
             var path: String? = null
-
-            return try {
+            
+            return Either.catch {
                 temp = URI(uri)
-
-                path = temp.path
-
-                if (path.first() != '/') {
+    
+                path = temp!!.path
+    
+                if (path!!.first() != '/') {
                     path = "/$path"
                 }
-
-                Some(URI(host.scheme, null, host.host, host.port, path, temp.query, null))
-            } catch (e: Exception) {
+    
+                Some(URI(host.scheme, null, host.host, host.port, path, temp!!.query, null))
+            }.fold({
                 logger.warn("can't get URL from given string: " + host.scheme + ", " + host.host + ", " + (path ?: "null") + ", " + temp?.query)
                 logger.warn("URL is: " + (temp ?: "null"))
                 none<URI>()
-            }
+            } ,::identity)
         })
     }
 }

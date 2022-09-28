@@ -32,11 +32,18 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
-class TaskWaiterBrokenException() : Exception()
-
 data class RequestTaskOption(val selector: RequesterSelector, val queue: RequestQueue)
 
+
 class RequesterTaskImpl(private val option: RequestTaskOption) : RequesterTask {
+    
+    /**
+     * Non-blocking, Asynchronously downloads a request at the GlobalScope.
+     *
+     * Many exceptions will be caught (i.e Connection errors) but some critical errors will be thrown (i.e Cancellation Exception).
+     *
+     * To cancel request, just call cancel() on the returned Deferred<T>
+     * */
     override suspend fun <Document : Request, Resp : ResponseData> run(request: DocumentRequest<Document>): Deferred<Either<Throwable, Resp>> {
         var handle = TaskWaitHandle<Either<Throwable, Resp>>()
         
@@ -49,23 +56,16 @@ class RequesterTaskImpl(private val option: RequestTaskOption) : RequesterTask {
             val req = mappedRequester.bind()
             
             EnqueueRequestInfo { info ->
-                var ret: Either<Throwable, Resp>? = null
                 try {
-                    ret = info.map {
-                        try {
-                            req.requester.request(it).await()
-                        } catch (e: Exception) {
-                            e.left()
-                        }
+                    val ret = info.map {
+                        req.requester.request(it).await()
                     }.flatten()
-                    
+    
                     handle.registerResult(ret)
                 } catch (e: Exception) {
-                    handle.registerResult(ret ?: e.left())
+                    handle.registerResult(e.left())
                 } finally {
-                    if(handle.isActive) {
-                        throw TaskWaiterBrokenException() // to prevent indefinite waiting, just for ensure.
-                    }
+                    handle.forceFinishIfNot()
                 }
             }
         }

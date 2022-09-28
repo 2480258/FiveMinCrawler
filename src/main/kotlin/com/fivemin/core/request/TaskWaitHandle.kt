@@ -26,11 +26,6 @@ import kotlinx.coroutines.*
 class TaskWaitHandle<T> {
     private var result = CompletableDeferred<T>()
     
-    val isActive: Boolean
-        get() {
-            return result.isActive
-        }
-    
     companion object {
         private val logger = LoggerController.getLogger("TaskWaitHandle")
     }
@@ -75,5 +70,14 @@ class TaskWaitHandle<T> {
     fun registerResult(_result: T) {
         logger.debug("registerResult: " + this.hashCode())
         result!!.complete(_result)
+    }
+    
+    /**
+     * Force finish if not completed yet.
+     * */
+    fun forceFinishIfNot() {
+        if(result.isActive) {
+            result!!.completeExceptionally(IllegalStateException("handle was forcefully finished"))
+        }
     }
 }
