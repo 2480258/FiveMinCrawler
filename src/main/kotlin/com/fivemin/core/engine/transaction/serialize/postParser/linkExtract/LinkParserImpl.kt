@@ -20,16 +20,14 @@
 
 package com.fivemin.core.engine.transaction.serialize.postParser.linkExtract
 
-import arrow.core.Option
-import arrow.core.Some
-import arrow.core.filterOption
-import arrow.core.none
+import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.HtmlElement
 import com.fivemin.core.engine.HtmlParsable
 import com.fivemin.core.engine.ParserNavigator
 import com.fivemin.core.engine.transaction.serialize.postParser.*
 import java.net.URI
+import kotlin.collections.flatten
 
 class LinkParserImpl : LinkParser {
     private val allNavigator: ParserNavigator = ParserNavigator("*")
@@ -111,13 +109,13 @@ class LinkParserImpl : LinkParser {
             }
 
             if (uri.contains("://") && uri.contains("http")) {
-                try {
-                    return Some(URI(uri))
-                } catch (e: Exception) {
+                return Either.catch {
+                    Some(URI(uri))
+                }.fold({ e ->
                     logger.warn("can't get URL from given string: $uri $e")
-
-                    return none<URI>()
-                }
+                    
+                    none<URI>()
+                }, ::identity)
             }
 
             var temp: URI? = null

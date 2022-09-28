@@ -111,6 +111,7 @@ class DebugController {
     
     @GetMapping("timeOut")
     fun timeOut(request: HttpServletRequest, response: HttpServletResponse) {
+        println("requested timeOut")
         while(true) {
             response.writer.print("a")
             Thread.sleep(1)

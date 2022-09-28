@@ -21,45 +21,68 @@
 package com.fivemin.core.request
 
 import arrow.core.Either
-import arrow.core.computations.ResultEffect.bind
+import arrow.core.computations.either
 import arrow.core.flatten
+import arrow.core.identity
 import arrow.core.left
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.ResponseData
 import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+
+class TaskWaiterBrokenException() : Exception()
 
 data class RequestTaskOption(val selector: RequesterSelector, val queue: RequestQueue)
 
 class RequesterTaskImpl(private val option: RequestTaskOption) : RequesterTask {
     override suspend fun <Document : Request, Resp : ResponseData> run(request: DocumentRequest<Document>): Deferred<Either<Throwable, Resp>> {
         var handle = TaskWaitHandle<Either<Throwable, Resp>>()
-
-        return handle.runAsync ({
-            arrow.core.computations.option {
-                val mapped = option.selector.schedule<Document, Resp>(request).bind()
-                var preprocess =
-                    PreprocessedRequest(request, PreprocessRequestInfo(mapped.info, mapped.requester.extraInfo.dequeueDecision))
-                option.queue.enqueue(
-                    preprocess,
-                    EnqueueRequestInfo { y ->
-                        var ret : Either<Throwable, Resp>? = null
+        
+        val mappedRequester = option.selector.schedule<Document, Resp>(request)
+        val preprocess = mappedRequester.map {
+            PreprocessedRequest(request, PreprocessRequestInfo(it.info, it.requester.extraInfo.dequeueDecision))
+        }
+        
+        val enqueue = either<Throwable, EnqueueRequestInfo> {
+            val req = mappedRequester.bind()
+            
+            EnqueueRequestInfo { info ->
+                var ret: Either<Throwable, Resp>? = null
+                try {
+                    ret = info.map {
                         try {
-                            ret = y.map {
-                                try {
-                                    mapped.requester.request(it).await()
-                                } catch (e: Exception) {
-                                    e.left()
-                                }
-                            }.flatten()
-                        } catch(e: Exception) {
-                            handle.registerResult(ret ?: e.left())
+                            req.requester.request(it).await()
+                        } catch (e: Exception) {
+                            e.left()
                         }
+                    }.flatten()
+                    
+                    handle.registerResult(ret)
+                } catch (e: Exception) {
+                    handle.registerResult(ret ?: e.left())
+                } finally {
+                    if(handle.isActive) {
+                        throw TaskWaiterBrokenException() // to prevent indefinite waiting, just for ensure.
                     }
-                )
+                }
             }
-        }, {
-            option.queue.cancelWSSet(request)
-        })
+        }
+        
+        val result = either<Throwable, Deferred<Either<Throwable, Resp>>> {
+            val enq = enqueue.bind()
+            val pre = preprocess.bind()
+            
+            handle.runAsync({
+                option.queue.enqueue(pre, enq)
+            }, {
+                option.queue.cancelWSSet(pre.request)
+            })
+        }
+        
+        return result.fold({
+            coroutineScope { async { it.left() } }
+        }, ::identity)
     }
 }

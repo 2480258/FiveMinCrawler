@@ -26,6 +26,11 @@ import kotlinx.coroutines.*
 class TaskWaitHandle<T> {
     private var result = CompletableDeferred<T>()
     
+    val isActive: Boolean
+        get() {
+            return result.isActive
+        }
+    
     companion object {
         private val logger = LoggerController.getLogger("TaskWaitHandle")
     }
