@@ -31,6 +31,7 @@ import com.fivemin.core.request.adapter.ResponseAdapterImpl
 import com.fivemin.core.request.cookie.*
 import com.fivemin.core.request.queue.srtfQueue.WSQueue
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
@@ -45,7 +46,7 @@ import java.net.URI
 class RequesterTaskImplTest {
     
     lateinit var task: RequesterTaskImpl
-    
+    lateinit var queue: WSQueue
     @BeforeMethod
     fun before() {
         val selector: RequesterSelectorImpl = mockk()
@@ -59,7 +60,7 @@ class RequesterTaskImplTest {
             ).right()
         }
         
-        val queue: WSQueue = mockk()
+        queue = mockk()
         
         coEvery {
             queue.enqueue(any(), any())
@@ -149,6 +150,10 @@ class RequesterTaskImplTest {
             delay(1000)
             job.cancelAndJoin()
             assert(job.getCompletionExceptionOrNull() is CancellationException)
+        }
+        
+        coVerify(exactly = 1) {
+            queue.cancelWSSet(any())
         }
     }
 }
