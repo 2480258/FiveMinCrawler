@@ -156,6 +156,4 @@ class DebugController {
             response.writer.close()
         }
     }
-    
-    
 }

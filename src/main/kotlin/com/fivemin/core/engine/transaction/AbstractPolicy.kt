@@ -22,10 +22,9 @@ package com.fivemin.core.engine.transaction
 
 import arrow.core.Either
 import arrow.core.flatten
+import arrow.core.right
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 
 data class AbstractPolicyOption<SrcTrans : Transaction<Document>, DstTrans : StrictTransaction<SrcTrans, Document>, out Document : Request>(
     val subPolicies: Iterable<TransactionSubPolicy<SrcTrans, DstTrans, Document>>
@@ -63,16 +62,14 @@ abstract class AbstractPolicy<SrcTrans : Transaction<Document>, DstTrans : Stric
         policies: Iterable<TransactionSubPolicy<SrcTrans, DstTrans, Document>>,
         next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
-        return coroutineScope {
-            async {
-                if (policies.count() == 1) {
-                    policies.first().process(trans, dest, info, state, next)
-                } else {
-                    policies.first().process(trans, dest, info, state) {
-                        tailCall(trans, dest, info, state, policies.drop(1), next)
-                    }
-                }
+        return if (policies.count() == 0) {
+            next(dest.right())
+        } else if (policies.count() == 1) {
+            policies.first().process(trans, dest, info, state, next)
+        } else {
+            policies.first().process(trans, dest, info, state) {
+                tailCall(trans, dest, info, state, policies.drop(1), next)
             }
-        }.await()
+        }
     }
 }

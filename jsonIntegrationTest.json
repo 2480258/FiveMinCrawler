@@ -1,0 +1,146 @@
+{
+    "requestFormat": {
+        "engines": [
+            {
+                "requesterEngineName": "Default",
+                "type": "Default",
+                "requesters": [
+                    {
+                        "userAgent": "FiveMinCrawler/1.0"
+                    }
+                ]
+            }
+        ],
+        "cookiePolicies": []
+    },
+    "parseFormat": {
+        "bookName": "aaa",
+        "globalCondition": {
+            "uriRegex": "http://localhost:3000/"
+        },
+        "pages": [
+            {
+                "pageName": "users",
+                "condition": {
+                    "uriRegex": "http://localhost:3000/users"
+                },
+                "internalAttributes": [
+                    {
+                        "attributeName": "C",
+                        "queryStr": "body > h1",
+                        "parseMode": "TEXT_CONTENT"
+                    },
+                    {
+                        "attributeName": "D",
+                        "queryStr": "body > h2",
+                        "parseMode": "TEXT_CONTENT"
+                    }
+                ],
+                "externalAttributes": [],
+                "linkAttributes": [],
+                "targetContainer": {
+                    "workingSetMode": "Enabled"
+                },
+                "tag": [],
+                "targetRequesterEngine": {
+                    "targetRequester": "Default"
+                }
+            },
+            {
+                "pageName": "home",
+                "condition": {
+                    "uriRegex": "http://localhost:3000/home"
+                },
+                "internalAttributes": [],
+                "externalAttributes": [
+                    {
+                        "attributeName": "images",
+                        "queryStr": "body > div",
+                        "uriRegex": ".png"
+                    }
+                ],
+                "linkAttributes": [
+                    {
+                        "attributeName": "links",
+                        "queryStr": "body > a",
+                        "uriRegex": "localhost"
+                    }
+                ],
+                "targetContainer": {
+                    "workingSetMode": "Enabled"
+                },
+                "tag": [],
+                "targetRequesterEngine": {
+                    "targetRequester": "Default"
+                }
+            },
+            {
+                "pageName": "about",
+                "condition": {
+                    "uriRegex": "http://localhost:3000/about"
+                },
+                "internalAttributes": [
+                    {
+                        "attributeName": "A",
+                        "queryStr": "body > h1",
+                        "parseMode": "TEXT_CONTENT"
+                    },
+                    {
+                        "attributeName": "B",
+                        "queryStr": "body > h2",
+                        "parseMode": "TEXT_CONTENT"
+                    }
+                ],
+                "externalAttributes": [],
+                "linkAttributes": [],
+                "targetContainer": {
+                    "workingSetMode": "Enabled"
+                },
+                "tag": [],
+                "targetRequesterEngine": {
+                    "targetRequester": "Default"
+                }
+            }
+        ],
+        "attributeRequester": {
+            "targetRequester": "Default"
+        }
+    },
+    "exportFormat": {
+        "bookName": "aaa",
+        "pages": [
+            {
+                "pageName": "users",
+                "targetAttributeName": [
+                    "C",
+                    "D"
+                ],
+                "adapter": {
+                    "mode": "Json",
+                    "fileNameTagExp": "user.json"
+                }
+            },
+            {
+                "pageName": "about",
+                "targetAttributeName": [
+                    "A",
+                    "B"
+                ],
+                "adapter": {
+                    "mode": "Json",
+                    "fileNameTagExp": "about.json"
+                }
+            },
+            {
+                "pageName": "home",
+                "targetAttributeName": [
+                    "images"
+                ],
+                "adapter": {
+                    "mode": "Binary",
+                    "fileNameTagExp": "$(inc).png"
+                }
+            }
+        ]
+    }
+}
