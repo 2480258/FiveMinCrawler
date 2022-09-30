@@ -131,48 +131,18 @@ class PostParserContentPageImpl<Document : Request>(
         return result
     }
     
-    private suspend fun finalizeAttribute(
-        x: RequestLinkInfo, ret: Iterable<Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>>>
-    ): Deferred<Option<DocumentAttribute>> {
-        return coroutineScope {
-            async {
-                val finished = ret.toList().awaitAll().map {
-                    val downloaded = it
-                    
-                    downloaded.swap().map {
-                        logger.warn(it)
-                    }
-                    
-                    downloaded.orNull().toOption()
-                }.filterOption()
-                val info = DocumentAttributeInfo(x.name)
-                
-                if (!finished.any()) {
-                    none()
-                } else if (finished.count() == 1) {
-                    attributeFactory.getExternal(info, finished[0]).orNull().toOption()
-                } else {
-                    attributeFactory.getExternal(info, finished).orNull().toOption()
-                }
-            }
-        }
-    }
-    
     private suspend fun finalizeAttr(
         x: RequestLinkInfo, ret: Iterable<Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>>>
     ): Deferred<DocumentAttribute> {
         return coroutineScope {
             async {
-                val finished =
-                    channelFlow<Pair<Int, FinalizeRequestTransaction<HttpRequest>>> { // early exits if exception occurs
-                        ret.mapIndexed { index, doc ->
-                            Pair(index, doc.await().fold({ throw it }, ::identity))
+                val finished = coroutineScope {
+                    ret.map {
+                        async {
+                            it.await().fold({ throw it }, ::identity) // early exits if exception raised
                         }
-                    }.toList().sortedBy {
-                        it.first
-                    }.map {
-                        it.second
                     }
+                }.awaitAll()
                 
                 val info = DocumentAttributeInfo(x.name)
                 
@@ -213,7 +183,7 @@ class PostParserContentPageImpl<Document : Request>(
             .get4<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>, SerializeTransaction<HttpRequest>, ExportTransaction<HttpRequest>>(
                 DocumentType.NATIVE_HTTP
             )
-    
+        
         return state.getChildSession {
             task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), info, it)
         }

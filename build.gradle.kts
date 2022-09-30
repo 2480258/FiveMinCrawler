@@ -20,8 +20,6 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-// turn-off defender before run
-// jpackage --name FiveMinCrawler --input bin --main-jar fivemincrawler-0.jar --win-console --type app-image --verbose --temp temp
 
 plugins {
     kotlin("jvm") version "1.6.10"
@@ -32,23 +30,15 @@ plugins {
 }
 
 jacoco {
-    // JaCoCo 버전
     toolVersion = "0.8.8"
-
-//  테스트결과 리포트를 저장할 경로 변경
-//  default는 "${project.reporting.baseDir}/jacoco"
-//  reportsDir = file("$buildDir/customJacocoReportDir")
 }
 
 tasks.jacocoTestReport {
     reports {
-        // 원하는 리포트를 켜고 끌 수 있다.
         html.isEnabled = false
         xml.isEnabled = true
         csv.isEnabled = false
 
-//      각 리포트 타입 마다 리포트 저장 경로를 설정할 수 있다.
-//      html.destination = file("$buildDir/jacocoHtml")
         xml.destination = file("./jacocoTestReport.xml")
     }
     
@@ -58,12 +48,7 @@ tasks.jacocoTestReport {
 tasks.jacocoTestCoverageVerification {
     violationRules {
         rule {
-            // 'element'가 없으면 프로젝트의 전체 파일을 합친 값을 기준으로 한다.
-            limit {
-                // 'counter'를 지정하지 않으면 default는 'INSTRUCTION'
-                // 'value'를 지정하지 않으면 default는 'COVEREDRATIO'
-                minimum = "0.30".toBigDecimal()
-            }
+            excludes = listOf("*.integration.*") // exculde integration test
         }
     }
 }

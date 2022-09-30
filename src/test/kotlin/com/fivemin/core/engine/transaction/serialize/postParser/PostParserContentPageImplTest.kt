@@ -30,9 +30,12 @@ import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.UriIterator
 import com.fivemin.core.engine.*
 import io.mockk.*
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.testng.Assert.*
 import org.testng.annotations.Test
+import java.net.URI
 
 class PostParserContentPageImplTest {
     val uriIt = ElemIterator(UriIterator())
