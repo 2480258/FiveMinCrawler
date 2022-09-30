@@ -21,6 +21,7 @@
 package com.fivemin.core.engine
 
 import arrow.core.*
+import com.fivemin.core.LoggerController
 import kotlinx.serialization.Serializable
 
 interface ExportState {
@@ -37,13 +38,23 @@ data class ContinueExportStateInfo constructor(private val exportInfoSet: List<E
 class PreprocessedExportInfo constructor(val token: FileIOToken)
 
 class PreprocessedExport constructor(val info: PreprocessedExportInfo, val data: ExportData) {
+    
+    companion object {
+        private val logger = LoggerController.getLogger("PreprocessedExport")
+    }
+    
+    
     fun save(): Either<Throwable, ExportResultToken> {
-        return Either.catch {
+        val ret = Either.catch {
             if (data.isSaved) {
                 IllegalStateException().left()
             }
 
             data.save(info.token)
         }.flatten()
+        
+        logger.debug(ret, "failed to preprocessedExport")
+        
+        return ret
     }
 }

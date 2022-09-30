@@ -36,6 +36,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.spyk
 import kotlinx.coroutines.runBlocking
+import org.testng.Assert.assertThrows
 import org.testng.annotations.Test
 import java.net.URI
 
@@ -49,10 +50,74 @@ class TestSubPolicy : TransactionSubPolicy<FinalizeRequestTransaction<Request>, 
     ): Either<Throwable, Ret> {
         return next(dest.right())
     }
-    
+}
+
+class ThrowsTestSubPolicy : TransactionSubPolicy<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request> {
+    override suspend fun <Ret> process(
+        source: FinalizeRequestTransaction<Request>,
+        dest: SerializeTransaction<Request>,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        throw IllegalStateException()
+    }
 }
 
 class AbstractPolicyTest {
+    @Test
+    fun testProgressThrows() {
+        val sub1 = spyk(TestSubPolicy())
+        val sub2 = spyk(ThrowsTestSubPolicy())
+    
+        val option = AbstractPolicyOption<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request>(
+            listOf(
+                sub1, sub2
+            )
+        )
+        val movementFac: TransactionMovementFactory<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request> =
+            mockk()
+        val postParser : PostParser<Request> = mockk()
+        val postParserInfo : PostParseInfo = mockk()
+    
+        coEvery {
+            postParserInfo.attribute
+        } coAnswers {
+            listOf()
+        }
+    
+        coEvery {
+            postParser.getPostParseInfo(any(), any(), any())
+        } coAnswers {
+            postParserInfo.right()
+        }
+    
+        val movement  = SerializeTransactionMovementImpl<Request>(postParser)
+    
+        val src =
+            DocumentMockFactory.getRequest(URI("http://aaa.com"), RequestType.LINK).upgrade().upgradeAsDocument("a")
+                .upgrade()
+    
+        coEvery {
+            movementFac.getMovement()
+        } coAnswers {
+            movement
+        }
+    
+        val policy = SerializeTransactionPolicy<Request>(option, movementFac)
+    
+        assertThrows {
+            runBlocking {
+                policy.progressAsync(src,
+                    TaskMockFactory.createTaskInfo(),
+                    TaskMockFactory.createDetachableSessionStarted<Request>(),
+                    { Either.catch { } })
+        
+            }
+        }
+    }
+    
+    
     @Test
     fun testProgressAsync() {
         val sub1 = spyk(TestSubPolicy())

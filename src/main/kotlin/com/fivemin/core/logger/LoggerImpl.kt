@@ -20,6 +20,7 @@
 
 package com.fivemin.core.logger
 
+import arrow.core.Either
 import arrow.core.Option
 import com.fivemin.core.Logger
 import com.fivemin.core.engine.Request
@@ -48,7 +49,7 @@ class LoggerImpl(private val name: String) : Logger {
             logger.info(it) { logStr }
         }
     }
-
+    
     override fun debug(ex: Throwable, str: String?) {
         logger.debug(ex) { str }
     }
@@ -66,7 +67,14 @@ class LoggerImpl(private val name: String) : Logger {
             logger.debug(it) { logStr }
         }
     }
-
+    
+    override fun debug(either: Either<Throwable, Any?>, str: String) {
+        either.swap().map {
+            debug(it.message ?: "null")
+            debug(it.stackTraceToString())
+        }
+    }
+    
     override fun warn(ex: Throwable, str: String?) {
         logger.warn(ex) { str }
     }
@@ -84,7 +92,7 @@ class LoggerImpl(private val name: String) : Logger {
             logger.warn(it) { logStr }
         }
     }
-
+    
     override fun error(ex: Throwable, str: String?) {
         logger.error(ex) { str }
     }

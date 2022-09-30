@@ -24,6 +24,7 @@ import arrow.core.identity
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
+import com.fivemin.core.TaskDetachedException
 import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.RequestType

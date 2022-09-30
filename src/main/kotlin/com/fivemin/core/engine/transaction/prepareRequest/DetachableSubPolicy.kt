@@ -21,13 +21,11 @@
 package com.fivemin.core.engine.transaction.prepareRequest
 
 import arrow.core.Either
-import arrow.core.left
 import arrow.core.right
 import com.fivemin.core.LoggerController
+import com.fivemin.core.TaskDetachedException
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
-
-class TaskDetachedException : Exception()
 
 class DetachableSubPolicy<Document : Request> :
     TransactionSubPolicy<InitialTransaction<Document>, PrepareTransaction<Document>, Document> {
@@ -60,7 +58,7 @@ class DetachableSubPolicy<Document : Request> :
             }
             
             if (detached.isNotEmpty()) {
-                TaskDetachedException().left()
+                throw TaskDetachedException()
             } else {
                 dest.right()
             }

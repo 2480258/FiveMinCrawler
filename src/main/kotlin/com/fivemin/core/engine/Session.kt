@@ -22,7 +22,7 @@ package com.fivemin.core.engine
 
 import arrow.core.*
 import com.fivemin.core.LoggerController
-import com.fivemin.core.engine.transaction.prepareRequest.TaskDetachedException
+import com.fivemin.core.TaskDetachedException
 import kotlinx.coroutines.*
 
 suspend fun <T> SessionStartedState.ifDetachable(func: suspend (SessionDetachableStartedState) -> T): Option<T> {

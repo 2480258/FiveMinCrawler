@@ -18,17 +18,8 @@
  *
  */
 
-package com.fivemin.core.engine.session
+package com.fivemin.core
 
-import arrow.core.*
-import com.fivemin.core.engine.SessionToken
-import com.fivemin.core.engine.UniqueKey
-import com.fivemin.core.engine.UniqueKeyRepository
-import com.fivemin.core.exclusiveSingleOrNone
 import kotlinx.coroutines.CancellationException
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
-class RetryCountMaxedException : CancellationException()
-
-class UniqueKeyDuplicateException(msg: String) : Exception(msg)
+class TaskDetachedException : CancellationException()

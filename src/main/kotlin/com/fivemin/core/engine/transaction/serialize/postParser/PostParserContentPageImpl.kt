@@ -22,6 +22,7 @@ package com.fivemin.core.engine.transaction.serialize.postParser
 
 import arrow.core.*
 import com.fivemin.core.LoggerController
+import com.fivemin.core.TaskDetachedException
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.InitialTransactionImpl
 import kotlinx.coroutines.Deferred
@@ -48,29 +49,35 @@ class PostParserContentPageImpl<Document : Request>(
     ): Deferred<Option<List<DocumentAttribute>>> {
         return coroutineScope {
             async {
-                req.previous.ifDocumentAsync({
-                    if (it.parseOption.name == pageCondition) {
-                        val internals = processIntAttribute(req)
-                        val externals = processExtAttr(req, info, state)
-                        val links = processLinks(req, info, state)
-                        
-                        externals.plus(links).awaitAll() // early exits if at least one links returns an exception.
-                        
-                        val finished = externals.map { y ->
-                            y.await() // awaits already awaited values. orders are not important
+                try {
+    
+                    req.previous.ifDocumentAsync({
+                        if (it.parseOption.name == pageCondition) {
+                            val internals = processIntAttribute(req)
+                            val externals = processExtAttr(req, info, state)
+                            val links = processLinks(req, info, state)
+            
+                            externals.plus(links).awaitAll() // early exits if at least one links returns an exception.
+            
+                            val finished = externals.map { y ->
+                                y.await() // awaits already awaited values. orders are not important
+                            }
+            
+                            val ret = internals.fold({ finished }) { x ->
+                                finished.plus(x)
+                            }
+            
+                            ret.toOption()
+                        } else {
+                            none()
                         }
-                        
-                        val ret = internals.fold({ finished }) { x ->
-                            finished.plus(x)
-                        }
-                        
-                        ret.toOption()
-                    } else {
+                    }, {
                         none()
-                    }
-                }, {
-                    none()
-                })
+                    })
+                } catch (e: Exception) {
+                    logger.debug(e, "failed to extract")
+                    throw e
+                }
             }
         }
     }
@@ -184,8 +191,18 @@ class PostParserContentPageImpl<Document : Request>(
                 DocumentType.NATIVE_HTTP
             )
         
-        return state.getChildSession {
+        val ret = state.getChildSession {
             task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), info, it)
+        }
+        
+        return coroutineScope {
+            async {
+                try {
+                    ret.await()
+                } catch (e: TaskDetachedException) {
+                    e.left()
+                }
+            }
         }
     }
 }

@@ -25,31 +25,37 @@ import com.fivemin.core.engine.*
 import com.fivemin.core.initialize.CrawlerFactory
 import com.fivemin.core.initialize.StartTaskOption
 import kotlinx.coroutines.runBlocking
+import org.testng.Assert.fail
 import org.testng.annotations.Test
 
 class NormalIntegrationTest {
     @Test
     fun testNormal() {
+        System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
+        
         val options = StartTaskOption(
             mainUriTarget = "http://localhost:3000/home",
-            paramPath = "jsonIntegrationTest.json",
-            rootPath = Some("TrashBin")
+            paramPath = "jsonIntegrationTest.json"
         )
         
-        CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
-            val task = taskFactory.getFactory()
-                .get4<
-                        InitialTransaction<Request>,
-                        PrepareTransaction<Request>,
-                        FinalizeRequestTransaction<Request>,
-                        SerializeTransaction<Request>,
-                        ExportTransaction<Request>>(
-                    DocumentType.DEFAULT
-                )
+        IntegrationVerify.runAndVerify(listOf(VerifySet("Output/00.png", 5745), VerifySet("Output/01.png", 9004), VerifySet("Output/user.json", 41), VerifySet("Output/about.json", 41))) {
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+                val task = taskFactory.getFactory()
+                    .get4<
+                            InitialTransaction<Request>,
+                            PrepareTransaction<Request>,
+                            FinalizeRequestTransaction<Request>,
+                            SerializeTransaction<Request>,
+                            ExportTransaction<Request>>(
+                        DocumentType.DEFAULT
+                    )
         
-            runBlocking {
-                task.start(document, info, state)
+                runBlocking {
+                    task.start(document, info, state)
+                }
             }
         }
+        
+        IntegrationVerify.dupVerify("Output")
     }
 }

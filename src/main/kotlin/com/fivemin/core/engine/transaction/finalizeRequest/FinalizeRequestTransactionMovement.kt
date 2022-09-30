@@ -51,6 +51,9 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
             
             return result
             
+        } catch (e: Exception) {
+            logger.debug(source.request, "", Some(e))
+            throw e
         } finally {
             dest?.map {
                 releaseRequester(it)

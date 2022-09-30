@@ -20,13 +20,15 @@
 
 package com.fivemin.core.request.queue.srtfQueue
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.Option
+import arrow.core.left
+import arrow.core.right
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.RequestToken
 import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
 import com.fivemin.core.request.*
-import com.fivemin.core.request.queue.DequeueOptimizationPolicy
 import com.fivemin.core.request.queue.EnqueuedRequest
 import com.fivemin.core.request.queue.RequestDeniedException
 import kotlinx.coroutines.runBlocking
@@ -45,8 +47,6 @@ class WSQueue constructor(
     private val maxRequestThread: Int = 3
 ) : RequestQueue {
     private val rotatingQueue = RotatingQueueImpl<Double, RequestToken, EnqueuedRequest<Request>>()
-    
-    
     
     
     companion object {
@@ -70,7 +70,7 @@ class WSQueue constructor(
     @OptIn(ExperimentalTime::class)
     private suspend fun enqueueInternal(doc: PreprocessedRequest<Request>, info: EnqueueRequestInfo) {
         optimizationPolicy.update(doc.request.request, srtfPageFactory.convertTo(doc.request.request))
-    
+        
         val wsKey = srtfKeyExtractor.extractWorkingSetKey(doc.request)
         val score = optimizationPolicy.getScore(doc).fold(
             { 0.1 }, //We can't do anything so download fastly.
@@ -116,6 +116,7 @@ class WSQueue constructor(
             
             when (it.request.info.dequeue.get()) {
                 DequeueDecision.ALLOW -> {
+                    logger.debug(it.request.request.request.request, "dequeued")
                     it.info.callBack(DequeuedRequest(it.request, DequeuedRequestInfo()).right())
                 }
                 DequeueDecision.DENY -> {

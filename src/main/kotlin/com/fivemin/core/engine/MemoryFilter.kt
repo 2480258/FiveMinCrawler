@@ -21,6 +21,7 @@
 package com.fivemin.core.engine
 
 import arrow.core.*
+import com.fivemin.core.LoggerController
 import java.io.*
 import java.nio.charset.Charset
 
@@ -117,8 +118,17 @@ class MemoryWriterImpl : MemoryWriter {
 }
 
 class ArrayMemoryData constructor(private val data: ByteArray) : MemoryData {
+    companion object {
+        private val logger = LoggerController.getLogger("ArrayMemoryData")
+    }
+    
+    
     override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Either<Throwable, T> {
-        return Either.catch { func(ByteArrayInputStream(data)) }
+        val ret = Either.catch { func(ByteArrayInputStream(data)) }
+        
+        logger.debug(ret, "failed to openStreamAsByteAndDispose")
+        
+        return ret
     }
     
     override fun openWriteStreamUnsafe(): Either<Throwable, OutputStream> {

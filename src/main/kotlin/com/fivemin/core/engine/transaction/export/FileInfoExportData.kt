@@ -21,13 +21,17 @@
 package com.fivemin.core.engine.transaction.export
 
 import arrow.core.Either
+import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.ExportData
 import com.fivemin.core.engine.ExportResultToken
 import com.fivemin.core.engine.FileIOToken
 
 class FileInfoExportData(val token: FileIOToken) : ExportData {
     override var isSaved: Boolean = false
-
+    
+    companion object {
+        private val logger = LoggerController.getLogger("FileInfoExportData")
+    }
     init {
         if (!token.fileExists()) {
             throw IllegalArgumentException()
@@ -45,11 +49,15 @@ class FileInfoExportData(val token: FileIOToken) : ExportData {
             throw IllegalArgumentException()
         }
 
-        return Either.catch {
+        val ret = Either.catch {
             fullpath.moveFileToPath(token)
             isSaved = true
 
             ExportResultToken(fullpath)
         }
+        
+        logger.debug(ret, "failed to save")
+        
+        return ret
     }
 }

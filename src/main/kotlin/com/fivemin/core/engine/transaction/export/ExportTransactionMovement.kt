@@ -57,9 +57,13 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
     ): Either<Throwable, Ret> {
         logger.debug(source.request, "exporting transaction")
         val ret = parser.parse(source)
-        
-        return next(Either.catch {
+    
+        val either = Either.catch {
             ExportTransactionImpl(source.request, source.tags, saveResult(ret))
-        })
+        }
+        
+        logger.debug(either, "failed to move")
+        
+        return next(either)
     }
 }

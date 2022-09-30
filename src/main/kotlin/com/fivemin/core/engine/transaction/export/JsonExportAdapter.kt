@@ -22,6 +22,7 @@ package com.fivemin.core.engine.transaction.export
 
 import arrow.core.Either
 import arrow.core.toOption
+import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -30,6 +31,10 @@ import java.util.*
 
 class JsonExportAdapter(private val fileNameExp: TagExpression, private val exportHandleFactory: ExportHandleFactory) :
     ExportAdapter {
+    companion object {
+        private val logger = LoggerController.getLogger("JsonExportAdapter")
+    }
+    
     override fun parseAndExport(
         request: Request,
         info: Iterable<ExportAttributeInfo>
@@ -54,7 +59,7 @@ class JsonExportAdapter(private val fileNameExp: TagExpression, private val expo
         }
 
         return addedTagrepo.map {
-            Either.catch {
+            val ret = Either.catch {
                 exportHandleFactory.create( //creates json contents.
                     it.key,
                     convertToJson(
@@ -64,6 +69,10 @@ class JsonExportAdapter(private val fileNameExp: TagExpression, private val expo
                     )
                 )
             }
+            
+            logger.debug(ret, "failed to parseAndExport")
+            
+            ret
         }
     }
 
