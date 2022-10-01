@@ -21,6 +21,7 @@
 package com.fivemin.core.initialize
 
 import arrow.core.Either
+import arrow.core.Option
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.FileIOToken
 import com.fivemin.core.engine.session.BloomFilterFactory
@@ -35,11 +36,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class ResumeDataNameGenerator(val target: String) {
-    fun generate(): String {
-
-        val sdf = SimpleDateFormat("ss")
-        val cur = sdf.format(Date())
-
-        return "jdbc:sqlite:[" + cur + "]_" + URI(target).host + ".db"
+    fun generate(resumeAt: Option<String>): String {
+        return resumeAt.fold({
+            val sdf = SimpleDateFormat("ss")
+            val cur = sdf.format(Date())
+    
+            "jdbc:sqlite:[ + $cur + ]_ + ${URI(target).host} + .db"
+        }, {
+            "jdbc:sqlite:$it"
+        })
     }
 }

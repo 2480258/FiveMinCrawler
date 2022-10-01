@@ -1,0 +1,64 @@
+{
+    "requestFormat": {
+        "engines": [
+            {
+                "requesterEngineName": "Default",
+                "type": "Default",
+                "requesters": [
+                    {
+                        "userAgent": "FiveMinCrawler/1.01111111111111111111111111111111111111111"
+                    }
+                ]
+            }
+        ],
+        "cookiePolicies": []
+    },
+    "parseFormat": {
+        "bookName": "aaa",
+        "globalCondition": {
+            "uriRegex": "http://localhost:3000/"
+        },
+        "pages": [
+            {
+                "pageName": "headerReflect",
+                "condition": {
+                    "uriRegex": "http://localhost:3000/headerReflect"
+                },
+                "internalAttributes": [
+                    {
+                        "attributeName": "C",
+                        "queryStr": "body",
+                        "parseMode": "TEXT_CONTENT"
+                    }
+                ],
+                "externalAttributes": [],
+                "linkAttributes": [],
+                "targetContainer": {
+                    "workingSetMode": "Enabled"
+                },
+                "tag": [],
+                "targetRequesterEngine": {
+                    "targetRequester": "Default"
+                }
+            }
+        ],
+        "attributeRequester": {
+            "targetRequester": "Default"
+        }
+    },
+    "exportFormat": {
+        "bookName": "aaa",
+        "pages": [
+            {
+                "pageName": "headerReflect",
+                "targetAttributeName": [
+                    "C"
+                ],
+                "adapter": {
+                    "mode": "Json",
+                    "fileNameTagExp": "headerReflect.json"
+                }
+            }
+        ]
+    }
+}
