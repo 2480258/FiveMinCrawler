@@ -129,7 +129,7 @@ class NormalIntegrationTest {
         val options = StartTaskOption(
             mainUriTarget = "http://localhost:3000/headerReflect",
             paramPath = "TestParameters/jsonIntegrationTest_Header.json",
-            resumeAt = Some("TestParameters/[16]_localhost.db")
+            resumeAt = Some("TestParameters/[16]_localhost.d1b")
         )
         
         IntegrationVerify.runAndVerify(listOf()) {
