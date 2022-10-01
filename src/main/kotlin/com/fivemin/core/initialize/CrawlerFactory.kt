@@ -274,10 +274,7 @@ class CrawlerFactory {
         }
         
         private fun getSessionUniqueKeyFilter(resumeAt: Option<String>, target: String): CompositeUniqueKeyRepository {
-            val jdbcUrl = resumeAt.map { it }.fold({
-                ResumeDataNameGenerator(target).generate()
-            }, { it })
-            
+            val jdbcUrl = ResumeDataNameGenerator(target).generate(resumeAt)
             val persister = UniqueKeyPersisterImpl(DatabaseAdapterFactoryImpl(jdbcUrl).get())
             
             return CompositeUniqueKeyRepository(

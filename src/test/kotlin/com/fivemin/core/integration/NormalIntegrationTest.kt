@@ -20,23 +20,30 @@
 
 package com.fivemin.core.integration
 
+import arrow.core.Some
 import com.fivemin.core.engine.*
 import com.fivemin.core.initialize.CrawlerFactory
 import com.fivemin.core.initialize.StartTaskOption
 import kotlinx.coroutines.runBlocking
 import org.testng.annotations.Test
+import java.io.File
 
 class NormalIntegrationTest {
     @Test
     fun testNormal() {
-        System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
-        
         val options = StartTaskOption(
             mainUriTarget = "http://localhost:3000/home",
             paramPath = "TestParameters/jsonIntegrationTest.json"
         )
         
-        IntegrationVerify.runAndVerify(listOf(VerifySet("Output/00.png", 5745), VerifySet("Output/01.png", 9004), VerifySet("Output/user.json", 41), VerifySet("Output/about.json", 41))) {
+        IntegrationVerify.runAndVerify(
+            listOf(
+                VerifySet("Output/00.png", 5745),
+                VerifySet("Output/01.png", 9004),
+                VerifySet("Output/user.json", 41),
+                VerifySet("Output/about.json", 41)
+            )
+        ) {
             CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
                 val task = taskFactory.getFactory()
                     .get4<
@@ -47,7 +54,96 @@ class NormalIntegrationTest {
                             ExportTransaction<Request>>(
                         DocumentType.DEFAULT
                     )
+                
+                runBlocking {
+                    task.start(document, info, state)
+                }
+            }
+        }
         
+        IntegrationVerify.verifyDirectoryEmpty("Output")
+    }
+    
+    @Test
+    fun testHeader() {
+        val options = StartTaskOption(
+            mainUriTarget = "http://localhost:3000/headerReflect",
+            paramPath = "TestParameters/jsonIntegrationTest_Header.json"
+        )
+        
+        IntegrationVerify.runAndVerify(listOf(VerifySet("Output/headerReflect.json", 276))) {
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+                val task = taskFactory.getFactory()
+                    .get4<
+                            InitialTransaction<Request>,
+                            PrepareTransaction<Request>,
+                            FinalizeRequestTransaction<Request>,
+                            SerializeTransaction<Request>,
+                            ExportTransaction<Request>>(
+                        DocumentType.DEFAULT
+                    )
+                
+                runBlocking {
+                    task.start(document, info, state)
+                }
+            }
+            
+            val file = File("Output/headerReflect.json")
+            assert(file.readText().contains("FiveMinCrawler/1.01111111111111111111111111111111111111111"))
+        }
+        
+        IntegrationVerify.verifyDirectoryEmpty("Output")
+    }
+    
+    @Test
+    fun testRootPath() {
+        val options = StartTaskOption(
+            mainUriTarget = "http://localhost:3000/headerReflect",
+            paramPath = "TestParameters/jsonIntegrationTest_Header.json",
+            rootPath = Some("Output11")
+        )
+        
+        IntegrationVerify.runAndVerify(listOf(VerifySet("Output11/Output/headerReflect.json", 276))) {
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+                val task = taskFactory.getFactory()
+                    .get4<
+                            InitialTransaction<Request>,
+                            PrepareTransaction<Request>,
+                            FinalizeRequestTransaction<Request>,
+                            SerializeTransaction<Request>,
+                            ExportTransaction<Request>>(
+                        DocumentType.DEFAULT
+                    )
+                
+                runBlocking {
+                    task.start(document, info, state)
+                }
+            }
+        }
+        
+        IntegrationVerify.verifyDirectoryEmpty("Output11/Output")
+    }
+    
+    @Test
+    fun testResumeAt() {
+        val options = StartTaskOption(
+            mainUriTarget = "http://localhost:3000/headerReflect",
+            paramPath = "TestParameters/jsonIntegrationTest_Header.json",
+            resumeAt = Some("TestParameters/[16]_localhost.db")
+        )
+        
+        IntegrationVerify.runAndVerify(listOf()) {
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+                val task = taskFactory.getFactory()
+                    .get4<
+                            InitialTransaction<Request>,
+                            PrepareTransaction<Request>,
+                            FinalizeRequestTransaction<Request>,
+                            SerializeTransaction<Request>,
+                            ExportTransaction<Request>>(
+                        DocumentType.DEFAULT
+                    )
+                
                 runBlocking {
                     task.start(document, info, state)
                 }
