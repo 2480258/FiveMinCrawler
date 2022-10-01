@@ -20,33 +20,130 @@
 
 package com.fivemin.core.request
 
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Semaphore
+import org.testng.Assert.assertEquals
+import org.testng.Assert.assertThrows
+import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
 
-import org.testng.Assert.*
-import org.testng.annotations.BeforeMethod
-
 class TaskWaitHandleTest {
-
+    
     lateinit var handle: TaskWaitHandle<Int>
-
+    
     @BeforeMethod
     fun before() {
         handle = TaskWaitHandle()
     }
-
+    
     @Test
-    fun testRun() {
-        var num = 0
-
+    fun testAsyncCancelCoroutine() {
+        assertThrows {
+            runBlocking {
+                handle.runAsync({
+                    throw IllegalArgumentException()
+                }, {}).await()
+            }
+        }
+    }
+    
+    @Test
+    fun testAsyncException() {
+        assertThrows {
+            runBlocking {
+                handle.runAsync({
+                    throw IllegalArgumentException()
+                }, {}).await()
+            }
+        }
+    }
+    
+    @Test(timeOut = 1000)
+    fun testRunAsyncNonBlocking() {
+        val semaphore = Semaphore(1, 1)
+        
         runBlocking {
-            num = handle.run {
-                Thread.sleep(3000)
+            handle.runAsync({
+                semaphore.acquire()
                 handle.registerResult(42)
-            }.await()
-
+            }, {})
+        }
+    }
+    
+    @Test
+    fun testRunAsyncCanceled() {
+        var num = 0
+        val semaphore = Semaphore(1, 1)
+        
+        runBlocking {
+            val job = handle.runAsync({
+                semaphore.acquire()
+                handle.registerResult(42)
+            }, {
+                println("test")
+                num = 1
+            })
+            
+            
+            async {
+                delay(1000)
+                job.cancel()
+            }
+        }
+        
+        assertEquals(num, 1)
+    }
+    
+    @Test
+    fun testRunAsync() {
+        var num = 0
+        
+        runBlocking {
+            num = handle.runAsync({
+                delay(3000)
+                handle.registerResult(42)
+            }, {
+            
+            }).await()
+            
             assertEquals(num, 42)
+        }
+    }
+    
+    @Test
+    fun testForceFinishIfNot() {
+        runBlocking {
+            val ret = handle.runAsync({
+                delay(3000)
+            }, {
+            
+            })
+        
+            handle.forceFinishIfNot()
+            assert(ret.isCompleted)
+            assert(ret.getCompletionExceptionOrNull() is IllegalStateException)
+        }
+    }
+    
+    
+    @Test
+    fun testRedundentForceFinishIfNot() {
+        runBlocking {
+            val semaphore = Semaphore(1, 1)
+            val ret = handle.runAsync({
+                handle.registerResult(100)
+                semaphore.release()
+            }, {
+            
+            })
+            
+            semaphore.acquire()
+            handle.forceFinishIfNot()
+            assert(ret.isCompleted)
+            assertEquals(ret.await(), 100)
+            assert(ret.getCompletionExceptionOrNull() == null)
         }
     }
 }

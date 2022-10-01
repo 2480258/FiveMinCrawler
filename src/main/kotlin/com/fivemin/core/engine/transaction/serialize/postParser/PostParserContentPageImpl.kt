@@ -22,12 +22,15 @@ package com.fivemin.core.engine.transaction.serialize.postParser
 
 import arrow.core.*
 import com.fivemin.core.LoggerController
+import com.fivemin.core.TaskDetachedException
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.InitialTransactionImpl
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.toList
 
 class PostParserContentPageImpl<Document : Request>(
     private val pageCondition: PageName,
@@ -36,45 +39,49 @@ class PostParserContentPageImpl<Document : Request>(
     private val inteInfoFactory: InternalContentInfoFactory<Document>,
     private val attributeFactory: DocumentAttributeFactory
 ) : PostParserContentPage<Document> {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("PostParserContentPageImpl")
     }
-
+    
     override suspend fun extract(
-        req: FinalizeRequestTransaction<Document>,
-        info: TaskInfo,
-        state: SessionStartedState
+        req: FinalizeRequestTransaction<Document>, info: TaskInfo, state: SessionStartedState
     ): Deferred<Option<List<DocumentAttribute>>> {
         return coroutineScope {
             async {
-                req.previous.ifDocumentAsync({
-                    if (it.parseOption.name == pageCondition) {
-                        val internals = processIntAttribute(req)
-                        val externals = processExtAttributes(req, info, state)
-                        val links = processLinks(req, info, state)
-
-                        links.toList().awaitAll() // wait until all child link downloaded
-
-                        val finished = externals.map { y ->
-                            y.await()
-                        }.filterOption()
-
-                        val ret = internals.fold({ finished }) { x ->
-                            finished.plus(x)
+                try {
+    
+                    req.previous.ifDocumentAsync({
+                        if (it.parseOption.name == pageCondition) {
+                            val internals = processIntAttribute(req)
+                            val externals = processExtAttr(req, info, state)
+                            val links = processLinks(req, info, state)
+            
+                            externals.plus(links).awaitAll() // early exits if at least one links returns an exception.
+            
+                            val finished = externals.map { y ->
+                                y.await() // awaits already awaited values. orders are not important
+                            }
+            
+                            val ret = internals.fold({ finished }) { x ->
+                                finished.plus(x)
+                            }
+            
+                            ret.toOption()
+                        } else {
+                            none()
                         }
-
-                        ret.toOption()
-                    } else {
+                    }, {
                         none()
-                    }
-                }, {
-                    none()
-                })
+                    })
+                } catch (e: Exception) {
+                    logger.debug(e, "failed to extract")
+                    throw e
+                }
             }
         }
     }
-
+    
     private suspend fun processIntAttribute(req: FinalizeRequestTransaction<Document>): Option<Iterable<DocumentAttribute>> {
         return inteInfoFactory.get(req).map {
             it.map { x ->
@@ -89,89 +96,113 @@ class PostParserContentPageImpl<Document : Request>(
             }.filterOption()
         }
     }
-
-    private suspend fun processExtAttributes(
-        req: FinalizeRequestTransaction<Document>,
+    
+    private suspend fun downloadAttributes(
+        requestLinkInfo: RequestLinkInfo,
+        request: HttpRequest,
         info: TaskInfo,
         state: SessionStartedState
-    ): Iterable<Deferred<Option<DocumentAttribute>>> {
+    ): Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>> {
+        val task = info.createTask<HttpRequest>()
+            .get2<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>>(
+                DocumentType.NATIVE_HTTP
+            )
+        
+        return state.getChildSession {
+            task.start(
+                InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), info, it
+            )
+        }
+    }
+    
+    private suspend fun processExtAttr(
+        req: FinalizeRequestTransaction<Document>, info: TaskInfo, state: SessionStartedState
+    ): List<Deferred<DocumentAttribute>> {
         val attr = attrInfoFactory.get(req)
-
-        return attr.linkInfo.map { requestLinkInfo ->
-            val ret = requestLinkInfo.requests.map { httpRequest ->
-                val task = info.createTask<HttpRequest>().get2<
-                    InitialTransaction<HttpRequest>,
-                    PrepareTransaction<HttpRequest>,
-                    FinalizeRequestTransaction<HttpRequest>>(DocumentType.NATIVE_HTTP)
-
-                state.getChildSession {
-                    task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), httpRequest), info, it)
-                }
+        
+        val result = attr.linkInfo.map { requestLinkInfo ->
+            val downloaded = requestLinkInfo.requests.map { httpRequest ->
+                downloadAttributes(requestLinkInfo, httpRequest, info, state)
             }
-
-            if (ret.any()) {
-                finalizeAttribute(requestLinkInfo, ret).toOption()
+            
+            val list = if (downloaded.any()) {
+                Some(finalizeAttr(requestLinkInfo, downloaded))
             } else {
                 logger.warn(req.request.getDebugInfo() + " < " + requestLinkInfo.name + " < has no content; ignoring")
                 none()
             }
-        }.filterOption()
+            
+            list
+        }.filterOption().toList()
+        
+        return result
     }
-
-    private suspend fun finalizeAttribute(
-        x: RequestLinkInfo,
-        ret: Iterable<Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>>>
-    ): Deferred<Option<DocumentAttribute>> {
+    
+    private suspend fun finalizeAttr(
+        x: RequestLinkInfo, ret: Iterable<Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>>>
+    ): Deferred<DocumentAttribute> {
         return coroutineScope {
             async {
-                val finished = ret.toList().awaitAll().map {
-                    val downloaded = it
-
-                    downloaded.swap().map {
-                        logger.warn(it)
+                val finished = coroutineScope {
+                    ret.map {
+                        async {
+                            it.await().fold({ throw it }, ::identity) // early exits if exception raised
+                        }
                     }
-
-                    downloaded.orNull().toOption()
-                }.filterOption()
+                }.awaitAll()
+                
                 val info = DocumentAttributeInfo(x.name)
-
-                if (!finished.any()) {
-                    none()
-                } else if (finished.count() == 1) {
-                    attributeFactory.getExternal(info, finished[0]).orNull().toOption()
+                
+                if (finished.count() == 1) {
+                    attributeFactory.getExternal(info, finished[0])
                 } else {
-                    attributeFactory.getExternal(info, finished).orNull().toOption()
-                }
+                    attributeFactory.getExternal(info, finished)
+                }.fold({ throw it }, ::identity)
             }
         }
     }
-
+    
     private suspend fun processLinks(
-        request: FinalizeRequestTransaction<Document>,
-        info: TaskInfo,
-        state: SessionStartedState
-    ): Iterable<Deferred<Either<Throwable, ExportTransaction<HttpRequest>>>> {
+        request: FinalizeRequestTransaction<Document>, info: TaskInfo, state: SessionStartedState
+    ): List<Deferred<Either<Throwable, ExportTransaction<HttpRequest>>>> {
         val links = linkInfoFactory.get(request)
-        return links.linkInfo.map { x ->
-            val ret = x.requests.map { y ->
-                val task = info.createTask<HttpRequest>().get4<
-                    InitialTransaction<HttpRequest>,
-                    PrepareTransaction<HttpRequest>,
-                    FinalizeRequestTransaction<HttpRequest>,
-                    SerializeTransaction<HttpRequest>,
-                    ExportTransaction<HttpRequest>>(DocumentType.NATIVE_HTTP)
-
-                state.getChildSession {
-                    task.start(InitialTransactionImpl(x.option, TagRepositoryImpl(), y), info, it)
-                }
+        return links.linkInfo.map { requestLinkInfo ->
+            val ret = requestLinkInfo.requests.map { request ->
+                downloadLinks(requestLinkInfo, request, info, state)
             }
-
+            
             if (ret.any()) {
                 ret.toOption()
             } else {
-                logger.warn(request.request.getDebugInfo() + " < " + x.name + " < has no content; ignoring")
+                logger.warn(request.request.getDebugInfo() + " < " + requestLinkInfo.name + " < has no content; ignoring")
                 none()
             }
-        }.filterOption().flatten()
+        }.filterOption().flatten().toList()
+    }
+    
+    private suspend fun downloadLinks(
+        requestLinkInfo: RequestLinkInfo,
+        request: HttpRequest,
+        info: TaskInfo,
+        state: SessionStartedState
+    ): Deferred<Either<Throwable, ExportTransaction<HttpRequest>>> {
+        val task = info.createTask<HttpRequest>()
+            .get4<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>, SerializeTransaction<HttpRequest>, ExportTransaction<HttpRequest>>(
+                DocumentType.NATIVE_HTTP
+            )
+        
+        val ret = state.getChildSession {
+            task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), info, it)
+        }
+        
+        return coroutineScope {
+            async {
+                try {
+                    ret.await()
+                } catch (e: TaskDetachedException) {
+                    e.left()
+                }
+            }
+        }
     }
 }

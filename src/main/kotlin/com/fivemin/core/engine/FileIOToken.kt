@@ -22,6 +22,7 @@ package com.fivemin.core.engine
 
 import arrow.core.Either
 import arrow.core.Valid
+import com.fivemin.core.LoggerController
 import kotlinx.serialization.Serializable
 import java.io.File
 import java.io.FileInputStream
@@ -216,6 +217,11 @@ data class FileName constructor(private val filename: String) {
  * @param name File name
  */
 data class FileIOToken constructor(private val InitPath: DirectoryIOToken, private val name: FileName) {
+    
+    companion object {
+        private val logger = LoggerController.getLogger("FileIOToken")
+    }
+    
     private val directoryPart: DirectoryIOToken
     val fileName: FileName
 
@@ -261,9 +267,13 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
     fun unsafeOpenFileStream(): Either<Throwable, FileOutputStream> {
         ensureDirectory()
 
-        return Either.catch {
+        val ret = Either.catch {
             return Either.Right(FileOutputStream(result))
         }
+        
+        logger.debug(ret, "failed to unsafeOpenFileStream")
+        
+        return ret
     }
     
     /**
@@ -285,7 +295,7 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
      */
     fun <T> openFileReadStream(func: (FileInputStream) -> T): Either<Throwable, T> {
         ensureDirectory()
-        return Either.catch { ->
+        val ret = Either.catch { ->
             var os: FileInputStream? = null
 
             try {
@@ -295,6 +305,10 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
                 os?.close()
             }
         }
+        
+        logger.debug(ret, "openFileReadStream")
+        
+        return ret
     }
 
     fun remove() {

@@ -10,5 +10,6 @@ FiveMinDummyPlugin/build/*
 FiveMinDummyPlugin/.gradle/*
 /jacoco
 jacocoTestReport.xml
-sample.db
+*.db
 plugins
+Output/*

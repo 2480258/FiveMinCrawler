@@ -22,9 +22,8 @@ package com.fivemin.core.engine
 
 import arrow.core.*
 import com.fivemin.core.LoggerController
-import com.fivemin.core.engine.transaction.prepareRequest.TaskDetachedException
+import com.fivemin.core.TaskDetachedException
 import kotlinx.coroutines.*
-import arrow.core.continuations.*
 
 class TaskError constructor(val Error: Either<TaskCanceledException, Exception>)
 

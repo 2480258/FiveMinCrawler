@@ -22,20 +22,12 @@ package com.fivemin.core.engine.crawlingTask
 
 
 import arrow.core.identity
-import arrow.core.toOption
-import com.fivemin.core.DocumentMockFactory
-import com.fivemin.core.DocumentMockFactory.Companion.upgrade
-import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
-import com.fivemin.core.ElemIterator
-import com.fivemin.core.UriIterator
-import com.fivemin.core.engine.*
-import io.mockk.coVerify
+import com.fivemin.core.engine.Request
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import org.testng.Assert.*
+import org.testng.Assert.assertThrows
 import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
-import java.util.*
 
 internal class LimitMaxPageSubPolicyTest {
     
@@ -52,13 +44,9 @@ internal class LimitMaxPageSubPolicyTest {
             limitMaxPageSubPolicy.process(mockk(), mockk(), mockk(), mockk(), ::identity)
         }
         
-        val result = runBlocking {
-            limitMaxPageSubPolicy.process(mockk(), mockk(), mockk(), mockk(), ::identity)
-        }
-        
-        runBlocking {
-            result.map {
-                fail()
+        assertThrows {
+            runBlocking {
+                limitMaxPageSubPolicy.process(mockk(), mockk(), mockk(), mockk(), ::identity)
             }
         }
     }

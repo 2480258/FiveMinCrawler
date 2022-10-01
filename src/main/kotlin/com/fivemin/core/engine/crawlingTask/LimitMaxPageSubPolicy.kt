@@ -25,6 +25,7 @@ import arrow.core.left
 import arrow.core.right
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
+import kotlinx.coroutines.CancellationException
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -49,7 +50,7 @@ class LimitMaxPageSubPolicy<Document : Request>(private val maxPageNum: Int) :
         val cnt = pageCount.getAndIncrement()
         
         return if (cnt >= maxPageNum) {
-            ExceedsMaxPageException().left()
+            throw ExceedsMaxPageException()
         } else {
             next(
                 dest.right()
@@ -58,4 +59,4 @@ class LimitMaxPageSubPolicy<Document : Request>(private val maxPageNum: Int) :
     }
 }
 
-class ExceedsMaxPageException : Exception()
+class ExceedsMaxPageException : CancellationException()

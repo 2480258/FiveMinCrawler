@@ -20,6 +20,7 @@
 
 package com.fivemin.core
 
+import arrow.core.Either
 import arrow.core.Option
 import arrow.core.none
 import com.fivemin.core.engine.Request
@@ -49,6 +50,8 @@ interface Logger {
     fun warn(req: Request, str: String, e: Option<Throwable> = none())
 
     fun error(req: Request, str: String, e: Option<Throwable> = none())
+    
+    fun debug(either: Either<Throwable, Any?>, str: String)
 }
 
 class LoggerController {

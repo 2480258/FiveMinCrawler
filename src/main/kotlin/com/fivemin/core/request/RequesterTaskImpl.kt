@@ -21,40 +21,68 @@
 package com.fivemin.core.request
 
 import arrow.core.Either
-import arrow.core.computations.ResultEffect.bind
+import arrow.core.computations.either
 import arrow.core.flatten
+import arrow.core.identity
 import arrow.core.left
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.ResponseData
 import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 data class RequestTaskOption(val selector: RequesterSelector, val queue: RequestQueue)
 
+
 class RequesterTaskImpl(private val option: RequestTaskOption) : RequesterTask {
+    
+    /**
+     * Non-blocking, Asynchronously downloads a request at the GlobalScope.
+     *
+     * Many exceptions will be caught (i.e Connection errors) but some critical errors will be thrown (i.e Cancellation Exception).
+     *
+     * To cancel request, just call cancel() on the returned Deferred<T>
+     * */
     override suspend fun <Document : Request, Resp : ResponseData> run(request: DocumentRequest<Document>): Deferred<Either<Throwable, Resp>> {
         var handle = TaskWaitHandle<Either<Throwable, Resp>>()
-
-        return handle.runAsync {
-            arrow.core.computations.option {
-                val mapped = option.selector.schedule<Document, Resp>(request).bind()
-                var preprocess =
-                    PreprocessedRequest(request, PreprocessRequestInfo(mapped.info, mapped.requester.extraInfo.dequeueDecision))
-                option.queue.enqueue(
-                    preprocess,
-                    EnqueueRequestInfo { y ->
-                        var ret = y.map {
-                            try {
-                                mapped.requester.request(it).await()
-                            } catch (e: Exception) {
-                                e.left()
-                            }
-                        }.flatten()
+        
+        val mappedRequester = option.selector.schedule<Document, Resp>(request)
+        val preprocess = mappedRequester.map {
+            PreprocessedRequest(request, PreprocessRequestInfo(it.info, it.requester.extraInfo.dequeueDecision))
+        }
+        
+        val enqueue = either<Throwable, EnqueueRequestInfo> {
+            val req = mappedRequester.bind()
             
-                        handle.registerResult(ret)
-                    }
-                )
+            EnqueueRequestInfo { info ->
+                try {
+                    val ret = info.map {
+                        req.requester.request(it).await()
+                    }.flatten()
+    
+                    handle.registerResult(ret)
+                } catch (e: Exception) {
+                    handle.registerResult(e.left())
+                } finally {
+                    handle.forceFinishIfNot()
+                }
             }
         }
+        
+        val result = either<Throwable, Deferred<Either<Throwable, Resp>>> {
+            val enq = enqueue.bind()
+            val pre = preprocess.bind()
+            
+            handle.runAsync({
+                option.queue.enqueue(pre, enq)
+            }, {
+                option.queue.cancelWSSet(pre.request)
+            })
+        }
+        
+        return result.fold({
+            coroutineScope { async { it.left() } }
+        }, ::identity)
     }
 }

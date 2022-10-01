@@ -21,58 +21,63 @@
 package com.fivemin.core.request
 
 import com.fivemin.core.LoggerController
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.*
 
 class TaskWaitHandle<T> {
-    private var result: T? = null
-    private val semaphore = Semaphore(1)
-
+    private var result = CompletableDeferred<T>()
+    
     companion object {
         private val logger = LoggerController.getLogger("TaskWaitHandle")
     }
-
-    suspend fun run(act: () -> Unit): Deferred<T> {
-        return coroutineScope {
-            async {
-                semaphore.acquire()
-
-                try {
-                    act()
-                } finally {
-                    semaphore.acquire() // registerResult() should be called in act() so acquire again (prevent reuse)
+    
+    suspend fun runAsync(act: suspend () -> Unit, onCancel: suspend () -> Unit): Deferred<T> {
+        val job = CoroutineScope(Dispatchers.IO).launch {
+            try {
+                act()
+            } catch (e: Exception) {
+                result.completeExceptionally(e)
+            }
+        }
+        
+        result.invokeOnCompletion { e ->
+            whenCancel(e, onCancel)
+            job.cancel()
+        }
+        
+        return result
+    }
+    
+    private fun whenCancel(e: Throwable?, onCancel: suspend () -> Unit) {
+        when (e) {
+            null -> {
+                return
+            }
+            is CancellationException -> {
+                runBlocking {
+                    onCancel()
                 }
-
-                result!!
+                
+                logger.debug("${this.hashCode()} < exiting with cancel")
+                result.completeExceptionally(e)
+            }
+            else -> {
+                logger.debug("${this.hashCode()} < exiting with error: ${e}")
+                result.completeExceptionally(e)
             }
         }
     }
     
-    suspend fun runAsync(act: suspend () -> Unit): Deferred<T> {
-        return coroutineScope {
-            async {
-                semaphore.acquire()
-                
-                try {
-                    act()
-                } finally {
-                    semaphore.acquire() // registerResult() should be called in act() so acquire again (prevent reuse)
-                }
-                
-                result!!
-            }
-        }
-    }
-
     fun registerResult(_result: T) {
-        logger.debug("registerResult: " + semaphore.hashCode())
-
-        try {
-            result = _result
-        } finally {
-            semaphore.release()
+        logger.debug("registerResult: " + this.hashCode())
+        result!!.complete(_result)
+    }
+    
+    /**
+     * Force finish if not completed yet.
+     * */
+    fun forceFinishIfNot() {
+        if(result.isActive) {
+            result!!.completeExceptionally(IllegalStateException("handle was forcefully finished"))
         }
     }
 }

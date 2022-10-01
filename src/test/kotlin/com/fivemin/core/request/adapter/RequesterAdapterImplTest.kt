@@ -29,8 +29,9 @@ import com.fivemin.core.request.RequestHeaderProfile
 import com.fivemin.core.request.cookie.CustomCookieJar
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
-import org.testng.Assert.*
+import kotlinx.coroutines.*
+import org.testng.Assert.assertThrows
+import org.testng.Assert.fail
 import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
 import java.net.URI
@@ -71,6 +72,49 @@ class RequesterAdapterImplTest {
         }
     }
     
+    @Test
+    fun testRequestAsyncCancels() {
+        
+        
+        val filterMock: MemoryFilter = mockk()
+        every {
+            filterMock.write(any(), any(), any())
+        } returns (mockk())
+        
+        every {
+            filterMock.flushAndExportAndDispose()
+        } returns (mockk())
+        
+        every {
+            filterMock.close()
+        } returns (mockk())
+        
+        val mock: MemoryFilterFactory = mockk()
+        
+        every {
+            mock.createHtmlFilter(any(), any(), any())
+        } returns (filterMock)
+        
+        
+        
+        req = RequesterAdapterImpl(CustomCookieJar(), ResponseAdapterImpl(mockk(), mock), RequestHeaderProfile())
+        runBlocking {
+            val ret = async {
+                req.requestAsync(DocumentMockFactory.getRequest(URI("http://localhost:3000/timeOut"), RequestType.LINK))
+            }
+            launch {
+                assert(!ret.isCompleted)
+                
+                ret.cancelAndJoin()
+            }
+            
+            assertThrows(CancellationException::class.java) {
+                runBlocking {
+                    ret.await()
+                }
+            }
+        }
+    }
     
     @Test
     fun testRequestAsync() {

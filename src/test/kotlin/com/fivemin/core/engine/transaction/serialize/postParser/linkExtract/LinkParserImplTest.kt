@@ -33,33 +33,34 @@ import com.fivemin.core.request.adapter.RequesterAdapterImpl
 import com.fivemin.core.request.adapter.ResponseAdapterImpl
 import com.fivemin.core.request.cookie.CustomCookieJar
 import kotlinx.coroutines.runBlocking
-import org.testng.Assert.*
+import org.testng.Assert.assertEquals
+import org.testng.Assert.fail
 import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
 import java.net.URI
 
 class LinkParserImplTest {
-
+    
     lateinit var adapter: RequesterAdapterImpl
     val uriIt = ElemIterator(UriIterator())
     val fac = HtmlDocumentFactoryImpl()
-
+    
     var parser = LinkParserImpl()
-
+    
     @BeforeMethod
     fun before() {
         parser = LinkParserImpl()
-
+        
         adapter = RequesterAdapterImpl(
             CustomCookieJar(),
             ResponseAdapterImpl(
                 PerformedRequesterInfo(RequesterEngineInfo("A"), RequesterSlotInfo(0)),
-                MemoryFilterFactoryImpl(DirectIOImpl(ConfigControllerImpl(""), none()), HtmlDocumentFactoryImpl())
+                MemoryFilterFactoryImpl(DirectIOImpl(ConfigControllerImpl("{}"), none()), HtmlDocumentFactoryImpl())
             ),
             RequestHeaderProfile()
         )
     }
-
+    
     @Test
     fun testParseReferrer() {
         runBlocking {
@@ -74,18 +75,18 @@ class LinkParserImplTest {
                 TagRepositoryImpl()
             )
             var ret = adapter.requestAsync(req).await()
-
+            
             ret.fold({ fail() }) {
                 it.ifSuccAsync({
                     it.body.ifHtmlAsync({
                         it.parseAsHtmlDocumentAsync {
                             val link = parser.parse(it, uriIt.gen(), none())
-
+                            
                             link.first().referrerInfo.referrerPolicy.fold({ fail() }) {
                                 assertEquals(it, "same-origin")
                             }
                             assert(link.first().referrerInfo.rel.isEmpty())
-
+                            
                             link.last().referrerInfo.rel.fold({ fail() }) {
                                 assertEquals(it, "noreferrer")
                             }

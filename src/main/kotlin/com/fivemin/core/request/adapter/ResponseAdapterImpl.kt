@@ -52,9 +52,13 @@ class ResponseAdapterImpl(
         ex: Option<Throwable>,
         req: Request
     ): Either<Throwable, ResponseBody> {
-        return Either.catch {
+        val ret = Either.catch {
             CriticalErrorBodyImpl(createRequestBody(original.target, req), ex)
         }
+        
+        logger.debug(ret, "failed to createWithError")
+        
+        return ret
     }
 
     private fun parseCharset(resp: Response): Option<Charset> {
@@ -126,7 +130,7 @@ class ResponseAdapterImpl(
             ).right()
         }
     }
-
+    
     private fun createRequestBody(originalUri: URI, req: Request): com.fivemin.core.engine.RequestBody {
         return com.fivemin.core.engine.RequestBody(originalUri, req.url.toUri(), NetworkHeader(req.headers.toList()))
     }

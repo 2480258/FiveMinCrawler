@@ -60,22 +60,24 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
     ): Either<Throwable, Ret> {
         logger.debug(source.request.getDebugInfo() + " < serializing transaction")
         
-        return next(
-            Either.catch {
-                postParser.getPostParseInfo(source, info, state).map {
-                    source.previous.ifDocument({ doc ->
-                        SerializeTransactionImpl<Document>(
-                            source.request,
-                            convertAttributeToTag(it.attribute, source.tags),
-                            it.attribute.toList(),
-                            SerializeOption(doc.requestOption, doc.parseOption, doc.containerOption)
-                        )
-                    }, {
-                        throw IllegalArgumentException("not support for serialization transaction of non-text based document")
-                    })
-                }
-            }.flatten()
-        )
+        val ret = Either.catch {
+            postParser.getPostParseInfo(source, info, state).map {
+                source.previous.ifDocument({ doc ->
+                    SerializeTransactionImpl<Document>(
+                        source.request,
+                        convertAttributeToTag(it.attribute, source.tags),
+                        it.attribute.toList(),
+                        SerializeOption(doc.requestOption, doc.parseOption, doc.containerOption)
+                    )
+                }, {
+                    throw IllegalArgumentException("not support for serialization transaction of non-text based document")
+                })
+            }
+        }.flatten()
+        
+        logger.debug(ret, "failed to move")
+        
+        return next(ret)
     }
 }
 

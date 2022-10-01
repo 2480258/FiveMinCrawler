@@ -66,6 +66,10 @@ class DatabaseAdapterFactoryImpl(private val jdbcUrl: String) {
 
 class DatabaseAdapterImpl(private val dataSource: DataSource) : DatabaseAdapter {
     
+    init {
+        removeNotFinalized()
+    }
+    
     private fun <T> ensureConnection(func: (Connection) -> T) : T {
         var con : Connection? = null
     
