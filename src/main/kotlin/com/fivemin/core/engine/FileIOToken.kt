@@ -135,7 +135,7 @@ class DirectoryIOToken constructor(private val additionalPath: String) {
             } else if (sep1 || sep2) {
                 path1 + path2
             } else {
-                path1 + '\\' + path2
+                path1 + System.getProperty("file.separator") + path2
             }
         }
     }
