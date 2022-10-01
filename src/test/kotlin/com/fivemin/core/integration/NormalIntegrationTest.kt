@@ -56,35 +56,4 @@ class NormalIntegrationTest {
         
         IntegrationVerify.verifyDirectoryEmpty("Output")
     }
-    
-    @Test
-    fun testCascading() {
-        System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
-        
-        val options = StartTaskOption(
-            mainUriTarget = "http://localhost:3000/home",
-            paramPath = "TestParameters/jsonIntegrationTest_WSDisabled.json"
-        )
-        
-        IntegrationVerify.runAndVerify(listOf()) {
-            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
-                val task = taskFactory.getFactory()
-                    .get4<
-                            InitialTransaction<Request>,
-                            PrepareTransaction<Request>,
-                            FinalizeRequestTransaction<Request>,
-                            SerializeTransaction<Request>,
-                            ExportTransaction<Request>>(
-                        DocumentType.DEFAULT
-                    )
-                
-                runBlocking {
-                    task.start(document, info, state)
-                }
-            }
-        }
-        
-        IntegrationVerify.verifyDirectoryEmpty("Output")
-    }
-    
 }
