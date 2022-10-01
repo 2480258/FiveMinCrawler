@@ -237,7 +237,7 @@ class CrawlerFactory {
         
         fun get(option: StartTaskOption): CrawlerOption {
             val configController = getConfigController()
-            val directIO = getDirectIO(configController)
+            val directIO = getDirectIO(configController, option.rootPath)
             val finishObserver = FinishObserverImpl()
             val sessionUniqueKeyRepository = getSessionUniqueKeyFilter(option.resumeAt, option.mainUriTarget)
             val jsonOptionFactory = getParseOptionFactory(option.paramPath, directIO)

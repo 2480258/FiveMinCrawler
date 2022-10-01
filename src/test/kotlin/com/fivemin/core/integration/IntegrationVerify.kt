@@ -27,16 +27,10 @@ data class VerifySet(val name: String, val size: Long)
 
 class IntegrationVerify {
     companion object {
-        fun dupVerify(directory: String) {
+        fun verifyDirectoryEmpty(directory: String) {
             val file = File(directory)
             
-            if(file.isDirectory) {
-                file.listFiles().map {
-                    if(it.isDirectory and it.name.lowercase().contains("dup")) {
-                        fail()
-                    }
-                }
-            } else {
+            if (file.isDirectory and file.listFiles().any()) {
                 fail()
             }
         }
@@ -47,38 +41,38 @@ class IntegrationVerify {
             }
             try {
                 for (file in files) {
-                    if(file.first.isDirectory) {
+                    if (file.first.isDirectory) {
                         throw IllegalStateException("VerifySet is a directory: " + file.first.name)
                     }
-                
-                    if(file.first.exists()) {
+                    
+                    if (file.first.exists()) {
                         file.first.delete()
                         println("VerifySet deleted before run: " + file.first.name)
                     }
                 }
-            
+                
                 func()
-            
+                
                 for (file in files) {
-                    if(file.first.isDirectory) {
+                    if (file.first.isDirectory) {
                         throw IllegalStateException("VerifySet is a directory: " + file.first.name)
                     }
-                
-                    if(!file.first.exists()) {
+                    
+                    if (!file.first.exists()) {
                         fail("VerifySet failed to verify: file didn't exists: " + file.first.name)
                     }
-                
-                    if(file.first.length() != file.second) {
+                    
+                    if (file.first.length() != file.second) {
                         fail("VerifySet failed to verify: file didn't matches: " + file.first.name + ", current: " + file.first.length() + ", expected: " + file.second)
                     }
                 }
             } finally {
                 for (file in files) {
-                    if(file.first.isDirectory) {
+                    if (file.first.isDirectory) {
                         throw IllegalStateException("VerifySet is a directory: " + file.first.name)
                     }
-                
-                    if(file.first.exists()) {
+                    
+                    if (file.first.exists()) {
                         file.first.delete()
                         println("VerifySet deleted after run: " + file.first.name)
                     }

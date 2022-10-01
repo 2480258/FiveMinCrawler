@@ -118,6 +118,11 @@ class DebugController {
         }
     }
     
+    @GetMapping("timeOutHandling")
+    fun timeOutHandling(request: HttpServletRequest, response: HttpServletResponse) {
+        returnHtml(response, "assets/timeOutHandling.html")
+    }
+    
     private fun returnsBytes(response: HttpServletResponse, path: String) {
         try {
             response.status = 200

@@ -20,12 +20,10 @@
 
 package com.fivemin.core.integration
 
-import arrow.core.Some
 import com.fivemin.core.engine.*
 import com.fivemin.core.initialize.CrawlerFactory
 import com.fivemin.core.initialize.StartTaskOption
 import kotlinx.coroutines.runBlocking
-import org.testng.Assert.fail
 import org.testng.annotations.Test
 
 class NormalIntegrationTest {
@@ -35,7 +33,7 @@ class NormalIntegrationTest {
         
         val options = StartTaskOption(
             mainUriTarget = "http://localhost:3000/home",
-            paramPath = "jsonIntegrationTest.json"
+            paramPath = "TestParameters/jsonIntegrationTest.json"
         )
         
         IntegrationVerify.runAndVerify(listOf(VerifySet("Output/00.png", 5745), VerifySet("Output/01.png", 9004), VerifySet("Output/user.json", 41), VerifySet("Output/about.json", 41))) {
@@ -56,6 +54,37 @@ class NormalIntegrationTest {
             }
         }
         
-        IntegrationVerify.dupVerify("Output")
+        IntegrationVerify.verifyDirectoryEmpty("Output")
     }
+    
+    @Test
+    fun testCascading() {
+        System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
+        
+        val options = StartTaskOption(
+            mainUriTarget = "http://localhost:3000/home",
+            paramPath = "TestParameters/jsonIntegrationTest_WSDisabled.json"
+        )
+        
+        IntegrationVerify.runAndVerify(listOf()) {
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+                val task = taskFactory.getFactory()
+                    .get4<
+                            InitialTransaction<Request>,
+                            PrepareTransaction<Request>,
+                            FinalizeRequestTransaction<Request>,
+                            SerializeTransaction<Request>,
+                            ExportTransaction<Request>>(
+                        DocumentType.DEFAULT
+                    )
+                
+                runBlocking {
+                    task.start(document, info, state)
+                }
+            }
+        }
+        
+        IntegrationVerify.verifyDirectoryEmpty("Output")
+    }
+    
 }

@@ -24,7 +24,6 @@ import arrow.core.identity
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
-import com.fivemin.core.TaskDetachedException
 import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.RequestType
@@ -32,7 +31,7 @@ import com.fivemin.core.engine.WorkingSetMode
 import io.mockk.coVerify
 import kotlinx.coroutines.runBlocking
 import org.testng.Assert.assertEquals
-import org.testng.Assert.fail
+import org.testng.Assert.assertThrows
 import org.testng.annotations.Test
 import java.net.URI
 
@@ -83,19 +82,15 @@ class DetachableSubPolicyTest {
         val info = TaskMockFactory.createTaskInfo()
         val state = TaskMockFactory.createDetachableSessionStarted<Request>()
         
-        val result = runBlocking {
-            detachSubPolicy.process(doc, prep, info, state, ::identity)
+        assertThrows {
+            runBlocking {
+                detachSubPolicy.process(doc, prep, info, state, ::identity)
+            }
         }
         
         coVerify {
             state.detach(any())
         }
-        
-        result.fold({
-            assert(it is TaskDetachedException)
-        }, {
-            fail()
-        })
     }
     
 }
