@@ -95,7 +95,7 @@ class NormalIntegrationTest {
         IntegrationVerify.verifyDirectoryEmpty("Output")
     }
     
-    @Test
+    //@Test
     fun testRootPath() {
         val options = StartTaskOption(
             mainUriTarget = "http://localhost:3000/headerReflect",
