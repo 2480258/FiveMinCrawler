@@ -22,10 +22,16 @@ package com.fivemin.core.request.cookie
 import okhttp3.*
 import java.net.*
 
-class CustomCookieJar : CookieJar {
+class CustomCookieJar constructor(cookies: List<HttpCookie>? = null) : CookieJar {
     private val cookiejar: CookieJar
     private val manager: CookieManager = CookieManager()
 
+    init {
+        cookies?.forEach {
+            manager.cookieStore.add(null, it)
+        }
+    }
+    
     val cookieStore: CookieStore
         get() {
             return manager.cookieStore
