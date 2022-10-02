@@ -1,0 +1,65 @@
+{
+    "requestFormat": {
+        "engines": [
+            {
+                "requesterEngineName": "Default",
+                "type": "Default",
+                "requesters": [
+                    {
+                        "userAgent": "FiveMinCrawler/1.01111111111111111111111111111111111111111",
+                        "cookiePathFromExeLoc": "TestParameters/cookies.json"
+                    }
+                ]
+            }
+        ],
+        "cookiePolicies": []
+    },
+    "parseFormat": {
+        "bookName": "aaa",
+        "globalCondition": {
+            "uriRegex": "http://127.0.0.1:3000/"
+        },
+        "pages": [
+            {
+                "pageName": "cookieReflect",
+                "condition": {
+                    "uriRegex": "http://127.0.0.1:3000/cookieReflect"
+                },
+                "internalAttributes": [
+                    {
+                        "attributeName": "C",
+                        "queryStr": "body",
+                        "parseMode": "TEXT_CONTENT"
+                    }
+                ],
+                "externalAttributes": [],
+                "linkAttributes": [],
+                "targetContainer": {
+                    "workingSetMode": "Enabled"
+                },
+                "tag": [],
+                "targetRequesterEngine": {
+                    "targetRequester": "Default"
+                }
+            }
+        ],
+        "attributeRequester": {
+            "targetRequester": "Default"
+        }
+    },
+    "exportFormat": {
+        "bookName": "aaa",
+        "pages": [
+            {
+                "pageName": "cookieReflect",
+                "targetAttributeName": [
+                    "C"
+                ],
+                "adapter": {
+                    "mode": "Json",
+                    "fileNameTagExp": "cookieReflect.json"
+                }
+            }
+        ]
+    }
+}

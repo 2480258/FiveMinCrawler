@@ -41,7 +41,7 @@ class ResumeDataNameGenerator(val target: String) {
             val sdf = SimpleDateFormat("ss")
             val cur = sdf.format(Date())
     
-            "jdbc:sqlite:[ + $cur + ]_ + ${URI(target).host} + .db"
+            "jdbc:sqlite:[$cur]_${URI(target).host}.db"
         }, {
             "jdbc:sqlite:$it"
         })

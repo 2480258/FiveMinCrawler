@@ -95,7 +95,7 @@ class NormalIntegrationTest {
         IntegrationVerify.verifyDirectoryEmpty("Output")
     }
     
-    @Test
+    //@Test
     fun testRootPath() {
         val options = StartTaskOption(
             mainUriTarget = "http://localhost:3000/headerReflect",
@@ -148,6 +148,41 @@ class NormalIntegrationTest {
                     task.start(document, info, state)
                 }
             }
+        }
+        
+        IntegrationVerify.verifyDirectoryEmpty("Output")
+    }
+    
+    
+    @Test
+    fun testCookie() {
+        val options = StartTaskOption(
+            mainUriTarget = "http://127.0.0.1:3000/cookieReflect",
+            paramPath = "TestParameters/jsonIntegrationTest_Cookie.json"
+        )
+        
+        IntegrationVerify.runAndVerify(listOf(VerifySet("Output/cookieReflect.json", 131))) {
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+                val task = taskFactory.getFactory()
+                    .get4<
+                            InitialTransaction<Request>,
+                            PrepareTransaction<Request>,
+                            FinalizeRequestTransaction<Request>,
+                            SerializeTransaction<Request>,
+                            ExportTransaction<Request>>(
+                        DocumentType.DEFAULT
+                    )
+                
+                runBlocking {
+                    task.start(document, info, state)
+                }
+            }
+            
+            val file = File("Output/cookieReflect.json").readText()
+            assert(file.contains("A1111111111111111111113"))
+            assert(file.contains("A1111111111111111111112"))
+            assert(file.contains("AAAAAAAAAAAAAAAAAAC"))
+            assert(file.contains("AAAAAAAAAAAAAAAAAAB"))
         }
         
         IntegrationVerify.verifyDirectoryEmpty("Output")

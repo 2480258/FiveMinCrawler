@@ -22,7 +22,7 @@ package com.fivemin.core.request.cookie
 import okhttp3.*
 import java.net.*
 
-class CustomCookieJar : CookieJar {
+class CustomCookieJar constructor(cookies: List<HttpCookie>? = null) : CookieJar {
     private val cookiejar: CookieJar
     private val manager: CookieManager = CookieManager()
 
@@ -34,6 +34,10 @@ class CustomCookieJar : CookieJar {
     init {
         manager.setCookiePolicy(CookiePolicy.ACCEPT_ALL)
         cookiejar = JavaNetCookieJar(manager)
+    
+        cookies?.forEach {
+            manager.cookieStore.add(URI(it.domain), it)
+        }
     }
 
     override fun loadForRequest(url: HttpUrl): List<Cookie> {

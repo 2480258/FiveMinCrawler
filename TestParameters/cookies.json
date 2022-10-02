@@ -1,0 +1,16 @@
+{
+  "cookies": [
+    {
+      "name": "AAAAAAAAAAAAAAAAAAC",
+      "value": "A1111111111111111111113",
+      "domain": "127.0.0.1",
+      "path": "/"
+    },
+    {
+      "name": "AAAAAAAAAAAAAAAAAAB",
+      "value": "A1111111111111111111112",
+      "domain": "127.0.0.1",
+      "path": "/"
+    }
+  ]
+}
