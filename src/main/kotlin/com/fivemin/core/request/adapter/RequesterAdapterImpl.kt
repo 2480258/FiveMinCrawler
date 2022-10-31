@@ -149,14 +149,6 @@ class RequesterAdapterImpl(
             this.header("Accept-Encoding", it)
         }
         
-        headerOption.connection.map {
-            this.header("Connection", it)
-        }
-        
-        headerOption.te.map {
-            this.header("TE", it)
-        }
-        
         headerOption.acceptLanguage.map {
             this.header("Accept-Language", it)
         }
@@ -173,20 +165,8 @@ class RequesterAdapterImpl(
             this.header("User-Agent", it)
         }
         
-        headerOption.accept.map {
-            this.header("Accept", it)
-        }
-        
         option.acceptEncoding.map {
             this.header("Accept-Encoding", it)
-        }
-        
-        option.connection.map {
-            this.header("Connection", it)
-        }
-        
-        option.te.map {
-            this.header("TE", it)
         }
         
         option.acceptLanguage.map {

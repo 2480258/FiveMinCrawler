@@ -71,7 +71,7 @@ class NormalIntegrationTest {
             paramPath = "TestParameters/jsonIntegrationTest_Header.json"
         )
         
-        IntegrationVerify.runAndVerify(listOf(VerifySet("Output/headerReflect.json", 276))) {
+        IntegrationVerify.runAndVerify(listOf(VerifySet("Output/headerReflect.json", 191))) {
             CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
                 val task = taskFactory.getFactory()
                     .get4<

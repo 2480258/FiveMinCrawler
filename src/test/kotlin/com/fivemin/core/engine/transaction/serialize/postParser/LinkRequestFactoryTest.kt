@@ -70,10 +70,6 @@ class LinkRequestFactoryTest {
             assertEquals(it.requests.first().target, URI("https://aaa.com/a.jpg"))
             assertEquals(it.requests.first().documentType, DocumentType.NATIVE_HTTP)
             assertEquals(it.requests.first().headerOption.referrer, Some(URI("https://aaa.com")))
-            assertEquals(
-                it.requests.first().headerOption.accept,
-                Some("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5")
-            )
         
             assertEquals(it.requests.first().headerOption.requestHeaderProfile, none<RequestHeaderProfile>())
         })
@@ -115,10 +111,6 @@ class LinkRequestFactoryTest {
             assertEquals(it.requests.first().target, URI("https://aaa.com/a.jpg"))
             assertEquals(it.requests.first().documentType, DocumentType.NATIVE_HTTP)
             assertEquals(it.requests.first().headerOption.referrer, Some(URI("https://aaa.com")))
-            assertEquals(
-                it.requests.first().headerOption.accept,
-                Some("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5")
-            )
             
             assertEquals(it.requests.first().headerOption.requestHeaderProfile, none<RequestHeaderProfile>())
         })

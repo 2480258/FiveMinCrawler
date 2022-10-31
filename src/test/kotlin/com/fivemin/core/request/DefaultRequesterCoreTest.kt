@@ -145,8 +145,6 @@ class DefaultRequesterCoreTest {
                     RequestHeaderProfile(
                         acceptEncoding = Some("gzip"),
                         acceptLanguage = Some("1234"),
-                        connection = Some("Close"),
-                        te = Some("trailers"),
                         userAgent = Some("abc")
                     )
                 ),
