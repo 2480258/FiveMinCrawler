@@ -56,7 +56,7 @@ class NormalIntegrationTest {
                     )
                 
                 runBlocking {
-                    task.start(document, info, state)
+                    task.start(document, info, state).await()
                 }
             }
         }
@@ -84,7 +84,7 @@ class NormalIntegrationTest {
                     )
                 
                 runBlocking {
-                    task.start(document, info, state)
+                    task.start(document, info, state).await()
                 }
             }
             
@@ -116,7 +116,7 @@ class NormalIntegrationTest {
                     )
                 
                 runBlocking {
-                    task.start(document, info, state)
+                    task.start(document, info, state).await()
                 }
             }
         }
@@ -145,7 +145,7 @@ class NormalIntegrationTest {
                     )
                 
                 runBlocking {
-                    task.start(document, info, state)
+                    task.start(document, info, state).await()
                 }
             }
         }
@@ -174,7 +174,7 @@ class NormalIntegrationTest {
                     )
                 
                 runBlocking {
-                    task.start(document, info, state)
+                    task.start(document, info, state).await()
                 }
             }
             

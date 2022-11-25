@@ -37,22 +37,26 @@ class DownloadHandlerImpl {
         info: TaskInfo,
         state: SessionStartedState
     ): Deferred<Either<Throwable, ExportTransaction<HttpRequest>>> {
-        val task = info.createTask<HttpRequest>()
-            .get4<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>, SerializeTransaction<HttpRequest>, ExportTransaction<HttpRequest>>(
-                DocumentType.NATIVE_HTTP
-            )
-        
-        val ret = state.getChildSession {
-            task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), info, it)
-        }
-        
-        return GlobalScope.async {
+        val result = GlobalScope.async { // it might be bad.... for now, this may be best
+            
+            val task = info.createTask<HttpRequest>()
+                .get4<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>, SerializeTransaction<HttpRequest>, ExportTransaction<HttpRequest>>(
+                    DocumentType.NATIVE_HTTP
+                )
+            
+            val ret = state.getChildSession {
+                task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), info, it)
+            }
+            
             try {
                 ret.await()
             } catch (e: TaskDetachedException) {
                 e.left()
             }
+            
         }
+        
+        return result
     }
     
     public suspend fun downloadAttributes(

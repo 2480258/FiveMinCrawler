@@ -72,9 +72,7 @@ class DownloadHandlerImplTest {
         var finished = false
         
         runBlocking {
-            val p = handler.downloadAttributes(requestLinkInfo, parent, info, state)
-            
-            p.invokeOnCompletion {
+            handler.downloadAttributes(requestLinkInfo, parent, info, state).invokeOnCompletion {
                 finished = true
             }
         }

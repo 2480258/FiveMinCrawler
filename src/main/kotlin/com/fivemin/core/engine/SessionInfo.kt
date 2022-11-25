@@ -100,16 +100,19 @@ constructor(
      * Program won't finish until every registered task is done.
      */
     suspend fun <T> doRegisteredTask(func: suspend () -> T): Deferred<T> {
-        try {
-            reenterent++
-            return GlobalScope.async{func()}
-        } finally {
-            reenterent--
-            
-            if (reenterent == 0) {
-                setFinished()
+        return GlobalScope.async {
+            try {
+                reenterent++
+                func()
+            } finally {
+                reenterent--
+        
+                if (reenterent == 0) {
+                    setFinished()
+                }
             }
         }
+        
     }
     
     private fun setFinished() {
