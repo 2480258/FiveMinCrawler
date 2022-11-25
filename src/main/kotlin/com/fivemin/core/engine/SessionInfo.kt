@@ -23,6 +23,9 @@ package com.fivemin.core.engine
 import arrow.core.Option
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.session.RetryCountMaxedException
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -96,10 +99,10 @@ constructor(
      * Counts number of task.
      * Program won't finish until every registered task is done.
      */
-    suspend fun <T> doRegisteredTask(func: suspend () -> T): T {
+    suspend fun <T> doRegisteredTask(func: suspend () -> T): Deferred<T> {
         try {
             reenterent++
-            return func()
+            return GlobalScope.async{func()}
         } finally {
             reenterent--
             

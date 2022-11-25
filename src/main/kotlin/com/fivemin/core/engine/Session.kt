@@ -203,20 +203,16 @@ interface SessionStartable : SessionAddableAlias {
     ): Deferred<Either<Throwable, T>> {
         
         return info.doRegisteredTask {
-            coroutineScope {
-                async {
-                    addAlias(key) {
-                        logger.debug(key.toString() + " < creating SessionStartable")
-                        
-                        val state = if (this@SessionStartable as? SessionDetachable != null) {
-                            SessionDetachableStartedStateImpl(info, data, context)
-                        } else {
-                            SessionStartedStateImpl(info, data, context)
-                        }
-                        
-                        func(state).await()
-                    }
+            addAlias(key) {
+                logger.debug(key.toString() + " < creating SessionStartable")
+                
+                val state = if (this@SessionStartable as? SessionDetachable != null) {
+                    SessionDetachableStartedStateImpl(info, data, context)
+                } else {
+                    SessionStartedStateImpl(info, data, context)
                 }
+                
+                func(state).await()
             }
         }
     }

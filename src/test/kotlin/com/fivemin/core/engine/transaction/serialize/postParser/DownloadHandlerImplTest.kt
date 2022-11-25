@@ -51,7 +51,7 @@ class DownloadHandlerImplTest {
         val requestLinkInfo = RequestLinkInfo("a", listOf(child), InitialOption())
         
         var finished = false
-    
+        
         runBlocking {
             handler.downloadLinks(requestLinkInfo, parent, info, state).invokeOnCompletion {
                 finished = true
@@ -68,15 +68,17 @@ class DownloadHandlerImplTest {
         val parent = DocumentMockFactory.getHttpRequest(URI("http://aaa.com"), RequestType.LINK)
         val child = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.ATTRIBUTE)
         val requestLinkInfo = RequestLinkInfo("a", listOf(child), InitialOption())
-    
+        
         var finished = false
-    
+        
         runBlocking {
-            handler.downloadAttributes(requestLinkInfo, parent, info, state).invokeOnCompletion {
+            val p = handler.downloadAttributes(requestLinkInfo, parent, info, state)
+            
+            p.invokeOnCompletion {
                 finished = true
             }
         }
-    
+        
         assert(!finished)
     }
 }

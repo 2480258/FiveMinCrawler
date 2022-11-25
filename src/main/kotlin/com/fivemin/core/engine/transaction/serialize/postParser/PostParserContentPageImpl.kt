@@ -37,24 +37,22 @@ class DownloadHandlerImpl {
         info: TaskInfo,
         state: SessionStartedState
     ): Deferred<Either<Throwable, ExportTransaction<HttpRequest>>> {
-        val result = GlobalScope.async { // it might be bad.... for now, this may be best
-    
-            val task = info.createTask<HttpRequest>()
-                .get4<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>, SerializeTransaction<HttpRequest>, ExportTransaction<HttpRequest>>(
-                    DocumentType.NATIVE_HTTP
-                )
-    
-            val ret = state.getChildSession {
-                task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), info, it)
-            }
+        val task = info.createTask<HttpRequest>()
+            .get4<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>, SerializeTransaction<HttpRequest>, ExportTransaction<HttpRequest>>(
+                DocumentType.NATIVE_HTTP
+            )
+        
+        val ret = state.getChildSession {
+            task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), info, it)
+        }
+        
+        return GlobalScope.async {
             try {
                 ret.await()
             } catch (e: TaskDetachedException) {
                 e.left()
             }
         }
-        
-        return result
     }
     
     public suspend fun downloadAttributes(
@@ -63,14 +61,14 @@ class DownloadHandlerImpl {
         info: TaskInfo,
         state: SessionStartedState
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>> {
-    
+        
         val result = GlobalScope.async { // it might be bad.... for now, this may be best
-    
+            
             val task = info.createTask<HttpRequest>()
                 .get2<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>>(
                     DocumentType.NATIVE_HTTP
                 )
-    
+            
             val ret = state.getChildSession {
                 task.start(
                     InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), info, it
@@ -108,17 +106,17 @@ class PostParserContentPageImpl<Document : Request>(
                             val internals = processIntAttribute(req)
                             val externals = processExtAttr(req, info, state)
                             val links = processLinks(req, info, state)
-            
+                            
                             externals.plus(links).awaitAll() // early exits if at least one links returns an exception.
-            
+                            
                             val finished = externals.map { y ->
                                 y.await() // awaits already awaited values. orders are not important
                             }
-            
+                            
                             val ret = internals.fold({ finished }) { x ->
                                 finished.plus(x)
                             }
-            
+                            
                             ret.toOption()
                         } else {
                             none()
