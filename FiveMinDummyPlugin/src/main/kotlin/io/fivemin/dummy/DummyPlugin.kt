@@ -20,7 +20,12 @@
 
 package io.fivemin.dummy
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import com.fivemin.core.LoggerController
+import com.fivemin.core.engine.*
+import com.fivemin.core.engine.transaction.TransactionSubPolicy
 import com.fivemin.core.initialize.PluginObject
 import com.fivemin.core.initialize.SubPolicyCollection
 import com.fivemin.core.initialize.mef.MEFPlugin
@@ -28,6 +33,7 @@ import org.pf4j.Extension
 import org.pf4j.ExtensionPoint
 import org.pf4j.Plugin
 import org.pf4j.PluginWrapper
+import java.io.File
 
 @Extension
 class DummyPluginExtensions : ExtensionPoint, MEFPlugin {
@@ -42,10 +48,74 @@ class DummyPluginExtensions : ExtensionPoint, MEFPlugin {
     
     override fun get(): PluginObject {
         logger.info("DummyPlugin loaded")
-        return PluginObject(SubPolicyCollection(listOf(), listOf(), listOf(), listOf()))
+        return PluginObject(SubPolicyCollection(listOf(DummySubPolicy1()), listOf(DummySubPolicy2()), listOf(DummySubPolicy3()), listOf(DummySubPolicy4())))
     }
 }
 
 class DummyPlugin constructor(wrapper: PluginWrapper) : Plugin(wrapper) {
 
+}
+
+class DummySubPolicy1 : TransactionSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request> {
+    override suspend fun <Ret> process(
+        source: InitialTransaction<Request>,
+        dest: PrepareTransaction<Request>,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        
+        val result = "${source.request.target}\n${dest.request.target}\n${info}\n${state}"
+        File("Output/p1.txt").writeText(result)
+        
+        return next(dest.right())
+    }
+}
+
+class DummySubPolicy2 : TransactionSubPolicy<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request> {
+    override suspend fun <Ret> process(
+        source: PrepareTransaction<Request>,
+        dest: FinalizeRequestTransaction<Request>,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+    
+        val result = "${source.request.target}\n${dest.request.target}\n${info}\n${state}"
+        File("Output/p2.txt").writeText(result)
+        
+        return next(dest.right())
+    }
+}
+
+class DummySubPolicy3 : TransactionSubPolicy<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request> {
+    override suspend fun <Ret> process(
+        source: FinalizeRequestTransaction<Request>,
+        dest: SerializeTransaction<Request>,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+    
+        val result = "${source.request.target}\n${dest.request.target}\n${info}\n${state}"
+        File("Output/p3.txt").writeText(result)
+        
+        return next(dest.right())
+    }
+}
+
+class DummySubPolicy4 : TransactionSubPolicy<SerializeTransaction<Request>, ExportTransaction<Request>, Request> {
+    override suspend fun <Ret> process(
+        source: SerializeTransaction<Request>,
+        dest: ExportTransaction<Request>,
+        info: TaskInfo,
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+    
+        val result = "${source.request.target}\n${dest.request.target}\n${info}\n${state}"
+        File("Output/p4.txt").writeText(result)
+        
+        return next(dest.right())
+    }
 }

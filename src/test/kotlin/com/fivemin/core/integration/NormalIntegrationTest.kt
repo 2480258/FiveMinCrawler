@@ -65,6 +65,46 @@ class NormalIntegrationTest {
     }
     
     @Test
+    fun testPlugin() {
+        val options = StartTaskOption(
+            mainUriTarget = "http://localhost:3000/home",
+            paramPath = "TestParameters/jsonIntegrationTest.json",
+            pluginDirectory = Some("./plugins")
+        )
+        
+        IntegrationVerify.runAndVerify(
+            listOf(
+                VerifySet("Output/00.png", 5745),
+                VerifySet("Output/01.png", 9004),
+                VerifySet("Output/user.json", 41),
+                VerifySet("Output/about.json", 41),
+                VerifySet("Output/p1.txt", 491),
+                VerifySet("Output/p2.txt", 491),
+                VerifySet("Output/p3.txt", 491),
+                VerifySet("Output/p4.txt", 491)
+            )
+        ) {
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+                val task = taskFactory.getFactory()
+                    .get4<
+                            InitialTransaction<Request>,
+                            PrepareTransaction<Request>,
+                            FinalizeRequestTransaction<Request>,
+                            SerializeTransaction<Request>,
+                            ExportTransaction<Request>>(
+                        DocumentType.DEFAULT
+                    )
+                
+                runBlocking {
+                    task.start(document, info, state).await()
+                }
+            }
+        }
+        
+        IntegrationVerify.verifyDirectoryEmpty("Output")
+    }
+    
+    @Test
     fun testHeader() {
         val options = StartTaskOption(
             mainUriTarget = "http://localhost:3000/headerReflect",

@@ -20,9 +20,16 @@
 
 package com.fivemin.core.initialize.mef
 
+import com.fivemin.core.DocumentMockFactory
+import com.fivemin.core.DocumentMockFactory.Companion.upgrade
+import com.fivemin.core.TaskMockFactory
+import com.fivemin.core.engine.*
+import io.mockk.coVerify
+import kotlinx.coroutines.runBlocking
 import org.testng.annotations.Test
 
 import org.testng.Assert.*
+import java.net.URI
 
 class PluginSelectorImplTest {
     @Test

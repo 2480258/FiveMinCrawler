@@ -69,14 +69,12 @@ val testCoverage by tasks.registering {
 group = "me.azure"
 version = "0.1"
 
-var arrow_version = "1.1.2"
-
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation("io.arrow-kt:arrow-core:$arrow_version")
+    implementation("io.arrow-kt:arrow-core:1.1.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
