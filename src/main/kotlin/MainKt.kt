@@ -87,10 +87,10 @@ class MainKt {
                 return parseOptions(File(argsText).readText().split(' ').toTypedArray())
             } else {
                 if (useVerbose) {
-                    System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
+                    System.setProperty(org.slf4j.simple.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
                     logger.debug("Logging Level = TRACE")
                 } else {
-                    System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO")
+                    System.setProperty(org.slf4j.simple.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO")
                 }
                 
                 if (uri == null || paramPath == null) {

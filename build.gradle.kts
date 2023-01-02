@@ -78,26 +78,27 @@ repositories {
 dependencies {
     implementation("io.arrow-kt:arrow-core:$arrow_version")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
-    implementation("com.squareup.okhttp3:okhttp:4.9.3")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
-    implementation("com.squareup.okhttp3:okhttp-urlconnection:4.9.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
+    implementation("com.squareup.okhttp3:okhttp-urlconnection:4.10.0")
     implementation("ru.gildor.coroutines:kotlin-coroutines-okhttp:1.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.3.2")
-    implementation("org.jsoup:jsoup:1.14.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
-    implementation("io.github.microutils:kotlin-logging:2.1.21")
-    implementation("org.slf4j:slf4j-simple:1.7.32")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.4.1")
+    implementation("org.jsoup:jsoup:1.15.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
+    implementation("io.github.microutils:kotlin-logging:3.0.4")
+    implementation("org.slf4j:slf4j-simple:2.0.5")
+    
     implementation("org.brotli:dec:0.1.2")
     implementation("com.google.guava:guava:31.1-jre")
     
     implementation("com.zaxxer:HikariCP:5.0.1")
-    implementation("org.xerial:sqlite-jdbc:3.36.0.3")
+    implementation("org.xerial:sqlite-jdbc:3.40.0.0")
     
-    implementation("org.pf4j:pf4j:3.7.0")
+    implementation("org.pf4j:pf4j:3.8.0")
     
     testImplementation(kotlin("test"))
-    testImplementation("io.mockk:mockk:1.12.4")
+    testImplementation("io.mockk:mockk:1.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.6.4")
 }
 
