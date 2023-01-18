@@ -84,6 +84,7 @@ interface SessionState {
     val info: SessionInfo
     val data: SessionData
     val context: SessionContext
+    val taskInfo : TaskInfo
 }
 
 interface SessionAddableAlias : SessionMarkDetachable {
@@ -151,8 +152,8 @@ interface SessionRetryable : SessionState {
         logger.info(this.info.token.tokenNumber.toString() + " < retrying")
         val session = this as? SessionDetachable
         
-        val state = session.rightIfNotNull { }.fold({ SessionDetachableInitStateImpl(info, data, context) },
-            { SessionInitStateImpl(info, data, context) })
+        val state = session.rightIfNotNull { }.fold({ SessionDetachableInitStateImpl(info, data, context, taskInfo) },
+            { SessionInitStateImpl(info, data, context, taskInfo) })
         
         return func(state)
     }
@@ -176,7 +177,7 @@ interface SessionDetachable : SessionState {
         
         GlobalScope.launch {
             logger.info(info.token.tokenNumber.toString() + " < detached")
-            func(SessionInitStateImpl(detached, data, context))
+            func(SessionInitStateImpl(detached, data, context, taskInfo))
             logger.debug(info.token.tokenNumber.toString() + " < detach job finished")
         }
         
@@ -208,9 +209,9 @@ interface SessionStartable : SessionAddableAlias {
                     logger.debug(key.toString() + " < creating SessionStartable")
         
                     val state = if (this@SessionStartable as? SessionDetachable != null) {
-                        SessionDetachableStartedStateImpl(info, data, context)
+                        SessionDetachableStartedStateImpl(info, data, context, taskInfo)
                     } else {
-                        SessionStartedStateImpl(info, data, context)
+                        SessionStartedStateImpl(info, data, context, taskInfo)
                     }
         
                     func(state).await()
@@ -237,7 +238,7 @@ interface SessionChildGeneratable : SessionState {
         
         return func(
             SessionDetachableInitStateImpl(
-                detached, data, SessionContext(LocalUniqueKeyTokenRepo(), info.token.toOption())
+                detached, data, SessionContext(LocalUniqueKeyTokenRepo(), info.token.toOption()), taskInfo
             )
         )
     }
@@ -252,17 +253,21 @@ interface SessionStartedState : SessionRetryable, SessionChildGeneratable, Sessi
 interface SessionDetachableStartedState : SessionStartedState, SessionDetachable, SessionDetachRetryable
 
 data class SessionInitStateImpl constructor(
-    override val info: SessionInfo, override val data: SessionData, override val context: SessionContext
+    override val info: SessionInfo, override val data: SessionData, override val context: SessionContext,
+    override val taskInfo: TaskInfo
 ) : SessionInitState
 
 data class SessionStartedStateImpl constructor(
-    override val info: SessionInfo, override val data: SessionData, override val context: SessionContext
+    override val info: SessionInfo, override val data: SessionData, override val context: SessionContext,
+    override val taskInfo: TaskInfo
 ) : SessionStartedState
 
 data class SessionDetachableInitStateImpl constructor(
-    override val info: SessionInfo, override val data: SessionData, override val context: SessionContext
+    override val info: SessionInfo, override val data: SessionData, override val context: SessionContext,
+    override val taskInfo: TaskInfo
 ) : SessionDetachableInitState
 
 data class SessionDetachableStartedStateImpl constructor(
-    override val info: SessionInfo, override val data: SessionData, override val context: SessionContext
+    override val info: SessionInfo, override val data: SessionData, override val context: SessionContext,
+    override val taskInfo: TaskInfo
 ) : SessionDetachableStartedState

@@ -51,7 +51,7 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
     
     override suspend fun <Ret> move(
         source: SerializeTransaction<Document>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, ExportTransaction<Document>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {

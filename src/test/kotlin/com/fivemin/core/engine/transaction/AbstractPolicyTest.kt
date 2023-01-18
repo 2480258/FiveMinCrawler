@@ -44,7 +44,7 @@ class TestSubPolicy : TransactionSubPolicy<FinalizeRequestTransaction<Request>, 
     override suspend fun <Ret> process(
         source: FinalizeRequestTransaction<Request>,
         dest: SerializeTransaction<Request>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
@@ -56,7 +56,7 @@ class ThrowsTestSubPolicy : TransactionSubPolicy<FinalizeRequestTransaction<Requ
     override suspend fun <Ret> process(
         source: FinalizeRequestTransaction<Request>,
         dest: SerializeTransaction<Request>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
@@ -87,7 +87,7 @@ class AbstractPolicyTest {
         }
     
         coEvery {
-            postParser.getPostParseInfo(any(), any(), any())
+            postParser.getPostParseInfo(any(), any())
         } coAnswers {
             postParserInfo.right()
         }
@@ -109,7 +109,6 @@ class AbstractPolicyTest {
         assertThrows {
             runBlocking {
                 policy.progressAsync(src,
-                    TaskMockFactory.createTaskInfo(),
                     TaskMockFactory.createDetachableSessionStarted<Request>(),
                     { Either.catch { } })
         
@@ -140,7 +139,7 @@ class AbstractPolicyTest {
         }
         
         coEvery {
-            postParser.getPostParseInfo(any(), any(), any())
+            postParser.getPostParseInfo(any(), any())
         } coAnswers {
             postParserInfo.right()
         }
@@ -161,15 +160,14 @@ class AbstractPolicyTest {
         
         runBlocking {
             policy.progressAsync(src,
-                TaskMockFactory.createTaskInfo(),
                 TaskMockFactory.createDetachableSessionStarted<Request>(),
                 { Either.catch { } })
             
         }
         
         coVerify(exactly = 1) {
-            sub1.process(any(), any(), any(), any(), any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, Any>>())
-            sub2.process(any(), any(), any(), any(), any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, Any>>())
+            sub1.process(any(), any(), any(), any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, Any>>())
+            sub2.process(any(), any(), any(), any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, Any>>())
         }
     }
 }

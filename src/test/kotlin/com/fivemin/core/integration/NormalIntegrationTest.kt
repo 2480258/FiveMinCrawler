@@ -44,7 +44,7 @@ class NormalIntegrationTest {
                 VerifySet("Output/about.json", 41)
             )
         ) {
-            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, state ->
                 val task = taskFactory.getFactory()
                     .get4<
                             InitialTransaction<Request>,
@@ -56,7 +56,7 @@ class NormalIntegrationTest {
                     )
                 
                 runBlocking {
-                    task.start(document, info, state).await()
+                    task.start(document, state).await()
                 }
             }
         }
@@ -84,7 +84,7 @@ class NormalIntegrationTest {
                 VerifySet("Output/p4.txt", 136)
             )
         ) {
-            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, state ->
                 val task = taskFactory.getFactory()
                     .get4<
                             InitialTransaction<Request>,
@@ -96,7 +96,7 @@ class NormalIntegrationTest {
                     )
                 
                 runBlocking {
-                    task.start(document, info, state).await()
+                    task.start(document, state).await()
                 }
             }
         }
@@ -112,7 +112,7 @@ class NormalIntegrationTest {
         )
         
         IntegrationVerify.runAndVerify(listOf(VerifySet("Output/headerReflect.json", 191))) {
-            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, state ->
                 val task = taskFactory.getFactory()
                     .get4<
                             InitialTransaction<Request>,
@@ -124,7 +124,7 @@ class NormalIntegrationTest {
                     )
                 
                 runBlocking {
-                    task.start(document, info, state).await()
+                    task.start(document, state).await()
                 }
             }
             
@@ -144,7 +144,7 @@ class NormalIntegrationTest {
         )
         
         IntegrationVerify.runAndVerify(listOf(VerifySet("Output11/Output/headerReflect.json", 276))) {
-            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, state ->
                 val task = taskFactory.getFactory()
                     .get4<
                             InitialTransaction<Request>,
@@ -156,7 +156,7 @@ class NormalIntegrationTest {
                     )
                 
                 runBlocking {
-                    task.start(document, info, state).await()
+                    task.start(document, state).await()
                 }
             }
         }
@@ -173,7 +173,7 @@ class NormalIntegrationTest {
         )
         
         IntegrationVerify.runAndVerify(listOf()) {
-            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, state ->
                 val task = taskFactory.getFactory()
                     .get4<
                             InitialTransaction<Request>,
@@ -185,7 +185,7 @@ class NormalIntegrationTest {
                     )
                 
                 runBlocking {
-                    task.start(document, info, state).await()
+                    task.start(document, state).await()
                 }
             }
         }
@@ -202,7 +202,7 @@ class NormalIntegrationTest {
         )
         
         IntegrationVerify.runAndVerify(listOf(VerifySet("Output/cookieReflect.json", 131))) {
-            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+            CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, state ->
                 val task = taskFactory.getFactory()
                     .get4<
                             InitialTransaction<Request>,
@@ -214,7 +214,7 @@ class NormalIntegrationTest {
                     )
                 
                 runBlocking {
-                    task.start(document, info, state).await()
+                    task.start(document, state).await()
                 }
             }
             

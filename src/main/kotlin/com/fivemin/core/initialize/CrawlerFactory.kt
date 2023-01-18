@@ -90,14 +90,20 @@ enum class DocumentTransaction {
 }
 
 
-class CrawlerBuilder constructor(private val option: StartTaskOption, private val policyMap: Map<DocumentTransaction, Any>) {
+class CrawlerBuilder constructor(
+    private val option: StartTaskOption,
+    private val policyMap: Map<DocumentTransaction, Any>
+) {
     companion object {
         fun <Document : Request> startPolicyBuild(option: StartTaskOption): Builder1<Document, InitialTransaction<Document>> {
             return Builder1(mutableMapOf(), option)
         }
     }
     
-    class Builder1<Document : Request, Src : Transaction<Document>> constructor(private val policy: MutableMap<DocumentTransaction, Any>, private val option: StartTaskOption) {
+    class Builder1<Document : Request, Src : Transaction<Document>> constructor(
+        private val policy: MutableMap<DocumentTransaction, Any>,
+        private val option: StartTaskOption
+    ) {
         fun <Dst : StrictTransaction<Src, Document>> addPolicy(
             obj: TransactionMovementFactory<Src, Dst, Document>,
             subPolicies: Iterable<TransactionSubPolicy<Src, Dst, Document>>,
@@ -108,14 +114,17 @@ class CrawlerBuilder constructor(private val option: StartTaskOption, private va
                     AbstractPolicyOption(subPolicies) as AbstractPolicyOption<InitialTransaction<Document>, PrepareTransaction<Document>, Document>,
                     obj as TransactionMovementFactory<InitialTransaction<Document>, PrepareTransaction<Document>, Document>
                 )
+                
                 DocumentTransaction.Request -> FinalizeRequestTransactionPolicy(
                     AbstractPolicyOption(subPolicies) as AbstractPolicyOption<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document>,
                     obj as TransactionMovementFactory<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document>
                 )
+                
                 DocumentTransaction.Serialize -> SerializeTransactionPolicy(
                     AbstractPolicyOption(subPolicies) as AbstractPolicyOption<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document>,
                     obj as TransactionMovementFactory<FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, Document>
                 )
+                
                 DocumentTransaction.Export -> ExportTransactionPolicy(
                     AbstractPolicyOption(subPolicies) as AbstractPolicyOption<SerializeTransaction<Document>, ExportTransaction<Document>, Document>,
                     obj as TransactionMovementFactory<SerializeTransaction<Document>, ExportTransaction<Document>, Document>
@@ -131,11 +140,42 @@ class CrawlerBuilder constructor(private val option: StartTaskOption, private va
         }
     }
     
-    fun finalize(keyProvider: KeyProvider, state: SessionInitState, finishObserver: FinishObserver): CrawlerStarter {
+    private fun getSessionInitStateImpl(
+        finishObserver: FinishObserver,
+        detachObserver: DetachObserver,
+        uniqueKeyRepository: UniqueKeyRepository,
+        uniqueKeyProvider: KeyProvider,
+        factory: CrawlerTaskFactoryFactory<Request>
+    ): SessionInitStateImpl {
+        return SessionInitStateImpl(
+            SessionInfo(finishObserver, detachObserver),
+            SessionData(uniqueKeyRepository, SessionRepositoryImpl(detachObserver, finishObserver)),
+            SessionContext(LocalUniqueKeyTokenRepo(), none()), TaskInfo(uniqueKeyProvider, factory)
+        )
+    }
+    
+    private fun getSessionUniqueKeyFilter(resumeAt: Option<String>, target: String): CompositeUniqueKeyRepository {
+        val jdbcUrl = ResumeDataNameGenerator(target).generate(resumeAt)
+        val persister = UniqueKeyPersisterImpl(DatabaseAdapterFactoryImpl(jdbcUrl).get())
+        
+        return CompositeUniqueKeyRepository(
+            persister,
+            BloomFilterCache(BloomFilterFactoryImpl()),
+            TemporaryUniqueKeyRepository(),
+            UniqueKeyTokenFactory()
+        )
+    }
+    
+    private fun getKeyProvider(): KeyProvider {
+        return KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider())
+    }
+    
+    fun finalize(finishObserver: FinishObserver): CrawlerStarter {
         val taskFactory = CrawlerTaskFactoryFactoryImpl(DocumentPolicyStorageFactoryCollector(policyMap))
+        val uniqueKey = getSessionUniqueKeyFilter(option.resumeAt, option.mainUriTarget)
         
         return CrawlerStarter(
-            URI(option.mainUriTarget), taskFactory, TaskInfo(keyProvider, taskFactory), state, finishObserver
+            URI(option.mainUriTarget), taskFactory, getSessionInitStateImpl(finishObserver, uniqueKey, uniqueKey, getKeyProvider(), taskFactory), finishObserver
         )
     }
 }
@@ -143,14 +183,13 @@ class CrawlerBuilder constructor(private val option: StartTaskOption, private va
 class CrawlerStarter constructor(
     private val uri: URI,
     private val factory: CrawlerTaskFactoryFactoryImpl,
-    private val taskInfo: TaskInfo,
     private val state: SessionInitState,
     private val finishObserver: FinishObserver
 ) {
     private var isAlreadyStarted: Boolean = false
     
-    fun startAndWaitUntilFinish(func: (taskFactory: CrawlerTaskFactoryFactoryImpl, document: InitialTransaction<Request>, info: TaskInfo, state: SessionInitState) -> Unit) {
-        if(isAlreadyStarted) {
+    fun startAndWaitUntilFinish(func: (taskFactory: CrawlerTaskFactoryFactoryImpl, document: InitialTransaction<Request>, state: SessionInitState) -> Unit) {
+        if (isAlreadyStarted) {
             throw InvalidObjectException("can be called only once")
         }
         
@@ -165,7 +204,7 @@ class CrawlerStarter constructor(
                         PerRequestHeaderProfile(none(), none(), none(), uri),
                         TagRepositoryImpl()
                     )
-                ), taskInfo, state
+                ), state
             )
         } finally {
             finishObserver.waitFinish()
@@ -179,8 +218,6 @@ data class CrawlerOption constructor(
     val postParser: PostParser<Request>,
     val exportParser: ExportParser,
     val exportState: ExportState,
-    val keyProvider: KeyProvider,
-    val state: SessionInitStateImpl,
     val subPolicies: SubPolicyCollection,
     val finishObserver: FinishObserver
 )
@@ -227,7 +264,7 @@ class CrawlerFactory {
                 ExportFactory(options.exportParser, options.exportState),
                 options.subPolicies.export,
                 DocumentTransaction.Export
-            ).endPolicyBuild().finalize(options.keyProvider, options.state, options.finishObserver)
+            ).endPolicyBuild().finalize(options.finishObserver)
     }
     
     class CrawlerOptionFactory {
@@ -239,7 +276,6 @@ class CrawlerFactory {
             val configController = getConfigController()
             val directIO = getDirectIO(configController, option.rootPath)
             val finishObserver = FinishObserverImpl()
-            val sessionUniqueKeyRepository = getSessionUniqueKeyFilter(option.resumeAt, option.mainUriTarget)
             val jsonOptionFactory = getParseOptionFactory(option.paramPath, directIO)
             val srtfOption = getSRTFOption()
             
@@ -249,17 +285,13 @@ class CrawlerFactory {
                 getPostParser(jsonOptionFactory),
                 getExportParser(jsonOptionFactory),
                 getExportState(directIO),
-                getKeyProvider(),
-                getSessionInitStateImpl(finishObserver, sessionUniqueKeyRepository, sessionUniqueKeyRepository),
+                //getSessionInitStateImpl(finishObserver, sessionUniqueKeyRepository, sessionUniqueKeyRepository, getKeyProvider(), ),
                 getDefaultSubPolicyCollection(configController).merge(getSRTFSubPolicyCollection(srtfOption))
                     .merge(getPluginSubPolicyCollection(option.pluginDirectory)),
                 finishObserver
             )
         }
         
-        private fun getKeyProvider(): KeyProvider {
-            return KeyProvider(UriUniqueKeyProvider(), StringUniqueKeyProvider())
-        }
         
         private fun getConfigController(): ConfigController {
             val configString = if (File(CONFIG_FILE_NAME).exists()) {
@@ -273,17 +305,7 @@ class CrawlerFactory {
             return DirectIOImpl(config, rootPath)
         }
         
-        private fun getSessionUniqueKeyFilter(resumeAt: Option<String>, target: String): CompositeUniqueKeyRepository {
-            val jdbcUrl = ResumeDataNameGenerator(target).generate(resumeAt)
-            val persister = UniqueKeyPersisterImpl(DatabaseAdapterFactoryImpl(jdbcUrl).get())
-            
-            return CompositeUniqueKeyRepository(
-                persister,
-                BloomFilterCache(BloomFilterFactoryImpl()),
-                TemporaryUniqueKeyRepository(),
-                UniqueKeyTokenFactory()
-            )
-        }
+
         
         private fun getParseOptionFactory(paramPath: String, io: DirectIO): JsonParserOptionFactory {
             return JsonParserOptionFactory(File(paramPath).readText(Charsets.UTF_8), listOf(), io)
@@ -334,15 +356,6 @@ class CrawlerFactory {
             return SRTFOption(opt, keyEx, descript, timing)
         }
         
-        private fun getSessionInitStateImpl(
-            finishObserver: FinishObserver, detachObserver: DetachObserver, uniqueKeyRepository: UniqueKeyRepository
-        ): SessionInitStateImpl {
-            return SessionInitStateImpl(
-                SessionInfo(finishObserver, detachObserver),
-                SessionData(uniqueKeyRepository, SessionRepositoryImpl(detachObserver, finishObserver)),
-                SessionContext(LocalUniqueKeyTokenRepo(), none())
-            )
-        }
         
         private fun getPluginSubPolicyCollection(pluginDirectory: Option<String>): SubPolicyCollection {
             return pluginDirectory.map {

@@ -34,18 +34,18 @@ class DownloadHandlerImpl {
     public suspend fun downloadLinks(
         requestLinkInfo: RequestLinkInfo,
         request: HttpRequest,
-        info: TaskInfo,
+        
         state: SessionStartedState
     ): Deferred<Either<Throwable, ExportTransaction<HttpRequest>>> {
         val result = GlobalScope.async { // it might be bad.... for now, this may be best
             
-            val task = info.createTask<HttpRequest>()
+            val task = state.taskInfo.createTask<HttpRequest>()
                 .get4<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>, SerializeTransaction<HttpRequest>, ExportTransaction<HttpRequest>>(
                     DocumentType.NATIVE_HTTP
                 )
             
             val ret = state.getChildSession {
-                task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), info, it)
+                task.start(InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), it)
             }
             
             try {
@@ -62,20 +62,20 @@ class DownloadHandlerImpl {
     public suspend fun downloadAttributes(
         requestLinkInfo: RequestLinkInfo,
         request: HttpRequest,
-        info: TaskInfo,
+        
         state: SessionStartedState
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>> {
         
         val result = GlobalScope.async { // it might be bad.... for now, this may be best
             
-            val task = info.createTask<HttpRequest>()
+            val task = state.taskInfo.createTask<HttpRequest>()
                 .get2<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>>(
                     DocumentType.NATIVE_HTTP
                 )
             
             val ret = state.getChildSession {
                 task.start(
-                    InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), info, it
+                    InitialTransactionImpl(requestLinkInfo.option, TagRepositoryImpl(), request), it
                 )
             }
             
@@ -100,7 +100,7 @@ class PostParserContentPageImpl<Document : Request>(
     }
     
     override suspend fun extract(
-        req: FinalizeRequestTransaction<Document>, info: TaskInfo, state: SessionStartedState
+        req: FinalizeRequestTransaction<Document>, state: SessionStartedState
     ): Deferred<Option<List<DocumentAttribute>>> {
         return coroutineScope {
             async {
@@ -108,8 +108,8 @@ class PostParserContentPageImpl<Document : Request>(
                     req.previous.ifDocumentAsync({
                         if (it.parseOption.name == pageCondition) {
                             val internals = processIntAttribute(req)
-                            val externals = processExtAttr(req, info, state)
-                            val links = processLinks(req, info, state)
+                            val externals = processExtAttr(req, state)
+                            val links = processLinks(req, state)
                             
                             externals.plus(links).awaitAll() // early exits if at least one links returns an exception.
                             
@@ -154,20 +154,20 @@ class PostParserContentPageImpl<Document : Request>(
     private suspend fun downloadAttributes(
         requestLinkInfo: RequestLinkInfo,
         request: HttpRequest,
-        info: TaskInfo,
+        
         state: SessionStartedState
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>> {
-        return downloadHandler.downloadAttributes(requestLinkInfo, request, info, state)
+        return downloadHandler.downloadAttributes(requestLinkInfo, request, state)
     }
     
     private suspend fun processExtAttr(
-        req: FinalizeRequestTransaction<Document>, info: TaskInfo, state: SessionStartedState
+        req: FinalizeRequestTransaction<Document>, state: SessionStartedState
     ): List<Deferred<DocumentAttribute>> {
         val attr = attrInfoFactory.get(req)
         
         val result = attr.linkInfo.map { requestLinkInfo ->
             val downloaded = requestLinkInfo.requests.map { httpRequest ->
-                downloadAttributes(requestLinkInfo, httpRequest, info, state)
+                downloadAttributes(requestLinkInfo, httpRequest, state)
             }
             
             val list = if (downloaded.any()) {
@@ -208,12 +208,12 @@ class PostParserContentPageImpl<Document : Request>(
     }
     
     private suspend fun processLinks(
-        request: FinalizeRequestTransaction<Document>, info: TaskInfo, state: SessionStartedState
+        request: FinalizeRequestTransaction<Document>, state: SessionStartedState
     ): List<Deferred<Either<Throwable, ExportTransaction<HttpRequest>>>> {
         val links = linkInfoFactory.get(request)
         return links.linkInfo.map { requestLinkInfo ->
             val ret = requestLinkInfo.requests.map { request ->
-                downloadLinks(requestLinkInfo, request, info, state)
+                downloadLinks(requestLinkInfo, request, state)
             }
             
             if (ret.any()) {
@@ -228,9 +228,9 @@ class PostParserContentPageImpl<Document : Request>(
     private suspend fun downloadLinks(
         requestLinkInfo: RequestLinkInfo,
         request: HttpRequest,
-        info: TaskInfo,
+        
         state: SessionStartedState
     ): Deferred<Either<Throwable, ExportTransaction<HttpRequest>>> {
-        return downloadHandler.downloadLinks(requestLinkInfo, request, info, state)
+        return downloadHandler.downloadLinks(requestLinkInfo, request, state)
     }
 }

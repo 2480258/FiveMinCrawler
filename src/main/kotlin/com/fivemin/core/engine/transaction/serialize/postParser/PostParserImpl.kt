@@ -40,12 +40,12 @@ class PostParserImpl(private val pages: List<PostParserContentPage<Request>>) : 
     
     override suspend fun getPostParseInfo(
         request: FinalizeRequestTransaction<Request>,
-        info: TaskInfo,
+        
         state: SessionStartedState
     ): Either<Throwable, PostParseInfo> {
         val ret = Either.catch {
             val extractedAttributes = pages.map {
-                it.extract(request, info, state).await()
+                it.extract(request, state).await()
             }.filterOption()
 
             val results = extractedAttributes.singleOrNone {

@@ -40,14 +40,14 @@ abstract class AbstractPolicy<SrcTrans : Transaction<Document>, DstTrans : Stric
     
     override suspend fun <Ret> progressAsync(
         trans: SrcTrans,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
         val movement = movementFactory.getMovement()
-        val taskResult = movement.move(trans, info, state) {
+        val taskResult = movement.move(trans, state) {
             it.map {
-                tailCall(trans, it, info, state, option.subPolicies, next)
+                tailCall(trans, it, state, option.subPolicies, next)
             }.flatten()
         }
         
@@ -57,7 +57,7 @@ abstract class AbstractPolicy<SrcTrans : Transaction<Document>, DstTrans : Stric
     private suspend fun <Ret> tailCall(
         trans: SrcTrans,
         dest: DstTrans,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         policies: Iterable<TransactionSubPolicy<SrcTrans, DstTrans, Document>>,
         next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>
@@ -65,10 +65,10 @@ abstract class AbstractPolicy<SrcTrans : Transaction<Document>, DstTrans : Stric
         return if (policies.count() == 0) {
             next(dest.right())
         } else if (policies.count() == 1) {
-            policies.first().process(trans, dest, info, state, next)
+            policies.first().process(trans, dest, state, next)
         } else {
-            policies.first().process(trans, dest, info, state) {
-                tailCall(trans, dest, info, state, policies.drop(1), next)
+            policies.first().process(trans, dest, state) {
+                tailCall(trans, dest, state, policies.drop(1), next)
             }
         }
     }

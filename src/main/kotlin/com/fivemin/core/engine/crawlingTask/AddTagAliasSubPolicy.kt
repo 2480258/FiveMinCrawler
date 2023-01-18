@@ -36,20 +36,20 @@ class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTr
     override suspend fun <Ret> process(
         source: SrcTrans,
         dest: DstTrans,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
         logger.debug(source.request, "adding tags")
-        val ret = info.uniqueKeyProvider.tagKey.create(dest.tags)
+        val ret = state.taskInfo.uniqueKeyProvider.tagKey.create(dest.tags)
         
-        return tailCall(source, dest, info, state, next, ret)
+        return tailCall(source, dest, state, next, ret)
     }
     
     suspend fun <Ret> tailCall(
         source: SrcTrans,
         dest: DstTrans,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>,
         aliases: Iterable<UniqueKey>
@@ -65,7 +65,7 @@ class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTr
             }
         } else {
             state.addAlias(aliases.first()) {
-                tailCall(source, dest, info, state, next, aliases.drop(1))
+                tailCall(source, dest, state, next, aliases.drop(1))
             }
         }
     }

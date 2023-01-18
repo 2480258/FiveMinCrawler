@@ -47,7 +47,7 @@ class DetachableSubPolicyTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
         
         val result = runBlocking {
-            detachSubPolicy.process(doc, prep, info, state, ::identity)
+            detachSubPolicy.process(doc, prep, state, ::identity)
         }
         
         result.fold({ throw NullPointerException() }, {
@@ -65,7 +65,7 @@ class DetachableSubPolicyTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
         
         val result = runBlocking {
-            detachSubPolicy.process(doc, prep, info, state, ::identity)
+            detachSubPolicy.process(doc, prep, state, ::identity)
         }
         
         result.fold({ throw NullPointerException() }, {
@@ -84,7 +84,7 @@ class DetachableSubPolicyTest {
         
         assertThrows {
             runBlocking {
-                detachSubPolicy.process(doc, prep, info, state, ::identity)
+                detachSubPolicy.process(doc, prep, state, ::identity)
             }
         }
         

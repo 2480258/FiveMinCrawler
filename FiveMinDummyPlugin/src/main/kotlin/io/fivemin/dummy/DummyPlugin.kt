@@ -60,12 +60,12 @@ class DummySubPolicy1 : TransactionSubPolicy<InitialTransaction<Request>, Prepar
     override suspend fun <Ret> process(
         source: InitialTransaction<Request>,
         dest: PrepareTransaction<Request>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
         
-        val result = "${source.request.target}\n${dest.request.target}\n${info.javaClass.name}\n${state.javaClass.name}"
+        val result = "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p1.txt").writeText(result)
         
         return next(dest.right())
@@ -76,12 +76,12 @@ class DummySubPolicy2 : TransactionSubPolicy<PrepareTransaction<Request>, Finali
     override suspend fun <Ret> process(
         source: PrepareTransaction<Request>,
         dest: FinalizeRequestTransaction<Request>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
     
-        val result = "${source.request.target}\n${dest.request.target}\n${info.javaClass.name}\n${state.javaClass.name}"
+        val result = "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p2.txt").writeText(result)
         
         return next(dest.right())
@@ -92,12 +92,12 @@ class DummySubPolicy3 : TransactionSubPolicy<FinalizeRequestTransaction<Request>
     override suspend fun <Ret> process(
         source: FinalizeRequestTransaction<Request>,
         dest: SerializeTransaction<Request>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
     
-        val result = "${source.request.target}\n${dest.request.target}\n${info.javaClass.name}\n${state.javaClass.name}"
+        val result = "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p3.txt").writeText(result)
         
         return next(dest.right())
@@ -108,12 +108,12 @@ class DummySubPolicy4 : TransactionSubPolicy<SerializeTransaction<Request>, Expo
     override suspend fun <Ret> process(
         source: SerializeTransaction<Request>,
         dest: ExportTransaction<Request>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
     
-        val result = "${source.request.target}\n${dest.request.target}\n${info.javaClass.name}\n${state.javaClass.name}"
+        val result = "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p4.txt").writeText(result)
         
         return next(dest.right())

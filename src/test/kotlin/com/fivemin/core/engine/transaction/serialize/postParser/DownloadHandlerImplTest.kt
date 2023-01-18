@@ -53,7 +53,7 @@ class DownloadHandlerImplTest {
         var finished = false
         
         runBlocking {
-            handler.downloadLinks(requestLinkInfo, parent, info, state).invokeOnCompletion {
+            handler.downloadLinks(requestLinkInfo, parent, state).invokeOnCompletion {
                 finished = true
             }
         }
@@ -72,7 +72,7 @@ class DownloadHandlerImplTest {
         var finished = false
         
         runBlocking {
-            handler.downloadAttributes(requestLinkInfo, parent, info, state).invokeOnCompletion {
+            handler.downloadAttributes(requestLinkInfo, parent, state).invokeOnCompletion {
                 finished = true
             }
         }

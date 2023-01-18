@@ -36,7 +36,7 @@ class MainKt {
         fun main(args: Array<String>) {
             try {
                 val options = parseOptions(args)
-                CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+                CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, state ->
                     val task = taskFactory.getFactory()
                         .get4<
                                 InitialTransaction<Request>,
@@ -48,7 +48,7 @@ class MainKt {
                         )
                     
                     runBlocking {
-                        task.start(document, info, state)
+                        task.start(document, state)
                     }
                 }
             } catch (e: Exception) {

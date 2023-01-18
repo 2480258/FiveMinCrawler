@@ -37,7 +37,7 @@ class PrepareRequestTransactionMovement<Document : Request> (private val prePars
     
     override suspend fun <Ret> move(
         source: InitialTransaction<Document>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, PrepareTransaction<Document>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {

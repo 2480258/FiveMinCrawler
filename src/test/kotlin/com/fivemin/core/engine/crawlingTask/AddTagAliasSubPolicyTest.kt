@@ -58,7 +58,7 @@ class AddTagAliasSubPolicyTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
         
         runBlocking {
-            val proc = addtagPolicy.process(req, req.upgradeAsDocument("a"), TaskMockFactory.createTaskInfo(), state, { it })
+            val proc = addtagPolicy.process(req, req.upgradeAsDocument("a"), state, { it })
             
             assert(state.context.localTokenRepo.contains(StringUniqueKey("b")))
             assert(state.context.localTokenRepo.contains(StringUniqueKey("c")))

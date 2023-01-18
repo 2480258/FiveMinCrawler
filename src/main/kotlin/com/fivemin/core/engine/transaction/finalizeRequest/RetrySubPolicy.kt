@@ -38,32 +38,32 @@ class RetrySubPolicy<Document : Request> :
     }
     
     private suspend fun request(
-        source: PrepareTransaction<Document>, info: TaskInfo, state: SessionStartedState
+        source: PrepareTransaction<Document>, state: SessionStartedState
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
         logger.debug(source.request, "trying to retry")
         
         return state.retryAsync {
             delay(RETRY_DELAY)
             
-            info.createTask<Document>()
+            state.taskInfo.createTask<Document>()
                 .get1<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>>(source.request.documentType)
-                .start(source, info, it)
+                .start(source, it)
         }
     }
     
     override suspend fun <Ret> process(
         source: PrepareTransaction<Document>,
         dest: FinalizeRequestTransaction<Document>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, FinalizeRequestTransaction<Document>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
         return next(
             dest.result.fold({
-                request(source, info, state).await()
+                request(source, state).await()
             }, {
                 if (it.responseBody is CriticalErrorBody || it.responseBody is RecoverableErrorBody) {
-                    request(source, info, state).await()
+                    request(source, state).await()
                 } else {
                     dest.right()
                 }

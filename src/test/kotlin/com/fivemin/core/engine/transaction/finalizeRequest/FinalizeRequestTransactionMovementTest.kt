@@ -73,7 +73,6 @@ class FinalizeRequestTransactionMovementTest {
         runBlocking {
             finalmove.move(
                 doc,
-                TaskMockFactory.createTaskInfo(),
                 TaskMockFactory.createDetachableSessionStarted<Request>(),
                 { Either.catch { } })
         }

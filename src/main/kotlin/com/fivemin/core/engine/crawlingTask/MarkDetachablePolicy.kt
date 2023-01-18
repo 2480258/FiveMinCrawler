@@ -42,7 +42,7 @@ class MarkDetachablePolicy<Document : Request> :
     override suspend fun <Ret> process(
         source: InitialTransaction<Document>,
         dest: PrepareTransaction<Document>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, PrepareTransaction<Document>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {

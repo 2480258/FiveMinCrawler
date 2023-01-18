@@ -54,7 +54,7 @@ class RetrySubPolicyTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
         
         runBlocking {
-            retry.process(src, dest, info, state, ::identity)
+            retry.process(src, dest, state, ::identity)
         }
         
         coVerify (exactly = 1){
@@ -74,7 +74,7 @@ class RetrySubPolicyTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
         
         val result = runBlocking {
-            retry.process(src, dest, info, state, ::identity)
+            retry.process(src, dest, state, ::identity)
         }
         
         result.fold({
