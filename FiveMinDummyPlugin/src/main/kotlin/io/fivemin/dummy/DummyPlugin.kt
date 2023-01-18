@@ -20,20 +20,23 @@
 
 package io.fivemin.dummy
 
-import arrow.core.Either
-import arrow.core.left
-import arrow.core.right
+import arrow.core.*
+import arrow.core.continuations.either
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
 import com.fivemin.core.initialize.PluginObject
 import com.fivemin.core.initialize.SubPolicyCollection
 import com.fivemin.core.initialize.mef.MEFPlugin
+import kotlinx.coroutines.coroutineScope
 import org.pf4j.Extension
 import org.pf4j.ExtensionPoint
 import org.pf4j.Plugin
 import org.pf4j.PluginWrapper
 import java.io.File
+import java.net.URI
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.coroutineContext
 
 @Extension
 class DummyPluginExtensions : ExtensionPoint, MEFPlugin {
@@ -48,7 +51,14 @@ class DummyPluginExtensions : ExtensionPoint, MEFPlugin {
     
     override fun get(): PluginObject {
         logger.info("DummyPlugin loaded")
-        return PluginObject(SubPolicyCollection(listOf(DummySubPolicy1()), listOf(DummySubPolicy2()), listOf(DummySubPolicy3()), listOf(DummySubPolicy4())))
+        return PluginObject(
+            SubPolicyCollection(
+                listOf(DummySubPolicy1(), DummyDownloadPolicy()),
+                listOf(DummySubPolicy2()),
+                listOf(DummySubPolicy3()),
+                listOf(DummySubPolicy4())
+            )
+        )
     }
 }
 
@@ -65,14 +75,16 @@ class DummySubPolicy1 : TransactionSubPolicy<InitialTransaction<Request>, Prepar
         next: suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
         
-        val result = "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
+        val result =
+            "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p1.txt").writeText(result)
         
         return next(dest.right())
     }
 }
 
-class DummySubPolicy2 : TransactionSubPolicy<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request> {
+class DummySubPolicy2 :
+    TransactionSubPolicy<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request> {
     override suspend fun <Ret> process(
         source: PrepareTransaction<Request>,
         dest: FinalizeRequestTransaction<Request>,
@@ -80,15 +92,17 @@ class DummySubPolicy2 : TransactionSubPolicy<PrepareTransaction<Request>, Finali
         state: SessionStartedState,
         next: suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
-    
-        val result = "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
+        
+        val result =
+            "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p2.txt").writeText(result)
         
         return next(dest.right())
     }
 }
 
-class DummySubPolicy3 : TransactionSubPolicy<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request> {
+class DummySubPolicy3 :
+    TransactionSubPolicy<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request> {
     override suspend fun <Ret> process(
         source: FinalizeRequestTransaction<Request>,
         dest: SerializeTransaction<Request>,
@@ -96,8 +110,9 @@ class DummySubPolicy3 : TransactionSubPolicy<FinalizeRequestTransaction<Request>
         state: SessionStartedState,
         next: suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
-    
-        val result = "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
+        
+        val result =
+            "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p3.txt").writeText(result)
         
         return next(dest.right())
@@ -112,10 +127,55 @@ class DummySubPolicy4 : TransactionSubPolicy<SerializeTransaction<Request>, Expo
         state: SessionStartedState,
         next: suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
-    
-        val result = "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
+        
+        val result =
+            "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p4.txt").writeText(result)
         
         return next(dest.right())
+    }
+}
+
+class DummyDownloadPolicy : TransactionSubPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request> {
+    
+    val integer = AtomicInteger(0)
+    override suspend fun <Ret> process(
+        source: InitialTransaction<Request>,
+        dest: PrepareTransaction<Request>,
+        state: SessionStartedState,
+        next: suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, Ret>
+    ): Either<Throwable, Ret> {
+        return coroutineScope {
+            val downloaded = state.quick_DownloadAttributes(URI("http://localhost:3000/headerReflect"), dest.request.token, dest.request.target).await()
+            
+            val result = either<Throwable, ResponseData> {
+                val r1 = downloaded.bind()
+                val r2 = r1.result.bind()
+                
+                r2
+            }
+            
+            val r = result.fold({
+                it.stackTraceToString()
+            }, {
+                it.responseBody.ifHttpSucc({
+                    it.body.ifString({
+                        it.openStreamAsStringAndDispose {
+                            it.readText()
+                        }.fold({
+                            it.stackTraceToString()
+                        }, ::identity)
+                    }, {
+                        it.toString()
+                    })
+                }, {
+                    it.toString()
+                })
+            })
+            
+            File("Output/r.txt").appendText( "=" + integer.getAndIncrement().toString() + "\n"+ r + "\n" + "+" + integer.getAndIncrement() + "\n\n")
+            
+            next(dest.right())
+        }
     }
 }

@@ -81,7 +81,8 @@ class NormalIntegrationTest {
                 VerifySet("Output/p1.txt", 136),
                 VerifySet("Output/p2.txt", 136),
                 VerifySet("Output/p3.txt", 136),
-                VerifySet("Output/p4.txt", 136)
+                VerifySet("Output/p4.txt", 136),
+                VerifySet("Output/r.txt", 7957)
             )
         ) {
             CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, state ->

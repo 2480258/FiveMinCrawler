@@ -24,6 +24,7 @@ import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.TaskDetachedException
 import kotlinx.coroutines.*
+import java.net.URI
 
 suspend fun <T> SessionStartedState.ifDetachable(func: suspend (SessionDetachableStartedState) -> T): Option<T> {
     return if (this is SessionDetachableStartedState) {
@@ -84,7 +85,7 @@ interface SessionState {
     val info: SessionInfo
     val data: SessionData
     val context: SessionContext
-    val taskInfo : TaskInfo
+    val taskInfo: TaskInfo
 }
 
 interface SessionAddableAlias : SessionMarkDetachable {
@@ -207,13 +208,13 @@ interface SessionStartable : SessionAddableAlias {
             Either.catch {
                 addAlias(key) {
                     logger.debug(key.toString() + " < creating SessionStartable")
-        
+                    
                     val state = if (this@SessionStartable as? SessionDetachable != null) {
                         SessionDetachableStartedStateImpl(info, data, context, taskInfo)
                     } else {
                         SessionStartedStateImpl(info, data, context, taskInfo)
                     }
-        
+                    
                     func(state).await()
                 }
             }.flatten()
@@ -248,7 +249,107 @@ interface SessionInitState : SessionStartable
 
 interface SessionDetachableInitState : SessionDetachable, SessionInitState
 
-interface SessionStartedState : SessionRetryable, SessionChildGeneratable, SessionAddableAlias, SessionMarkDetachable
+interface SessionStartedState : SessionRetryable, SessionChildGeneratable, SessionAddableAlias, SessionMarkDetachable {
+    
+    fun quick_DownloadLinks(
+        targetUri: URI,
+        token: RequestToken,
+        parentUri: URI,
+        customTags: List<Tag> = listOf(),
+        customRequestHeaderProfile: PerRequestHeaderProfile? = null,
+        customOption: InitialOption = InitialOption()
+    ): Deferred<Either<Throwable, ExportTransaction<HttpRequest>>> {
+        return quick_DownloadLinks(
+            customOption,
+            HttpRequestImpl(
+                Some(token),
+                targetUri,
+                RequestType.LINK,
+                PerRequestHeaderProfile(none(), none(), Some(parentUri), targetUri),
+                TagRepositoryImpl(Some(customTags))
+            )
+        )
+    }
+    
+    fun quick_DownloadLinks(
+        option: InitialOption,
+        request: HttpRequest
+    ): Deferred<Either<Throwable, ExportTransaction<HttpRequest>>> {
+        
+        if (request.requestType != RequestType.LINK) {
+            throw IllegalArgumentException("request type didn't match with called method")
+        }
+        
+        val result = GlobalScope.async { // it might be bad.... for now, this may be best
+            
+            val task = taskInfo.createTask<HttpRequest>()
+                .get4<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>, SerializeTransaction<HttpRequest>, ExportTransaction<HttpRequest>>(
+                    DocumentType.NATIVE_HTTP
+                )
+            
+            val ret = getChildSession {
+                task.start(InitialTransactionImpl(option, TagRepositoryImpl(), request), it)
+            }
+            
+            try {
+                ret.await()
+            } catch (e: TaskDetachedException) {
+                e.left()
+            }
+            
+        }
+        
+        return result
+    }
+    
+    fun quick_DownloadAttributes(
+        targetUri: URI,
+        token: RequestToken,
+        parentUri: URI,
+        customTags: List<Tag> = listOf(),
+        customRequestHeaderProfile: PerRequestHeaderProfile? = null,
+        customOption: InitialOption = InitialOption()
+    ): Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>> {
+        return quick_DownloadAttributes(
+            customOption,
+            HttpRequestImpl(
+                Some(token),
+                targetUri,
+                RequestType.ATTRIBUTE,
+                PerRequestHeaderProfile(none(), none(), Some(parentUri), targetUri),
+                TagRepositoryImpl(Some(customTags))
+            )
+        )
+    }
+    
+    fun quick_DownloadAttributes(
+        option: InitialOption,
+        request: HttpRequest
+    ): Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>> {
+        
+        if (request.requestType != RequestType.ATTRIBUTE) {
+            throw IllegalArgumentException("request type didn't match with called method")
+        }
+        
+        val result = GlobalScope.async { // it might be bad.... for now, this may be best
+            
+            val task = taskInfo.createTask<HttpRequest>()
+                .get2<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>>(
+                    DocumentType.NATIVE_HTTP
+                )
+            
+            val ret = getChildSession {
+                task.start(
+                    InitialTransactionImpl(option, TagRepositoryImpl(), request), it
+                )
+            }
+            
+            ret.await() // no detached exception handling. attributes never detach
+        }
+        
+        return result
+    }
+}
 
 interface SessionDetachableStartedState : SessionStartedState, SessionDetachable, SessionDetachRetryable
 

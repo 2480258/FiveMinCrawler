@@ -26,7 +26,7 @@ import arrow.core.right
 import arrow.core.toOption
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
-import com.fivemin.core.engine.transaction.InitialTransactionImpl
+import com.fivemin.core.engine.InitialTransactionImpl
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async

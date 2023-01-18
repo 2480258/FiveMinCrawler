@@ -18,9 +18,7 @@
  *
  */
 
-package com.fivemin.core.engine.transaction
-
-import com.fivemin.core.engine.*
+package com.fivemin.core.engine
 
 data class InitialTransactionImpl<Document : Request>(
     override val option: InitialOption,
