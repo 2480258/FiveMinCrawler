@@ -97,7 +97,7 @@ class PostParserContentPageImplTest {
                     listOf(
                         RequestLinkInfo(
                             "a",
-                            listOf(getHttpRequest(uriIt.gen(), RequestType.LINK)),
+                            listOf(getHttpRequest(uriIt.gen(), RequestType.ATTRIBUTE)),
                             InitialOption()
                         )
                     )

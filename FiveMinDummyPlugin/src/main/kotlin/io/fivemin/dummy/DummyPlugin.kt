@@ -76,7 +76,7 @@ class DummySubPolicy1 : TransactionSubPolicy<InitialTransaction<Request>, Prepar
     ): Either<Throwable, Ret> {
         
         val result =
-            "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
+            "${source.request.target.path}\n${dest.request.target.path}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p1.txt").writeText(result)
         
         return next(dest.right())
@@ -94,7 +94,7 @@ class DummySubPolicy2 :
     ): Either<Throwable, Ret> {
         
         val result =
-            "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
+            "${source.request.target.path}\n${dest.request.target.path}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p2.txt").writeText(result)
         
         return next(dest.right())
@@ -112,7 +112,7 @@ class DummySubPolicy3 :
     ): Either<Throwable, Ret> {
         
         val result =
-            "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
+            "${source.request.target.path}\n${dest.request.target.path}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p3.txt").writeText(result)
         
         return next(dest.right())
@@ -129,7 +129,7 @@ class DummySubPolicy4 : TransactionSubPolicy<SerializeTransaction<Request>, Expo
     ): Either<Throwable, Ret> {
         
         val result =
-            "${source.request.target}\n${dest.request.target}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
+            "${source.request.target.path}\n${dest.request.target.path}\n${state.taskInfo.javaClass.name}\n${state.javaClass.name}"
         File("Output/p4.txt").writeText(result)
         
         return next(dest.right())

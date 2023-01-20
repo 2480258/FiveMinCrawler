@@ -61,7 +61,7 @@ class DownloadHandlerImplTest {
     @Test
     fun downloadAttributes_is_NonBlocking() {
         val state = TaskMockFactory.createSessionStarted<Request>()
-        val parent = DocumentMockFactory.getHttpRequest(URI("http://aaa.com"), RequestType.LINK)
+        val parent = DocumentMockFactory.getHttpRequest(URI("http://aaa.com"), RequestType.ATTRIBUTE)
         
         var finished = false
         
