@@ -111,6 +111,10 @@ tasks.jar {
 }
 
 tasks.test {
+    testLogging {
+        events.add(org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
+        exceptionFormat = TestExceptionFormat.FULL
+    }
     useTestNG()
 }
 
