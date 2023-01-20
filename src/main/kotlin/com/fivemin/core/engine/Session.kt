@@ -276,11 +276,12 @@ interface SessionStartedState : SessionRetryable, SessionChildGeneratable, Sessi
         request: HttpRequest
     ): Deferred<Either<Throwable, ExportTransaction<HttpRequest>>> {
         
-        if (request.requestType != RequestType.LINK) {
-            throw IllegalArgumentException("request type didn't match with called method")
-        }
         
         val result = GlobalScope.async { // it might be bad.... for now, this may be best
+    
+            if (request.requestType != RequestType.LINK) {
+                throw IllegalArgumentException("request type didn't match with called method")
+            }
             
             val task = taskInfo.createTask<HttpRequest>()
                 .get4<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>, SerializeTransaction<HttpRequest>, ExportTransaction<HttpRequest>>(
@@ -326,13 +327,12 @@ interface SessionStartedState : SessionRetryable, SessionChildGeneratable, Sessi
         option: InitialOption,
         request: HttpRequest
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>> {
-        
-        if (request.requestType != RequestType.ATTRIBUTE) {
-            throw IllegalArgumentException("request type didn't match with called method")
-        }
-        
         val result = GlobalScope.async { // it might be bad.... for now, this may be best
-            
+    
+            if (request.requestType != RequestType.ATTRIBUTE) {
+                throw IllegalArgumentException("request type didn't match with called method")
+            }
+    
             val task = taskInfo.createTask<HttpRequest>()
                 .get2<InitialTransaction<HttpRequest>, PrepareTransaction<HttpRequest>, FinalizeRequestTransaction<HttpRequest>>(
                     DocumentType.NATIVE_HTTP
