@@ -16,8 +16,10 @@ dependencies {
     compileOnly(rootProject)
     compileOnly(kotlin("stdlib"))
     
-    compileOnly("org.pf4j:pf4j:3.7.0")
-    kapt("org.pf4j:pf4j:3.7.0")
+    compileOnly("io.arrow-kt:arrow-core:1.1.2")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    compileOnly("org.pf4j:pf4j:3.8.0")
+    kapt("org.pf4j:pf4j:3.8.0")
 }
 
 val pluginsDir = "${rootProject.projectDir.absolutePath}/plugins"

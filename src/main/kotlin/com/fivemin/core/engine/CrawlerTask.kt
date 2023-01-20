@@ -36,13 +36,13 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
         private val logger = LoggerController.getLogger("CrawlerTask1")
     }
     
-    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S2>> {
+    suspend fun start(trans: S1, session: SessionInitState): Deferred<Either<Throwable, S2>> {
         try {
-            return session.start(info.uniqueKeyProvider.documentKey.create(trans.request)) { it ->
+            return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { it ->
                 logger.debug(trans.request.getDebugInfo() + " < starting task")
                 coroutineScope {
                     async {
-                        val result = policy.progressAsync(trans, info, it, ::identity)
+                        val result = policy.progressAsync(trans, it, ::identity)
 
                         
                         result.swap().map {
@@ -76,17 +76,17 @@ constructor(
         private val logger = LoggerController.getLogger("CrawlerTask2")
     }
     
-    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S3>> {
+    suspend fun start(trans: S1, session: SessionInitState): Deferred<Either<Throwable, S3>> {
         try {
             
-            return session.start(info.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
+            return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
                 coroutineScope {
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        val result = policy1.progressAsync(trans, info, state) {
+                        val result = policy1.progressAsync(trans, state) {
                             it.map {
-                                policy2.progressAsync(it, info, state, ::identity)
+                                policy2.progressAsync(it, state, ::identity)
                             }.flatten()
                         }
                         result.swap().map {
@@ -123,18 +123,18 @@ constructor(
         private val logger = LoggerController.getLogger("CrawlerTask3")
     }
     
-    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S4>> {
+    suspend fun start(trans: S1, session: SessionInitState): Deferred<Either<Throwable, S4>> {
         try {
-            return session.start(info.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
+            return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
                 coroutineScope {
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        val result = policy1.progressAsync(trans, info, state) { it ->
+                        val result = policy1.progressAsync(trans, state) { it ->
                             it.map {
-                                policy2.progressAsync(it, info, state) { it ->
+                                policy2.progressAsync(it, state) { it ->
                                     it.map {
-                                        policy3.progressAsync(it, info, state, ::identity)
+                                        policy3.progressAsync(it, state, ::identity)
                                     }.flatten()
                                 }
                             }.flatten()
@@ -174,20 +174,20 @@ constructor(
         private val logger = LoggerController.getLogger("CrawlerTask4")
     }
     
-    suspend fun start(trans: S1, info: TaskInfo, session: SessionInitState): Deferred<Either<Throwable, S5>> {
+    suspend fun start(trans: S1, session: SessionInitState): Deferred<Either<Throwable, S5>> {
         try {
-            return session.start(info.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
+            return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
                 coroutineScope {
                     async {
                         logger.debug(trans.request.getDebugInfo() + " < starting task")
                         
-                        val result = policy1.progressAsync(trans, info, state) { it ->
+                        val result = policy1.progressAsync(trans, state) { it ->
                             it.map {
-                                policy2.progressAsync(it, info, state) { it ->
+                                policy2.progressAsync(it, state) { it ->
                                     it.map {
-                                        policy3.progressAsync(it, info, state) { it ->
+                                        policy3.progressAsync(it, state) { it ->
                                             it.map {
-                                                policy4.progressAsync(it, info, state, ::identity)
+                                                policy4.progressAsync(it, state, ::identity)
                                             }.flatten()
                                         }
                                     }.flatten()

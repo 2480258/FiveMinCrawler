@@ -22,6 +22,7 @@ package com.fivemin.core.engine
 
 import arrow.core.Either
 import arrow.core.none
+import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.session.*
 import com.fivemin.core.engine.session.bFilter.BloomFilterImpl
 import com.fivemin.core.engine.session.database.DatabaseAdapterFactoryImpl
@@ -59,7 +60,8 @@ class SessionStartedStateImplTest {
             SessionDetachableStartedStateImpl(
                 SessionInfo(fin, keyRepo),
                 SessionData(keyRepo, sessRepo),
-                SessionContext(LocalUniqueKeyTokenRepo(), none())
+                SessionContext(LocalUniqueKeyTokenRepo(), none()),
+                TaskMockFactory.createTaskInfo()
             )
         )
     
@@ -94,7 +96,8 @@ class SessionStartedStateImplTest {
             SessionDetachableStartedStateImpl(
                 SessionInfo(fin, keyRepo),
                 SessionData(keyRepo, sessRepo),
-                SessionContext(LocalUniqueKeyTokenRepo(), none())
+                SessionContext(LocalUniqueKeyTokenRepo(), none()),
+                TaskMockFactory.createTaskInfo()
             )
         )
     
@@ -133,7 +136,8 @@ class SessionStartedStateImplTest {
             SessionDetachableStartedStateImpl(
                 SessionInfo(fin, keyRepo),
                 SessionData(keyRepo, sessRepo),
-                SessionContext(LocalUniqueKeyTokenRepo(), none())
+                SessionContext(LocalUniqueKeyTokenRepo(), none()),
+                TaskMockFactory.createTaskInfo()
             )
         )
     
@@ -167,7 +171,8 @@ class SessionStartedStateImplTest {
             SessionDetachableStartedStateImpl(
                 SessionInfo(fin, keyRepo),
                 SessionData(keyRepo, sessRepo),
-                SessionContext(LocalUniqueKeyTokenRepo(), none())
+                SessionContext(LocalUniqueKeyTokenRepo(), none()),
+                TaskMockFactory.createTaskInfo()
             )
         )
         
@@ -209,7 +214,8 @@ class SessionStartedStateImplTest {
             SessionDetachableStartedStateImpl(
                 SessionInfo(fin, keyRepo),
                 SessionData(keyRepo, sessRepo),
-                SessionContext(LocalUniqueKeyTokenRepo(), none())
+                SessionContext(LocalUniqueKeyTokenRepo(), none()),
+                TaskMockFactory.createTaskInfo()
             )
         )
         
@@ -243,7 +249,8 @@ class SessionStartedStateImplTest {
             SessionDetachableStartedStateImpl(
                 SessionInfo(fin, keyRepo),
                 SessionData(keyRepo, sessRepo),
-                SessionContext(LocalUniqueKeyTokenRepo(), none())
+                SessionContext(LocalUniqueKeyTokenRepo(), none()),
+                TaskMockFactory.createTaskInfo()
             )
         )
         

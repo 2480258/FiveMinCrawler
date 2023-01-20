@@ -37,14 +37,14 @@ class DetachableSubPolicy<Document : Request> :
     override suspend fun <Ret> process(
         source: InitialTransaction<Document>,
         dest: PrepareTransaction<Document>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, PrepareTransaction<Document>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
         val isWorkingSet = if (dest.ifDocument({
                 it.containerOption.workingSetMode == WorkingSetMode.Enabled
             }, { false })) {
-            val task = info.createTask<Document>()
+            val task = state.taskInfo.createTask<Document>()
                 .get4<InitialTransaction<Document>, PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, SerializeTransaction<Document>, ExportTransaction<Document>>(
                     dest.request.documentType
                 )
@@ -53,7 +53,7 @@ class DetachableSubPolicy<Document : Request> :
                 it.detach {
                     logger.debug(source.request, "trying to detach")
                     
-                    task.start(source, info, it).await().swap().orNone()
+                    task.start(source, it).await().swap().orNone()
                 }
             }
             

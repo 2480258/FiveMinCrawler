@@ -50,7 +50,7 @@ class TaskMockFactory {
             val policyMock1 = mockk<TransactionPolicy<InTrans, OutTrans, Request, Request>>()
             
             coEvery {
-                policyMock1.progressAsync<Any>(any(), any(), any(), any())
+                policyMock1.progressAsync<Any>(any(), any(), any())
             } answers {
                 throw NullPointerException()
             }
@@ -64,7 +64,7 @@ class TaskMockFactory {
             coEvery {
                 // DO NOT REMOVE GENERIC ARGUMENTS
                 @Suppress("RemoveExplicitTypeArguments") policyMock1.progressAsync<Any>(
-                    any(), any(), any(), any<suspend (Either<Throwable, OutTrans>) -> Either<Throwable, Any>>()
+                    any(), any(), any<suspend (Either<Throwable, OutTrans>) -> Either<Throwable, Any>>()
                 )
             } coAnswers {
                 NullPointerException().left()
@@ -73,7 +73,7 @@ class TaskMockFactory {
             return policyMock1
         }
         
-        fun createSessionInitState(): SessionInitState {
+        fun createSessionInitState(info: TaskInfo? = null): SessionInitState {
             val mock: BloomFilterFactory = mockk()
             
             every {
@@ -93,14 +93,15 @@ class TaskMockFactory {
                 SessionInitStateImpl(
                     SessionInfo(fin, keyRepo),
                     SessionData(keyRepo, sessRepo),
-                    SessionContext(LocalUniqueKeyTokenRepo(), none())
+                    SessionContext(LocalUniqueKeyTokenRepo(), none()),
+                    info ?: createTaskInfo()
                 )
             )
             
             return sess
         }
         
-        fun <T> createDetachableSessionStarted(): SessionDetachableStartedState {
+        fun <T> createDetachableSessionStarted(info: TaskInfo? = null): SessionDetachableStartedState {
             val mock: BloomFilterFactory = mockk()
             
             every {
@@ -120,14 +121,15 @@ class TaskMockFactory {
                 SessionDetachableStartedStateImpl(
                     SessionInfo(fin, keyRepo),
                     SessionData(keyRepo, sessRepo),
-                    SessionContext(LocalUniqueKeyTokenRepo(), none())
+                    SessionContext(LocalUniqueKeyTokenRepo(), none()),
+                    info ?: createTaskInfo()
                 )
             )
             
             return sess
         }
         
-        fun <T> createSessionStarted(): SessionStartedState {
+        fun <T> createSessionStarted(info: TaskInfo? = null): SessionStartedState {
             val mock: BloomFilterFactory = mockk()
             
             every {
@@ -147,7 +149,8 @@ class TaskMockFactory {
                 SessionStartedStateImpl(
                     SessionInfo(fin, keyRepo),
                     SessionData(keyRepo, sessRepo),
-                    SessionContext(LocalUniqueKeyTokenRepo(), none())
+                    SessionContext(LocalUniqueKeyTokenRepo(), none()),
+                    info ?: createTaskInfo()
                 )
             )
             
@@ -161,7 +164,6 @@ class TaskMockFactory {
                 @Suppress("RemoveExplicitTypeArguments") prepMock.progressAsync<Any>(
                     any(),
                     any(),
-                    any(),
                     any<suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, PrepareTransaction<Request>>>()
                 )
             } coAnswers {
@@ -171,7 +173,6 @@ class TaskMockFactory {
             coEvery {
                 // DO NOT REMOVE GENERIC ARGUMENTS
                 @Suppress("RemoveExplicitTypeArguments") reqMock.progressAsync<Any>(
-                    any(),
                     any(),
                     any(),
                     any<suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, FinalizeRequestTransaction<Request>>>()
@@ -187,7 +188,6 @@ class TaskMockFactory {
                 @Suppress("RemoveExplicitTypeArguments") selMock.progressAsync<Any>(
                     any(),
                     any(),
-                    any(),
                     any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, SerializeTransaction<Request>>>()
                 )
             } coAnswers {
@@ -198,7 +198,6 @@ class TaskMockFactory {
             coEvery {
                 // DO NOT REMOVE GENERIC ARGUMENTS
                 @Suppress("RemoveExplicitTypeArguments") expMock.progressAsync<Any>(
-                    any(),
                     any(),
                     any(),
                     any<suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, ExportTransaction<Request>>>()
@@ -225,7 +224,6 @@ class TaskMockFactory {
                 @Suppress("RemoveExplicitTypeArguments") prepMock.progressAsync<Any>(
                     any(),
                     any(),
-                    any(),
                     any<suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, PrepareTransaction<Request>>>()
                 )
             } coAnswers {
@@ -236,7 +234,6 @@ class TaskMockFactory {
             coEvery {
                 // DO NOT REMOVE GENERIC ARGUMENTS
                 @Suppress("RemoveExplicitTypeArguments") reqMock.progressAsync<Any>(
-                    any(),
                     any(),
                     any(),
                     any<suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, FinalizeRequestTransaction<Request>>>()
@@ -252,7 +249,6 @@ class TaskMockFactory {
                 @Suppress("RemoveExplicitTypeArguments") selMock.progressAsync<Any>(
                     any(),
                     any(),
-                    any(),
                     any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, SerializeTransaction<Request>>>()
                 )
             } coAnswers {
@@ -263,7 +259,6 @@ class TaskMockFactory {
             coEvery {
                 // DO NOT REMOVE GENERIC ARGUMENTS
                 @Suppress("RemoveExplicitTypeArguments") expMock.progressAsync<Any>(
-                    any(),
                     any(),
                     any(),
                     any<suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, ExportTransaction<Request>>>()
@@ -289,7 +284,6 @@ class TaskMockFactory {
                 @Suppress("RemoveExplicitTypeArguments") prepMock.progressAsync<Any>(
                     any(),
                     any(),
-                    any(),
                     any<suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, PrepareTransaction<Request>>>()
                 )
             } coAnswers {
@@ -300,7 +294,6 @@ class TaskMockFactory {
             coEvery {
                 // DO NOT REMOVE GENERIC ARGUMENTS
                 @Suppress("RemoveExplicitTypeArguments") reqMock.progressAsync<Any>(
-                    any(),
                     any(),
                     any(),
                     any<suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, FinalizeRequestTransaction<Request>>>()
@@ -316,7 +309,6 @@ class TaskMockFactory {
                 @Suppress("RemoveExplicitTypeArguments") selMock.progressAsync<Any>(
                     any(),
                     any(),
-                    any(),
                     any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, SerializeTransaction<Request>>>()
                 )
             } coAnswers {
@@ -327,7 +319,6 @@ class TaskMockFactory {
             coEvery {
                 // DO NOT REMOVE GENERIC ARGUMENTS
                 @Suppress("RemoveExplicitTypeArguments") expMock.progressAsync<Any>(
-                    any(),
                     any(),
                     any(),
                     any<suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, ExportTransaction<Request>>>()
@@ -353,7 +344,6 @@ class TaskMockFactory {
                 @Suppress("RemoveExplicitTypeArguments") prepMock.progressAsync<Any>(
                     any(),
                     any(),
-                    any(),
                     any<suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, PrepareTransaction<Request>>>()
                 )
             } coAnswers {
@@ -364,7 +354,6 @@ class TaskMockFactory {
             coEvery {
                 // DO NOT REMOVE GENERIC ARGUMENTS
                 @Suppress("RemoveExplicitTypeArguments") reqMock.progressAsync<Any>(
-                    any(),
                     any(),
                     any(),
                     any<suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, FinalizeRequestTransaction<Request>>>()
@@ -380,7 +369,6 @@ class TaskMockFactory {
                 @Suppress("RemoveExplicitTypeArguments") selMock.progressAsync<Any>(
                     any(),
                     any(),
-                    any(),
                     any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, SerializeTransaction<Request>>>()
                 )
             } coAnswers {
@@ -391,7 +379,6 @@ class TaskMockFactory {
             coEvery {
                 // DO NOT REMOVE GENERIC ARGUMENTS
                 @Suppress("RemoveExplicitTypeArguments") expMock.progressAsync<Any>(
-                    any(),
                     any(),
                     any(),
                     any<suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, ExportTransaction<Request>>>()
@@ -422,7 +409,6 @@ class TaskMockFactory {
                 @Suppress("RemoveExplicitTypeArguments") prepMock.progressAsync<Any>(
                     any(),
                     any(),
-                    any(),
                     any<suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, PrepareTransaction<Request>>>()
                 )
             } coAnswers {
@@ -433,7 +419,6 @@ class TaskMockFactory {
             coEvery {
                 // DO NOT REMOVE GENERIC ARGUMENTS
                 @Suppress("RemoveExplicitTypeArguments") reqMock.progressAsync<Any>(
-                    any(),
                     any(),
                     any(),
                     any<suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, FinalizeRequestTransaction<Request>>>()
@@ -449,7 +434,6 @@ class TaskMockFactory {
                 @Suppress("RemoveExplicitTypeArguments") selMock.progressAsync<Any>(
                     any(),
                     any(),
-                    any(),
                     any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, SerializeTransaction<Request>>>()
                 )
             } coAnswers {
@@ -461,7 +445,6 @@ class TaskMockFactory {
             coEvery {
                 // DO NOT REMOVE GENERIC ARGUMENTS
                 @Suppress("RemoveExplicitTypeArguments") expMock.progressAsync<Any>(
-                    any(),
                     any(),
                     any(),
                     any<suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, ExportTransaction<Request>>>()
@@ -513,7 +496,7 @@ class TaskMockFactory {
                     mockk()
                 
                 coEvery {
-                    task.start(any(), any(), any())
+                    task.start(any(), any())
                 }
                 
                 task

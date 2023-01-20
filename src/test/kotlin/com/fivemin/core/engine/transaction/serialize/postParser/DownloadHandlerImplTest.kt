@@ -45,18 +45,14 @@ class DownloadHandlerImplTest {
     @Test
     fun downloadLinks_is_NonBlocking() {
         val state = TaskMockFactory.createSessionStarted<Request>()
-        val info = TaskMockFactory.createTaskInfo()
         val parent = DocumentMockFactory.getHttpRequest(URI("http://aaa.com"), RequestType.LINK)
-        val child = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.LINK)
-        val requestLinkInfo = RequestLinkInfo("a", listOf(child), InitialOption())
         
         var finished = false
         
-        runBlocking {
-            handler.downloadLinks(requestLinkInfo, parent, info, state).invokeOnCompletion {
-                finished = true
-            }
+        state.quick_DownloadLinks(InitialOption(), parent).invokeOnCompletion {
+            finished = true
         }
+        
         
         assert(!finished)
     }
@@ -64,18 +60,14 @@ class DownloadHandlerImplTest {
     @Test
     fun downloadAttributes_is_NonBlocking() {
         val state = TaskMockFactory.createSessionStarted<Request>()
-        val info = TaskMockFactory.createTaskInfo()
-        val parent = DocumentMockFactory.getHttpRequest(URI("http://aaa.com"), RequestType.LINK)
-        val child = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.ATTRIBUTE)
-        val requestLinkInfo = RequestLinkInfo("a", listOf(child), InitialOption())
+        val parent = DocumentMockFactory.getHttpRequest(URI("http://aaa.com"), RequestType.ATTRIBUTE)
         
         var finished = false
         
-        runBlocking {
-            handler.downloadAttributes(requestLinkInfo, parent, info, state).invokeOnCompletion {
-                finished = true
-            }
+        state.quick_DownloadAttributes(InitialOption(), parent).invokeOnCompletion {
+            finished = true
         }
+        
         
         assert(!finished)
     }

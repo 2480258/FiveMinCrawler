@@ -41,12 +41,12 @@ internal class LimitMaxPageSubPolicyTest {
     @Test
     fun process() {
         runBlocking {
-            limitMaxPageSubPolicy.process(mockk(), mockk(), mockk(), mockk(), ::identity)
+            limitMaxPageSubPolicy.process(mockk(), mockk(),  mockk(), ::identity)
         }
         
         assertThrows {
             runBlocking {
-                limitMaxPageSubPolicy.process(mockk(), mockk(), mockk(), mockk(), ::identity)
+                limitMaxPageSubPolicy.process(mockk(), mockk(), mockk(), ::identity)
             }
         }
     }

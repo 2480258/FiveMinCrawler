@@ -39,7 +39,7 @@ class CrawlerTask1Test {
         val doc = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK).upgrade()
         val state = TaskMockFactory.createSessionInitState()
         val result = runBlocking {
-            crawlerTask1.start(doc, TaskMockFactory.createTaskInfo(), state).await()
+            crawlerTask1.start(doc, state).await()
         }
         
         result.fold({
@@ -61,7 +61,7 @@ class CrawlerTask1Test {
         val state = TaskMockFactory.createSessionInitState()
     
         val result = runBlocking {
-            crawlerTask1.start(doc, TaskMockFactory.createTaskInfo(), state).await()
+            crawlerTask1.start(doc, state).await()
         }
         
         result.fold({
@@ -85,7 +85,7 @@ class CrawlerTask1Test {
         val state = TaskMockFactory.createSessionInitState()
     
         val result = runBlocking {
-            crawlerTask1.start(doc, TaskMockFactory.createTaskInfo(), state).await()
+            crawlerTask1.start(doc, state).await()
         }
     
         result.fold({

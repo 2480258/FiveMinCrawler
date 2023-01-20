@@ -26,7 +26,7 @@ import arrow.core.right
 import arrow.core.toOption
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
-import com.fivemin.core.engine.transaction.InitialTransactionImpl
+import com.fivemin.core.engine.InitialTransactionImpl
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -58,7 +58,7 @@ class RedirectSubPolicy<Document : Request> :
     override suspend fun <Ret> process(
         source: PrepareTransaction<Document>,
         dest: FinalizeRequestTransaction<Document>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, FinalizeRequestTransaction<Document>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
@@ -73,13 +73,13 @@ class RedirectSubPolicy<Document : Request> :
                         state.getChildSession {
                             async {
                                 logger.info(doc.getDebugInfo() + " < redirect destination")
-                                info.createTask<Document>()
+                                state.taskInfo.createTask<Document>()
                                     .get2<InitialTransaction<Document>, PrepareTransaction<Document>, FinalizeRequestTransaction<Document>>(
                                         doc.documentType
                                     ).start(
                                         InitialTransactionImpl<Document>(
                                             InitialOption(), TagRepositoryImpl(), doc
-                                        ), info, it
+                                        ), it
                                     ).await()
                             }
                         }

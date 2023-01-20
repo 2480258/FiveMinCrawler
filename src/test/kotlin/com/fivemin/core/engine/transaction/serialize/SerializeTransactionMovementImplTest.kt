@@ -43,7 +43,7 @@ class SerializeTransactionMovementImplTest {
         val post: PostParser<Request> = mockk()
         
         coEvery {
-            post.getPostParseInfo(any(), any(), any())
+            post.getPostParseInfo(any(), any())
         } returns (Either.catch { info })
         
         return post
@@ -71,7 +71,7 @@ class SerializeTransactionMovementImplTest {
                 .upgrade()
         
         val result = runBlocking {
-            serial.move(doc, info, state, ::identity)
+            serial.move(doc, state, ::identity)
         }
         
         result.fold({ throw it }, {
@@ -108,7 +108,7 @@ class SerializeTransactionMovementImplTest {
                 .upgrade()
         
         val result = runBlocking {
-            serial.move(doc, info, state, ::identity)
+            serial.move(doc, state, ::identity)
         }
         
         result.fold({ throw it }, {
@@ -143,7 +143,7 @@ class SerializeTransactionMovementImplTest {
                 .upgrade()
         
         val result = runBlocking {
-            serial.move(doc, info, state, ::identity)
+            serial.move(doc, state, ::identity)
         }
         
         result.fold({ throw it }, {

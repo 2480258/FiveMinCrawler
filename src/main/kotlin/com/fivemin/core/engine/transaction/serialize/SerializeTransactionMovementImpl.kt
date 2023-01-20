@@ -54,14 +54,14 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
     
     override suspend fun <Ret> move(
         source: FinalizeRequestTransaction<Document>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, SerializeTransaction<Document>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
         logger.debug(source.request.getDebugInfo() + " < serializing transaction")
         
         val ret = Either.catch {
-            postParser.getPostParseInfo(source, info, state).map {
+            postParser.getPostParseInfo(source, state).map {
                 source.previous.ifDocument({ doc ->
                     SerializeTransactionImpl<Document>(
                         source.request,
@@ -84,7 +84,7 @@ class SerializeTransactionMovementImpl<Document : Request>(private val postParse
 interface PostParserContentPage<in Document : Request> {
     fun extract(
         request: FinalizeRequestTransaction<Document>,
-        info: TaskInfo,
+        
         state: SessionStartedState
     ): Deferred<Either<Throwable, Iterable<DocumentAttribute>>>
 }
@@ -96,7 +96,7 @@ data class PostParseInfo(
 interface PostParser<in Document : Request> {
     suspend fun getPostParseInfo(
         request: FinalizeRequestTransaction<Document>,
-        info: TaskInfo,
+        
         state: SessionStartedState
     ): Either<Throwable, PostParseInfo>
 }

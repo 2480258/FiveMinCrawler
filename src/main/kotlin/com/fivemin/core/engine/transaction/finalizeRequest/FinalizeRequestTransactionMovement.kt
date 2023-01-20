@@ -36,7 +36,7 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
     
     override suspend fun <Ret> move(
         source: PrepareTransaction<Document>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, FinalizeRequestTransaction<Document>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {

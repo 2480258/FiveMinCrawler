@@ -38,7 +38,7 @@ import java.util.*
 class ResumeDataNameGenerator(val target: String) {
     fun generate(resumeAt: Option<String>): String {
         return resumeAt.fold({
-            val sdf = SimpleDateFormat("ss")
+            val sdf = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS")
             val cur = sdf.format(Date())
     
             "jdbc:sqlite:[$cur]_${URI(target).host}.db"

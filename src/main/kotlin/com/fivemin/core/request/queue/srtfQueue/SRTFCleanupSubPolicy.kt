@@ -38,7 +38,7 @@ class SRTFLogSubPolicy constructor(
     override suspend fun <Ret> process(
         source: PrepareTransaction<Request>,
         dest: FinalizeRequestTransaction<Request>,
-        info: TaskInfo,
+        
         state: SessionStartedState,
         next: suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {

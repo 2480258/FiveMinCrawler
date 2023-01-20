@@ -51,7 +51,7 @@ class MarkDetachablePolicyTest {
         
         
         runBlocking {
-            detach.process(init, preproc, TaskMockFactory.createTaskInfo(), state, ::identity)
+            detach.process(init, preproc, state, ::identity)
         }
         
         verify { state.setDetachable() }
@@ -70,7 +70,7 @@ class MarkDetachablePolicyTest {
         
         
         runBlocking {
-            detach.process(init, preproc, TaskMockFactory.createTaskInfo(), state, ::identity)
+            detach.process(init, preproc, state, ::identity)
         }
         
         verify { state.setNonDetachable() }

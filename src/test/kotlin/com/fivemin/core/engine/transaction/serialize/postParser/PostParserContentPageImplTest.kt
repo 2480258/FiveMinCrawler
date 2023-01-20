@@ -76,7 +76,7 @@ class PostParserContentPageImplTest {
             )
 
             var ret =
-                pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await()
+                pp.extract(creq, TaskMockFactory.createSessionStarted<Any>()).await()
                     .fold({ fail() }) {
                         assertEquals(it.count(), 1)
                     }
@@ -97,7 +97,7 @@ class PostParserContentPageImplTest {
                     listOf(
                         RequestLinkInfo(
                             "a",
-                            listOf(getHttpRequest(uriIt.gen(), RequestType.LINK)),
+                            listOf(getHttpRequest(uriIt.gen(), RequestType.ATTRIBUTE)),
                             InitialOption()
                         )
                     )
@@ -107,7 +107,7 @@ class PostParserContentPageImplTest {
             )
 
             var ret =
-                pp.extract(creq, TaskMockFactory.createTaskInfo(policySet = TaskMockFactory.createPolicySet2()), TaskMockFactory.createSessionStarted<Any>()).await()
+                pp.extract(creq, TaskMockFactory.createSessionStarted<Any>(TaskMockFactory.createTaskInfo(policySet = TaskMockFactory.createPolicySet2()))).await()
                     .fold({ fail() }) {
                         assertEquals(it.count(), 1)
                     }
@@ -138,7 +138,7 @@ class PostParserContentPageImplTest {
             )
 
             var ret =
-                pp.extract(creq, TaskMockFactory.createTaskInfo(), TaskMockFactory.createSessionStarted<Any>()).await()
+                pp.extract(creq, TaskMockFactory.createSessionStarted<Any>()).await()
                     .fold({
                         fail()
                     }) {
@@ -162,7 +162,7 @@ class PostParserContentPageImplTest {
                 DocumentAttributeFactoryImpl()
             )
 
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), mockk()).await().fold({
+            var ret = pp.extract(creq, TaskMockFactory.createSessionStarted<Request>()).await().fold({
             }) {
                 fail()
             }
@@ -184,7 +184,7 @@ class PostParserContentPageImplTest {
                 DocumentAttributeFactoryImpl()
             )
 
-            var ret = pp.extract(creq, TaskMockFactory.createTaskInfo(), mockk()).await().fold({ fail() }) {
+            var ret = pp.extract(creq, TaskMockFactory.createSessionStarted<Request>()).await().fold({ fail() }) {
                 assertEquals(it.count(), 0)
             }
         }

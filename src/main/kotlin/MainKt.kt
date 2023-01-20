@@ -36,7 +36,7 @@ class MainKt {
         fun main(args: Array<String>) {
             try {
                 val options = parseOptions(args)
-                CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, info, state ->
+                CrawlerFactory().get(options).startAndWaitUntilFinish { taskFactory, document, state ->
                     val task = taskFactory.getFactory()
                         .get4<
                                 InitialTransaction<Request>,
@@ -48,7 +48,7 @@ class MainKt {
                         )
                     
                     runBlocking {
-                        task.start(document, info, state)
+                        task.start(document, state)
                     }
                 }
             } catch (e: Exception) {
@@ -87,10 +87,10 @@ class MainKt {
                 return parseOptions(File(argsText).readText().split(' ').toTypedArray())
             } else {
                 if (useVerbose) {
-                    System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
+                    System.setProperty(org.slf4j.simple.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE")
                     logger.debug("Logging Level = TRACE")
                 } else {
-                    System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO")
+                    System.setProperty(org.slf4j.simple.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO")
                 }
                 
                 if (uri == null || paramPath == null) {

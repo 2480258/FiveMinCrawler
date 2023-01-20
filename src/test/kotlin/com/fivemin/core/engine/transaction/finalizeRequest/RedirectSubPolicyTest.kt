@@ -79,7 +79,7 @@ class RedirectSubPolicyTest {
         }
         
         runBlocking {
-            val result = redirectSubPolicy.process(req, fin, info, state, ::identity)
+            val result = redirectSubPolicy.process(req, fin, state, ::identity)
         }
         coVerify(exactly = 1) {
             state.getChildSession<Any>(any())
