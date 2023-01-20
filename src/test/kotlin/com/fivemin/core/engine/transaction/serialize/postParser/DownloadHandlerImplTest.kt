@@ -49,11 +49,10 @@ class DownloadHandlerImplTest {
         
         var finished = false
         
-        runBlocking {
-            state.quick_DownloadLinks(InitialOption(), parent).invokeOnCompletion {
-                finished = true
-            }
+        state.quick_DownloadLinks(InitialOption(), parent).invokeOnCompletion {
+            finished = true
         }
+        
         
         assert(!finished)
     }
@@ -65,11 +64,10 @@ class DownloadHandlerImplTest {
         
         var finished = false
         
-        runBlocking {
-            state.quick_DownloadAttributes(InitialOption(), parent).invokeOnCompletion {
-                finished = true
-            }
+        state.quick_DownloadAttributes(InitialOption(), parent).invokeOnCompletion {
+            finished = true
         }
+        
         
         assert(!finished)
     }
