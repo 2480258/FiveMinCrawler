@@ -78,10 +78,10 @@ class NormalIntegrationTest {
                 VerifySet("Output/01.png", 9004),
                 VerifySet("Output/user.json", 41),
                 VerifySet("Output/about.json", 41),
-                VerifySet("Output/p1.txt", 136),
-                VerifySet("Output/p2.txt", 136),
-                VerifySet("Output/p3.txt", 136),
-                VerifySet("Output/p4.txt", 136),
+                VerifySet("Output/p1.txt", 94),
+                VerifySet("Output/p2.txt", 94),
+                VerifySet("Output/p3.txt", 94),
+                VerifySet("Output/p4.txt", 94),
                 VerifySet("Output/r.txt", 7957)
             )
         ) {
