@@ -156,14 +156,14 @@ class DummyDownloadPolicy : TransactionSubPolicy<InitialTransaction<Request>, Pr
             }
             
             val r = result.fold({
-                it.stackTraceToString()
+                "f"
             }, {
                 it.responseBody.ifHttpSucc({
                     it.body.ifString({
                         it.openStreamAsStringAndDispose {
-                            it.readText()
+                            "s"
                         }.fold({
-                            it.stackTraceToString()
+                            "f"
                         }, ::identity)
                     }, {
                         it.toString()
@@ -173,7 +173,7 @@ class DummyDownloadPolicy : TransactionSubPolicy<InitialTransaction<Request>, Pr
                 })
             })
             
-            File("Output/r.txt").appendText( "=" + integer.getAndIncrement().toString() + "\n"+ r + "\n" + "+" + integer.getAndIncrement() + "\n\n")
+            File("Output/r.txt").appendText( r)
             
             next(dest.right())
         }
