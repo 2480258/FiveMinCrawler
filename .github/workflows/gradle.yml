@@ -42,7 +42,7 @@ jobs:
     - name: Build with Gradlej
       uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
       with:
-        arguments: testCoverage --stacktrace
+        arguments: testCoverage
     - uses: actions/upload-artifact@v3
       with:
         name: log
