@@ -24,12 +24,10 @@ import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.ExecuteRequestMovement
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 
-class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: RequestWaiter) : ExecuteRequestMovement<Document> {
-
+class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: RequestWaiter) :
+    ExecuteRequestMovement<Document> {
+    
     companion object {
         private val logger = LoggerController.getLogger("FinalizeRequestTransactionMovement")
     }
@@ -40,12 +38,12 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
         state: SessionStartedState,
         next: suspend (Either<Throwable, FinalizeRequestTransaction<Document>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
-        var dest : Either<Throwable, FinalizeRequestTransaction<Document>>? = null
+        var dest: Either<Throwable, FinalizeRequestTransaction<Document>>? = null
         
         try {
             val req = DocumentRequestImpl<Document>(source, DocumentRequestInfo(state.isDetachable))
             val ret = requestWaiter.request<Document, ResponseData>(req)
-    
+            
             dest = FinalizeRequestTransactionImpl<Document>(ret.await(), source.tags, source).right()
             val result = next(dest)
             

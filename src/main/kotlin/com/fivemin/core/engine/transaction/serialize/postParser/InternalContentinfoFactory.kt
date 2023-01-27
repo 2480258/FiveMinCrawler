@@ -24,7 +24,6 @@ import arrow.core.Option
 import arrow.core.toOption
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
-import kotlinx.coroutines.coroutineScope
 
 interface InternalContentInfoFactory<in Document : Request> {
     suspend fun get(trans: FinalizeRequestTransaction<Document>): Option<Iterable<InternalContentInfo>>
@@ -47,32 +46,35 @@ class InternalContentInfoFactoryImpl<Document : Request>(
     private val attributeFactory: DocumentAttributeFactory,
     private val textExtractor: TextExtractor
 ) : InternalContentInfoFactory<Document> {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("InternalContentInfoFactoryImpl")
     }
-
+    
     override suspend fun get(trans: FinalizeRequestTransaction<Document>): Option<List<InternalContentInfo>> {
-        return coroutineScope {
-            val ret = trans.result.map { responseData ->
-                responseData.responseBody.ifSuccAsync({ successBody ->
-                    successBody.body.ifFile({ // remove temp file because anyway it should be read before.
-                        it.file.remove()
-                    }, { })
-
-                    successBody.body.ifHtml({ htmlMemoryData ->
-                        factories.map { x ->
-                            InternalContentInfo(x.attributeName, textExtractor.parse(htmlMemoryData, x.nav, x.selectionMode).toList())
-                        }
-                    }, { listOf() })
+        
+        val ret = trans.result.map { responseData ->
+            responseData.responseBody.ifSuccAsync({ successBody ->
+                successBody.body.ifFile({ // remove temp file because anyway it should be read before.
+                    it.file.remove()
+                }, { })
+                
+                successBody.body.ifHtml({ htmlMemoryData ->
+                    factories.map { x ->
+                        InternalContentInfo(
+                            x.attributeName,
+                            textExtractor.parse(htmlMemoryData, x.nav, x.selectionMode).toList()
+                        )
+                    }
                 }, { listOf() })
-            }
-
-            ret.swap().map {
-                logger.warn(trans.request.getDebugInfo() + " < can't extract internal attribute from due to: " + it)
-            }
-
-            ret.orNull().toOption()
+            }, { listOf() })
         }
+        
+        ret.swap().map {
+            logger.warn(trans.request.getDebugInfo() + " < can't extract internal attribute from due to: " + it)
+        }
+        
+        return ret.orNull().toOption()
+        
     }
 }

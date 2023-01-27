@@ -31,7 +31,7 @@ class TaskWaitHandle<T> {
     }
     
     suspend fun runAsync(act: suspend () -> Unit, onCancel: suspend () -> Unit): Deferred<T> {
-        val job = CoroutineScope(Dispatchers.IO).launch {
+        val job = GlobalScope.launch {
             try {
                 act()
             } catch (e: Exception) {

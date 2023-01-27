@@ -201,7 +201,7 @@ interface SessionStartable : SessionAddableAlias {
      * Note that session allowed starting only once except retry.
      */
     suspend fun <T> start(
-        key: UniqueKey, func: suspend (SessionStartedState) -> Deferred<Either<Throwable, T>>
+        key: UniqueKey, func: suspend (SessionStartedState) -> Either<Throwable, T>
     ): Deferred<Either<Throwable, T>> {
         
         return info.doRegisteredTask {
@@ -215,7 +215,7 @@ interface SessionStartable : SessionAddableAlias {
                         SessionStartedStateImpl(info, data, context, taskInfo)
                     }
                     
-                    func(state).await()
+                    func(state)
                 }
             }.flatten()
         }
