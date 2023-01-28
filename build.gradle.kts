@@ -111,6 +111,7 @@ tasks.jar {
 }
 
 tasks.test {
+    println("CI" + System.getenv("CI"))
     if (System.getenv("CI").equals("YES")) {
         println("Test excluded: " + project.properties["excludeTests"].toString())
         exclude(project.properties["excludeTests"].toString())
