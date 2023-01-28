@@ -111,17 +111,10 @@ tasks.jar {
 }
 
 tasks.test {
-    
-    filter {
-        if (project.hasProperty("excludeTests")) {
-            excludeTestsMatching(project.properties["excludeTests"].toString())
-            excludeTest("com.fivemin.core.engine.transaction.serialize.postParser.nonBlocking.DownloadHandler_nonBlockingTest", "downloadLinks_is_nonBlocking_ExcludeCI")
-            excludeTest("com.fivemin.core.engine.transaction.serialize.postParser.nonBlocking.DownloadHandler_nonBlockingTest", "downloadAttributes_is_nonBlocking_ExcludeCI")
-        }
-    }
-    
     if (project.hasProperty("excludeTests")) {
+        println("Test excluded: " + project.properties["excludeTests"].toString())
         exclude(project.properties["excludeTests"].toString())
+        // exclude("**/*nonBlocking*")
     }
     
     testLogging {
