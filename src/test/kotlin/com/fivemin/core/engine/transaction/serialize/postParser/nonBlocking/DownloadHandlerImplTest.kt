@@ -31,7 +31,7 @@ import org.testng.annotations.Test
 import org.testng.annotations.BeforeTest
 import java.net.URI
 
-class DownloadHandlerImplTest {
+class DownloadHandler_nonBlockingTest {
     
     lateinit var handler: DownloadHandlerImpl
     
