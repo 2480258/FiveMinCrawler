@@ -115,6 +115,8 @@ tasks.test {
     filter {
         if (project.hasProperty("excludeTests")) {
             excludeTestsMatching(project.properties["excludeTests"].toString())
+            excludeTest("com.fivemin.core.engine.transaction.serialize.postParser.nonBlocking.DownloadHandler_nonBlockingTest", "downloadLinks_is_nonBlocking_ExcludeCI")
+            excludeTest("com.fivemin.core.engine.transaction.serialize.postParser.nonBlocking.DownloadHandler_nonBlockingTest", "downloadAttributes_is_nonBlocking_ExcludeCI")
         }
     }
     
