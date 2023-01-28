@@ -115,6 +115,7 @@ tasks.test {
     filter {
         if (project.hasProperty("excludeTests")) {
             excludeTestsMatching(project.properties["excludeTests"].toString())
+            println("Excluded test: " + project.properties["excludeTests"].toString())
         }
     }
     
