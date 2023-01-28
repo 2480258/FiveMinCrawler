@@ -18,13 +18,14 @@
  *
  */
 
-package com.fivemin.core.engine.transaction.serialize.postParser
+package com.fivemin.core.engine.transaction.serialize.postParser.nonBlocking
 
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.InitialOption
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.RequestType
+import com.fivemin.core.engine.transaction.serialize.postParser.DownloadHandlerImpl
 import org.testng.annotations.Test
 
 import org.testng.annotations.BeforeTest
@@ -40,7 +41,7 @@ class DownloadHandlerImplTest {
     }
     
     @Test(timeOut = 20000)
-    fun downloadLinks_is_NonBlocking_ExcludeCI() {
+    fun downloadLinks_is_nonBlocking_ExcludeCI() {
         val state = TaskMockFactory.createSessionStarted<Request>()
         val request = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.LINK)
         
@@ -54,7 +55,7 @@ class DownloadHandlerImplTest {
     }
     
     @Test(timeOut = 20000)
-    fun downloadAttributes_is_NonBlocking_ExcludeCI() {
+    fun downloadAttributes_is_nonBlocking_ExcludeCI() {
         val state = TaskMockFactory.createSessionStarted<Request>()
         val request = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.ATTRIBUTE)
         
