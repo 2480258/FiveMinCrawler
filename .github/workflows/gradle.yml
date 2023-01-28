@@ -37,8 +37,8 @@ jobs:
       run: sleep 10s
     - name: Check Plugins
       run: ls ./plugins
-    # - name: Test with Debug <-- If you want to see logs.
-    #   run: ./gradlew test --info
+    - name: Test with Debug <-- If you want to see logs.
+      run: ./gradlew test --info
     - name: Build with Gradlej
       uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
       with:
