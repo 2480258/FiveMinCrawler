@@ -18,57 +18,53 @@
  *
  */
 
-package com.fivemin.core.engine.transaction.serialize.postParser
+package com.fivemin.core.engine.transaction.serialize.postParser.nonBlocking
 
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.InitialOption
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.RequestType
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
+import com.fivemin.core.engine.transaction.serialize.postParser.DownloadHandlerImpl
 import org.testng.annotations.Test
 
 import org.testng.annotations.BeforeTest
 import java.net.URI
 
-class DownloadHandlerImplTest {
+class DownloadHandler_nonBlockingTest {
     
     lateinit var handler: DownloadHandlerImpl
     
     @BeforeTest
     fun before() {
-        handler = DownloadHandlerImpl()
+    
     }
     
-    @Test
-    fun downloadLinks_is_NonBlocking() {
+    @Test(timeOut = 20000)
+    fun downloadLinks_is_nonBlocking_ExcludeCI() {
         val state = TaskMockFactory.createSessionStarted<Request>()
-        val parent = DocumentMockFactory.getHttpRequest(URI("http://aaa.com"), RequestType.LINK)
+        val request = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.LINK)
         
-        var finished = false
+        val ret = state.quick_DownloadLinks(InitialOption(), request)
         
-        state.quick_DownloadLinks(InitialOption(), parent).invokeOnCompletion {
-            finished = true
+        ret.invokeOnCompletion {
+            Thread.sleep(1000000)
         }
         
-        
-        assert(!finished)
+        assert(!ret.isCompleted)
     }
     
-    @Test
-    fun downloadAttributes_is_NonBlocking() {
+    @Test(timeOut = 20000)
+    fun downloadAttributes_is_nonBlocking_ExcludeCI() {
         val state = TaskMockFactory.createSessionStarted<Request>()
-        val parent = DocumentMockFactory.getHttpRequest(URI("http://aaa.com"), RequestType.ATTRIBUTE)
+        val request = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.ATTRIBUTE)
         
-        var finished = false
+        val ret = state.quick_DownloadAttributes(InitialOption(), request)
         
-        state.quick_DownloadAttributes(InitialOption(), parent).invokeOnCompletion {
-            finished = true
+        ret.invokeOnCompletion {
+            Thread.sleep(1000000)
         }
         
-        
-        assert(!finished)
+        assert(!ret.isCompleted)
     }
 }

@@ -28,7 +28,6 @@ import com.fivemin.core.engine.transaction.TransactionSubPolicy
 import com.fivemin.core.initialize.PluginObject
 import com.fivemin.core.initialize.SubPolicyCollection
 import com.fivemin.core.initialize.mef.MEFPlugin
-import kotlinx.coroutines.coroutineScope
 import org.pf4j.Extension
 import org.pf4j.ExtensionPoint
 import org.pf4j.Plugin
@@ -36,7 +35,6 @@ import org.pf4j.PluginWrapper
 import java.io.File
 import java.net.URI
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.coroutines.coroutineContext
 
 @Extension
 class DummyPluginExtensions : ExtensionPoint, MEFPlugin {
@@ -141,37 +139,40 @@ class DummyDownloadPolicy : TransactionSubPolicy<InitialTransaction<Request>, Pr
         state: SessionStartedState,
         next: suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
-        return coroutineScope {
-            val downloaded = state.quick_DownloadAttributes(URI("http://localhost:3000/headerReflect"), dest.request.token, dest.request.target).await()
+        val downloaded = state.quick_DownloadAttributes(
+            URI("http://localhost:3000/headerReflect"),
+            dest.request.token,
+            dest.request.target
+        ).await()
+        
+        val result = either<Throwable, ResponseData> {
+            val r1 = downloaded.bind()
+            val r2 = r1.result.bind()
             
-            val result = either<Throwable, ResponseData> {
-                val r1 = downloaded.bind()
-                val r2 = r1.result.bind()
-                
-                r2
-            }
-            
-            val r = result.fold({
-                "f"
-            }, {
-                it.responseBody.ifHttpSucc({
-                    it.body.ifString({
-                        it.openStreamAsStringAndDispose {
-                            "s"
-                        }.fold({
-                            "f"
-                        }, ::identity)
-                    }, {
-                        it.toString()
-                    })
+            r2
+        }
+        
+        val r = result.fold({
+            "f"
+        }, {
+            it.responseBody.ifHttpSucc({
+                it.body.ifString({
+                    it.openStreamAsStringAndDispose {
+                        "s"
+                    }.fold({
+                        "f"
+                    }, ::identity)
                 }, {
                     it.toString()
                 })
+            }, {
+                it.toString()
             })
-            
-            File("Output/r.txt").appendText( r)
-            
-            next(dest.right())
-        }
+        })
+        
+        File("Output/r.txt").appendText(r)
+        
+        return next(dest.right())
+        
     }
 }

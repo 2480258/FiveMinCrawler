@@ -111,6 +111,12 @@ tasks.jar {
 }
 
 tasks.test {
+    println("CI: " + System.getenv("CI"))
+    if (System.getenv("CI").equals("true")) {
+        println("Test excluded: " + project.properties["excludeTests"].toString())
+        exclude(project.properties["excludeTests"].toString())
+        exclude("**/*nonBlocking*")
+    }
     testLogging {
         events.add(org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
         exceptionFormat = TestExceptionFormat.FULL

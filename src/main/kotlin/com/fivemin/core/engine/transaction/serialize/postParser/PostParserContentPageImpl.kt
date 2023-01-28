@@ -45,36 +45,34 @@ class PostParserContentPageImpl<Document : Request>(
     override suspend fun extract(
         req: FinalizeRequestTransaction<Document>, state: SessionStartedState
     ): Deferred<Option<List<DocumentAttribute>>> {
-        return coroutineScope {
-            async {
-                try {
-                    req.previous.ifDocumentAsync({
-                        if (it.parseOption.name == pageCondition) {
-                            val internals = processIntAttribute(req)
-                            val externals = processExtAttr(req, state)
-                            val links = processLinks(req, state)
-                            
-                            externals.plus(links).awaitAll() // early exits if at least one links returns an exception.
-                            
-                            val finished = externals.map { y ->
-                                y.await() // awaits already awaited values. orders are not important
-                            }
-                            
-                            val ret = internals.fold({ finished }) { x ->
-                                finished.plus(x)
-                            }
-                            
-                            ret.toOption()
-                        } else {
-                            none()
+        return GlobalScope.async {
+            try {
+                req.previous.ifDocumentAsync({
+                    if (it.parseOption.name == pageCondition) {
+                        val internals = processIntAttribute(req)
+                        val externals = processExtAttr(req, state)
+                        val links = processLinks(req, state)
+                        
+                        externals.plus(links).awaitAll() // early exits if at least one links returns an exception.
+                        
+                        val finished = externals.map { y ->
+                            y.await() // awaits already awaited values. orders are not important
                         }
-                    }, {
+                        
+                        val ret = internals.fold({ finished }) { x ->
+                            finished.plus(x)
+                        }
+                        
+                        ret.toOption()
+                    } else {
                         none()
-                    })
-                } catch (e: Exception) {
-                    logger.debug(e, "failed to extract")
-                    throw e
-                }
+                    }
+                }, {
+                    none()
+                })
+            } catch (e: Exception) {
+                logger.debug(e, "failed to extract")
+                throw e
             }
         }
     }

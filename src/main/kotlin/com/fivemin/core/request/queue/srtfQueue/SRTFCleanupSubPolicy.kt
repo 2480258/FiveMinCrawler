@@ -26,10 +26,6 @@ import arrow.core.flatten
 import arrow.core.none
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-
 class SRTFLogSubPolicy constructor(
     private val timingRepo: SRTFTimingRepository,
     private val descriptorFactory: SRTFPageDescriptorFactory,

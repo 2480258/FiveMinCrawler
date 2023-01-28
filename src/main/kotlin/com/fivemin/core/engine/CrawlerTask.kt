@@ -21,9 +21,14 @@
 package com.fivemin.core.engine
 
 import arrow.core.*
+import arrow.core.continuations.Effect
+import arrow.core.continuations.effect
+import arrow.core.continuations.either
 import com.fivemin.core.LoggerController
 import com.fivemin.core.TaskDetachedException
 import kotlinx.coroutines.*
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.suspendCoroutine
 
 class TaskError constructor(val Error: Either<TaskCanceledException, Exception>)
 
@@ -37,32 +42,24 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
     }
     
     suspend fun start(trans: S1, session: SessionInitState): Deferred<Either<Throwable, S2>> {
-        try {
-            return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { it ->
+        
+        return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { it ->
+            try {
                 logger.debug(trans.request.getDebugInfo() + " < starting task")
-                coroutineScope {
-                    async {
-                        val result = policy.progressAsync(trans, it, ::identity)
-
-                        
-                        result.swap().map {
-                            if (it is TaskDetachedException) {
-                            } else {
-                                logger.warn(trans.request, "got task error", it.toOption())
-                            }
-                        }
-                        
-                        result
+                val result = policy.progressAsync(trans, it, ::identity)
+                
+                result.swap().map {
+                    if (it is TaskDetachedException) {
+                    } else {
+                        logger.warn(trans.request, "got task error", it.toOption())
                     }
                 }
-            }
-        } catch (e: Exception) {
-            return coroutineScope {
-                async {
-                    logger.warn(trans.request, " < caught unhandled exception: ", e.toOption())
-                    
-                    e.left()
-                }
+                
+                result
+                
+            } catch (e: Exception) {
+                logger.warn(trans.request, " < caught unhandled exception: ", e.toOption())
+                e.left()
             }
         }
     }
@@ -77,36 +74,36 @@ constructor(
     }
     
     suspend fun start(trans: S1, session: SessionInitState): Deferred<Either<Throwable, S3>> {
-        try {
-            
-            return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
-                coroutineScope {
-                    async {
-                        logger.debug(trans.request.getDebugInfo() + " < starting task")
-                        
-                        val result = policy1.progressAsync(trans, state) {
-                            it.map {
-                                policy2.progressAsync(it, state, ::identity)
-                            }.flatten()
-                        }
-                        result.swap().map {
-                            if (it is TaskDetachedException) {
-                            } else {
-                                logger.warn(trans.request, "got task error", it.toOption())
-                            }
-                        }
-                        
-                        result
+        
+        return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
+            try {
+                logger.debug(trans.request.getDebugInfo() + " < starting task")
+                // @formatter:off
+                val p2 = { it: S2 -> suspend { policy2.progressAsync(it, state, ::identity) } }
+                val p1 = { it: S1, next: suspend (Either<Throwable, S2>) -> Either<Throwable, S3> -> suspend { policy1.progressAsync( it, state, next ) } }.curried()
+                // @formatter:on
+                
+                val result = either<Throwable, Either<Throwable, S3>> {
+                    val a1 = p1(trans)
+                    a1 { it ->
+                        p2(it.bind())()
+                    }()
+                }.flatten()
+                
+                
+                result.swap().map {
+                    if (it is TaskDetachedException) {
+                    } else {
+                        logger.warn(trans.request, "got task error", it.toOption())
                     }
                 }
-            }
-        } catch (e: Exception) {
-            return coroutineScope {
-                async {
-                    logger.warn(trans.request, " < caught unhandled exception: ", e.toOption())
-                    
-                    e.left()
-                }
+                
+                result
+            } catch (e: Exception) {
+                
+                logger.warn(trans.request, " < caught unhandled exception: ", e.toOption())
+                
+                e.left()
             }
         }
     }
@@ -124,40 +121,38 @@ constructor(
     }
     
     suspend fun start(trans: S1, session: SessionInitState): Deferred<Either<Throwable, S4>> {
-        try {
-            return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
-                coroutineScope {
-                    async {
-                        logger.debug(trans.request.getDebugInfo() + " < starting task")
-                        
-                        val result = policy1.progressAsync(trans, state) { it ->
-                            it.map {
-                                policy2.progressAsync(it, state) { it ->
-                                    it.map {
-                                        policy3.progressAsync(it, state, ::identity)
-                                    }.flatten()
-                                }
-                            }.flatten()
-                        }
-                        
-                        result.swap().map {
-                            if (it is TaskDetachedException) {
-                            } else {
-                                logger.warn(trans.request, "got task error", it.toOption())
-                            }
-                        }
-                        
-                        result
+        
+        return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
+            try {
+                logger.debug(trans.request.getDebugInfo() + " < starting task")
+                // @formatter:off
+                val p3 = { it: S3 -> suspend { policy3.progressAsync(it, state, ::identity) } }
+                val p2 = { it: S2, next: suspend (Either<Throwable, S3>) -> Either<Throwable, S4> -> suspend { policy2.progressAsync( it, state, next ) } }.curried()
+                val p1 = { it: S1, next: suspend (Either<Throwable, S2>) -> Either<Throwable, S4> -> suspend { policy1.progressAsync( it, state, next ) } }.curried()
+                // @formatter:on
+                
+                val result = either<Throwable, Either<Throwable, S4>> {
+                    val a1 = p1(trans)
+                    a1 { it ->
+                        val a2 = p2(it.bind())
+                        a2 {
+                            p3(it.bind())()
+                        }()
+                    }()
+                }.flatten()
+                
+                result.swap().map {
+                    if (it is TaskDetachedException) {
+                    } else {
+                        logger.warn(trans.request, "got task error", it.toOption())
                     }
                 }
-            }
-        } catch (e: Exception) {
-            return coroutineScope {
-                async {
-                    logger.warn(trans.request, " < caught unhandled exception: ", e.toOption())
-                    
-                    e.left()
-                }
+                
+                result
+                
+            } catch (e: Exception) {
+                logger.warn(trans.request, " < caught unhandled exception: ", e.toOption())
+                e.left()
             }
         }
     }
@@ -175,45 +170,61 @@ constructor(
     }
     
     suspend fun start(trans: S1, session: SessionInitState): Deferred<Either<Throwable, S5>> {
-        try {
-            return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
-                coroutineScope {
-                    async {
-                        logger.debug(trans.request.getDebugInfo() + " < starting task")
-                        
-                        val result = policy1.progressAsync(trans, state) { it ->
-                            it.map {
-                                policy2.progressAsync(it, state) { it ->
-                                    it.map {
-                                        policy3.progressAsync(it, state) { it ->
-                                            it.map {
-                                                policy4.progressAsync(it, state, ::identity)
-                                            }.flatten()
-                                        }
-                                    }.flatten()
-                                }
-                            }.flatten()
-                        }
-                      
-                        result.swap().map {
-                            if (it is TaskDetachedException) {
-                            } else {
-                                logger.warn(trans.request, "got task error", it.toOption())
-                            }
-                        }
-                        
-                        result
+        
+        return session.start(session.taskInfo.uniqueKeyProvider.documentKey.create(trans.request)) { state ->
+            try {
+                logger.debug(trans.request.getDebugInfo() + " < starting task")
+                // @formatter:off
+                val p4 = { it: S4 -> suspend { policy4.progressAsync(it, state, ::identity) } }
+                val p3 = { it: S3, next: suspend (Either<Throwable, S4>) -> Either<Throwable, S5> -> suspend { policy3.progressAsync( it, state, next ) } }.curried()
+                val p2 = { it: S2, next: suspend (Either<Throwable, S3>) -> Either<Throwable, S5> -> suspend { policy2.progressAsync( it, state, next ) } }.curried()
+                val p1 = { it: S1, next: suspend (Either<Throwable, S2>) -> Either<Throwable, S5> -> suspend { policy1.progressAsync( it, state, next ) } }.curried()
+                // @formatter:on
+                
+                val result = either<Throwable, Either<Throwable, S5>> {
+                    val a1 = p1(trans)
+                    a1 { it ->
+                        val a2 = p2(it.bind())
+                        a2 {
+                            val a3 = p3(it.bind())
+                            a3 {
+                                p4(it.bind())()
+                            }()
+                        }()
+                    }()
+                }.flatten()
+                
+                
+                result.swap().map {
+                    if (it is TaskDetachedException) {
+                    } else {
+                        logger.warn(trans.request, "got task error", it.toOption())
                     }
                 }
-            }
-        } catch (e: Exception) {
-            return coroutineScope {
-                async {
-                    logger.warn(trans.request, " < caught unhandled exception: ", e.toOption())
-                    
-                    e.left()
-                }
+                
+                result
+                
+            } catch (e: Exception) {
+                logger.warn(trans.request, " < caught unhandled exception: ", e.toOption())
+                
+                e.left()
+                
             }
         }
+    }
+}
+
+
+typealias Cont<R, T> = (((T) -> R) -> suspend () -> R)
+
+fun <R, A, B> callCC(f: ((A) -> Cont<R, B>) -> Cont<R, A>): Cont<R, A> {
+    return { k: (A) -> R ->
+        f { a: A ->
+            val g: Cont<R, B> = {
+                suspend { k(a) }
+            }
+            
+            g
+        }(k)
     }
 }

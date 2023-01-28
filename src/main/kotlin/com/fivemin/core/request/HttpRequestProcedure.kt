@@ -24,27 +24,25 @@ import arrow.core.Either
 import com.fivemin.core.engine.PerformedRequesterInfo
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.ResponseBody
-import com.fivemin.core.request.cookie.CookieRepository
-import com.fivemin.core.request.cookie.CookieRepositoryImpl
 import com.fivemin.core.request.cookie.CookieResolveTarget
 import com.fivemin.core.request.cookie.CookiedRequester
-import com.fivemin.core.request.cookie.CustomCookieJar
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.coroutineScope
 
-class HttpRequestProcedure(info: PerformedRequesterInfo, config: RequesterConfig, private val adapter: RequesterAdapter) :
+class HttpRequestProcedure(
+    info: PerformedRequesterInfo,
+    config: RequesterConfig,
+    private val adapter: RequesterAdapter
+) :
     CookiedRequester {
     private val target: CookieResolveTarget
-
+    
     init {
         target = config.targetFactory.create(info, adapter.cookieRepository)
     }
-
+    
     suspend fun request(request: Request): Deferred<Either<Throwable, ResponseBody>> {
-        return coroutineScope {
-            target.sync {
-                adapter.requestAsync(request)
-            }
+        return target.sync {
+            adapter.requestAsync(request)
         }
     }
 }
