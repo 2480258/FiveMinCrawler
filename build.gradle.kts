@@ -111,6 +111,13 @@ tasks.jar {
 }
 
 tasks.test {
+    
+    filter {
+        if (project.hasProperty("excludeTests")) {
+            excludeTestsMatching(project.properties["excludeTests"].toString())
+        }
+    }
+    
     testLogging {
         events.add(org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
         exceptionFormat = TestExceptionFormat.FULL
