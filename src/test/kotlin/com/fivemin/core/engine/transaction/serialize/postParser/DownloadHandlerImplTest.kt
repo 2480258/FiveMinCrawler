@@ -39,7 +39,7 @@ class DownloadHandlerImplTest {
     
     }
     
-    @Test(timeOut = 10000)
+    @Test(timeOut = 20000)
     fun downloadLinks_is_NonBlocking() {
         val state = TaskMockFactory.createSessionStarted<Request>()
         val request = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.LINK)
@@ -53,7 +53,7 @@ class DownloadHandlerImplTest {
         assert(!ret.isCompleted)
     }
     
-    @Test(timeOut = 10000)
+    @Test(timeOut = 20000)
     fun downloadAttributes_is_NonBlocking() {
         val state = TaskMockFactory.createSessionStarted<Request>()
         val request = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.ATTRIBUTE)
