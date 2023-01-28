@@ -25,9 +25,6 @@ import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.InitialOption
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.RequestType
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
 import org.testng.annotations.Test
 
 import org.testng.annotations.BeforeTest
@@ -39,38 +36,34 @@ class DownloadHandlerImplTest {
     
     @BeforeTest
     fun before() {
-        handler = DownloadHandlerImpl()
+    
     }
     
-    @Test(timeOut = 50000)
+    @Test(timeOut = 10000)
     fun downloadLinks_is_NonBlocking() {
         val state = TaskMockFactory.createSessionStarted<Request>()
-        val parent = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.LINK)
+        val request = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.LINK)
         
-        var finished = false
+        val ret = state.quick_DownloadLinks(InitialOption(), request)
         
-        state.quick_DownloadLinks(InitialOption(), parent).invokeOnCompletion {
+        ret.invokeOnCompletion {
             Thread.sleep(1000000)
-            finished = true
         }
         
-        
-        assert(!finished)
+        assert(!ret.isCompleted)
     }
     
-    @Test(timeOut = 50000)
+    @Test(timeOut = 10000)
     fun downloadAttributes_is_NonBlocking() {
         val state = TaskMockFactory.createSessionStarted<Request>()
-        val parent = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.ATTRIBUTE)
+        val request = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.ATTRIBUTE)
         
-        var finished = false
+        val ret = state.quick_DownloadAttributes(InitialOption(), request)
         
-        state.quick_DownloadAttributes(InitialOption(), parent).invokeOnCompletion {
+        ret.invokeOnCompletion {
             Thread.sleep(1000000)
-            finished = true
         }
         
-        
-        assert(!finished)
+        assert(!ret.isCompleted)
     }
 }
