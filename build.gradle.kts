@@ -22,9 +22,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
-    kotlin("jvm") version "1.6.10"
-    kotlin("plugin.serialization") version "1.6.10"
+    kotlin("jvm") version "1.7.21"
+    kotlin("plugin.serialization") version "1.7.21"
     id("org.panteleyev.jpackageplugin") version "1.3.1"
+    id("io.freefair.aspectj.post-compile-weaving") version "6.6.1"
     jacoco
     application
 }
@@ -94,6 +95,7 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.40.0.0")
     
     implementation("org.pf4j:pf4j:3.8.0")
+    implementation("org.aspectj:aspectjrt:1.9.19")
     
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.2")

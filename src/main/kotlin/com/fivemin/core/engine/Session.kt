@@ -220,6 +220,13 @@ interface SessionStartable : SessionAddableAlias {
             }.flatten()
         }
     }
+    
+    suspend fun <T> createUniqueKeyAndStart(
+        request: Request, func: suspend (SessionStartedState) -> Either<Throwable, T>
+    ): Deferred<Either<Throwable, T>> {
+        val key = taskInfo.uniqueKeyProvider.documentKey.create(request)
+        return start(key, func)
+    }
 }
 
 interface SessionDetachRetryable : SessionState
