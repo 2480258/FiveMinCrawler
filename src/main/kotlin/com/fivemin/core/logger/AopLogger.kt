@@ -24,9 +24,7 @@ import arrow.core.Either
 import arrow.core.toOption
 import com.fivemin.core.LoggerController
 import com.fivemin.core.TaskDetachedException
-import com.fivemin.core.engine.CrawlerTask4
-import com.fivemin.core.engine.Request
-import com.fivemin.core.engine.Transaction
+import com.fivemin.core.engine.*
 import org.aspectj.lang.JoinPoint
 import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.annotation.After
@@ -36,24 +34,29 @@ import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.annotation.Before
 
 @Aspect
-
-class AopLogger {
+class CrawlerTaskLogger {
     companion object {
-        private val logger = LoggerController.getLogger("??")
+        private val logger = LoggerController.getLogger("CrawlerTask")
     }
+    
     @Suppress("unused")
     @Around("execution(* com.fivemin.core.engine.CrawlerTask*.proceed(..))")
-    fun logCrawlerTask(joinPoint: ProceedingJoinPoint) : Any {
-        val req = joinPoint.args.first() as Transaction<Request>
+    fun logCrawlerTask(joinPoint: ProceedingJoinPoint): Any {
+        val req = joinPoint.args.first() as Transaction<Request> // it's safe. (covariant)
         
         logger.info(req.request, "starting task")
-        val ret = joinPoint.proceed() as Either<Throwable, Any>
+        val ret = joinPoint.proceed() as Either<Throwable, Any> //no throwing errors.
         
         
-        val report = ret.fold({
-            
-            
-            logger.error(req.request, "task ended with $it. You may check document number because this exception could be logged before. \nStackTrace is: ${it.stackTraceToString()}")
+        ret.fold({
+            if (it is TaskDetachedException) {
+                logger.debug(req.request, "task ended due to detach")
+            } else {
+                logger.error(
+                    req.request,
+                    "task ended with $it with ${it.message}. You may check document number because this exception could be logged before. \nStackTrace is: ${it.stackTraceToString()}"
+                )
+            }
         }, {
             logger.info(req.request, "task ended")
         })

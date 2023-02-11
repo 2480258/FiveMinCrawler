@@ -43,6 +43,8 @@ interface Logger {
 
     fun error(str: String)
 
+    fun trace(str: String)
+    
     fun info(req: Request, str: String, e: Option<Throwable> = none())
 
     fun debug(req: Request, str: String, e: Option<Throwable> = none())

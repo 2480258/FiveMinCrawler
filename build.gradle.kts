@@ -86,6 +86,7 @@ dependencies {
     implementation("org.jsoup:jsoup:1.15.3")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
     implementation("io.github.microutils:kotlin-logging:3.0.4")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.0")
     implementation("org.slf4j:slf4j-simple:2.0.5")
     
     implementation("org.brotli:dec:0.1.2")

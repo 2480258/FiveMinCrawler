@@ -45,15 +45,15 @@ class LocalUniqueKeyTokenRepo {
         if (!tokens.contains(key)) {
             tokens[key] = token
         } else {
-            throw IllegalAccessException("tried to add key already exists")
+            throw IllegalAccessException("tried to add key already exists. key: ${key}, token: ${token.tokenNumber}")
         }
     }
     
     fun update(key: UniqueKey) {
         if (tokens.contains(key)) {
-            tokens[key]!!.addDuplicationCountThrows()
+            tokens[key]!!.addDuplicationCountThrows(key)
         } else {
-            throw IllegalAccessException("tried to update key not exists")
+            throw IllegalAccessException("tried to update key not exists. key: $key")
         }
     }
     
@@ -101,9 +101,6 @@ interface SessionAddableAlias : SessionMarkDetachable {
     suspend fun <T> addAlias(
         key: UniqueKey, func: suspend () -> Either<Throwable, T>
     ): Either<Throwable, T> {
-        
-        logger.debug(info.token.tokenNumber.toString() + " < Adding alias [" + key.toString() + "]")
-        
         if (!context.localTokenRepo.contains(key)) {
             val token = addAliasInternal(key)
             context.localTokenRepo.add(key, token)
