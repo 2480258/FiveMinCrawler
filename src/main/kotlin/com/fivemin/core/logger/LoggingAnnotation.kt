@@ -35,7 +35,6 @@ import kotlin.reflect.full.*
 @Target(AnnotationTarget.FUNCTION)
 annotation class Log(
     val logLevel: LogLevel,
-    val logWhen: LogWhen,
     val message: String = ""
 )
 
@@ -212,18 +211,4 @@ enum class LogLocation {
     BEFORE,
     AFTER_RETURNING,
     AFTER_THROWING
-}
-
-enum class LogWhen(val value: Int) {
-    BEFORE(0b1),
-    AFTER_RETURNING(0b10),
-    AFTER_THROWING(0b100);
-    
-    private fun hasSomething(arg: LogWhen) = (value and arg.value) == arg.value
-    
-    fun hasBefore() = hasSomething(BEFORE)
-    
-    fun hasAfterReturning() = hasSomething(AFTER_RETURNING)
-    
-    fun hasAfterThrowing() = hasSomething(AFTER_THROWING)
 }

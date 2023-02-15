@@ -32,34 +32,3 @@ import org.aspectj.lang.annotation.AfterReturning
 import org.aspectj.lang.annotation.Around
 import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.annotation.Before
-
-@Aspect
-class CrawlerTaskLogger {
-    companion object {
-        private val logger = LoggerController.getLogger("CrawlerTask")
-    }
-    
-    @Suppress("unused")
-    @Around("execution(* com.fivemin.core.engine.CrawlerTask*.proceed(..))")
-    fun logCrawlerTask(joinPoint: ProceedingJoinPoint): Any {
-        val req = joinPoint.args.first() as Transaction<Request> // it's safe. (covariant)
-        
-        logger.info(req.request, "starting task")
-        val ret = joinPoint.proceed() as Either<Throwable, Any> //no throwing errors.
-        
-        
-        ret.fold({
-            if (it is TaskDetachedException) {
-                logger.debug(req.request, "task ended due to detach")
-            } else {
-                logger.error(
-                    req.request,
-                    "task ended with $it with ${it.message}. You may check document number because this exception could be logged before. \nStackTrace is: ${it.stackTraceToString()}"
-                )
-            }
-        }, {
-            logger.info(req.request, "task ended")
-        })
-        return ret
-    }
-}

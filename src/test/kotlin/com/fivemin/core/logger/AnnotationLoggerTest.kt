@@ -68,7 +68,7 @@ class AnnotationLoggerTest {
             joinPoint.signature.declaringTypeName
         } returns ("DTN")
         
-        val annotation = Log(LogLevel.ERROR, LogWhen.BEFORE, "MSG")
+        val annotation = Log(LogLevel.ERROR, "MSG")
         
         logger.logBefore(joinPoint, annotation)
         
@@ -103,7 +103,7 @@ class AnnotationLoggerTest {
             joinPoint.signature.declaringTypeName
         } returns ("DTN")
         
-        val annotation = Log(LogLevel.ERROR, LogWhen.BEFORE, "MSG")
+        val annotation = Log(LogLevel.ERROR, "MSG")
         
         logger.logBefore(joinPoint, annotation)
         
@@ -138,7 +138,7 @@ class AnnotationLoggerTest {
             joinPoint.signature.declaringTypeName
         } returns ("DTN")
     
-        val annotation = Log(LogLevel.ERROR, LogWhen.AFTER_RETURNING, "MSG")
+        val annotation = Log(LogLevel.ERROR, "MSG")
     
         logger.logAfterReturning(joinPoint, annotation, DocumentMockFactory.getRequest(URI("URI"), RequestType.LINK))
     
@@ -173,7 +173,7 @@ class AnnotationLoggerTest {
             joinPoint.signature.declaringTypeName
         } returns ("DTN")
     
-        val annotation = Log(LogLevel.ERROR, LogWhen.AFTER_THROWING, "MSG")
+        val annotation = Log(LogLevel.ERROR, "MSG")
     
         logger.logAfterThrowing(joinPoint, annotation, NullPointerException())
     
