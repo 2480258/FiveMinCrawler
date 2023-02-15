@@ -20,10 +20,14 @@
 
 package com.fivemin.core.logger
 
+import arrow.core.Either
+import arrow.core.right
 import org.testng.Assert.*
 import org.testng.annotations.Test
-import kotlin.reflect.KClassifier
-import kotlin.reflect.KProperty1
+import kotlin.reflect.KTypeProjection
+import kotlin.reflect.KVariance
+import kotlin.reflect.full.createType
+import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.starProjectedType
 
@@ -39,7 +43,9 @@ class PropertyBFSTest {
     
     class AOPTestC(val g: String) : AOPTestA(g)
     
+    class AOPTestE(val e: Either<Throwable, String>)
     
+    class AOPTestG(val e: Either<Throwable, AOPTestA>)
     
     @Test
     fun testSameProperty() {
@@ -59,7 +65,7 @@ class PropertyBFSTest {
     
     @Test
     fun testRecursiveTypeWithAnswer() {
-        val p = BFSUtil()
+        val p = PropertyExtractor()
         
         val a = AOPTestD(AOPTestA("a"), AOPTestF(AOPTestD(AOPTestA("b"), null)))
         
@@ -70,7 +76,7 @@ class PropertyBFSTest {
     
     @Test
     fun testRecursiveTypeWithoutAnswer() {
-        val p = BFSUtil()
+        val p = PropertyExtractor()
         
         val a = AOPTestD(AOPTestA("a"), AOPTestF(AOPTestD(AOPTestA("b"), null)))
         
@@ -81,7 +87,7 @@ class PropertyBFSTest {
     
     @Test
     fun testSearchMultipleTimes() {
-        val p = BFSUtil()
+        val p = PropertyExtractor()
         
         val a = AOPTestD(AOPTestA("a"), AOPTestF(AOPTestD(AOPTestA("b"), null)))
         
@@ -92,7 +98,7 @@ class PropertyBFSTest {
     
     @Test
     fun testNoSearchForwardOtherPackages() {
-        val p = BFSUtil()
+        val p = PropertyExtractor()
         
         val a = AOPTestB(listOf("a"))
         
@@ -102,7 +108,7 @@ class PropertyBFSTest {
     
     @Test
     fun testInheritedClass() {
-        val p = BFSUtil()
+        val p = PropertyExtractor()
         
         val a = AOPTestD(AOPTestC("a"), null)
         
@@ -112,11 +118,40 @@ class PropertyBFSTest {
     
     @Test
     fun testInheritedClassReversed() {
-        val p = BFSUtil()
+        val p = PropertyExtractor()
         
         val a = AOPTestD(AOPTestA("a"), null)
         
         val ret = p.find(a, AOPTestC::class)?.k
         assertEquals(ret, null)
     }
+    
+    @Test
+    fun testInheritedClassGenerics() {
+        val p = PropertyExtractor()
+        
+        val a = AOPTestE("a".right())
+        val ret = p.find(a, Either::class, listOf(KTypeProjection(KVariance.INVARIANT, Throwable::class.starProjectedType), KTypeProjection(KVariance.INVARIANT, String::class.starProjectedType)))
+        
+        ret!!.fold({fail()},  {
+            assertEquals(it, "a")
+        })
+        
+    }
+    
+    
+    @Test
+    fun testInheritedClassGenericsInherited() {
+        val p = PropertyExtractor()
+        
+        val a = AOPTestG(AOPTestA("a").right())
+        
+        val ret = p.find(a, Either::class, listOf(KTypeProjection(KVariance.OUT, Throwable::class.starProjectedType), KTypeProjection(KVariance.OUT, AOPTestC::class.starProjectedType)))
+        
+        ret!!.fold({fail()},  {
+            assertEquals((it as AOPTestA).k, "a")
+        })
+        
+    }
+    
 }

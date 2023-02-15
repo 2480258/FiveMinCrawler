@@ -23,16 +23,16 @@ package com.fivemin.core.logger
 import arrow.core.memoize
 import java.util.LinkedList
 import kotlin.reflect.KClass
-import kotlin.reflect.KClassifier
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
+import kotlin.reflect.KTypeProjection
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.jvmErasure
 
-class BFSUtil {
-    private val bfsTool = PropertyBFS()
+class PropertyExtractor {
+    val bfsTool_private = PropertyBFS()
     
-    fun <T : Any> find(thisObj: Any, wantType: KClass<T>) : T? {
+    inline fun <reified T : Any> find(thisObj: Any, wantType: KClass<T>, genericTypes: List<KTypeProjection> = listOf()) : T? {
         try {
             val props = thisObj::class.memberProperties.map {
                 it as KProperty1<Any, Any>
@@ -42,18 +42,20 @@ class BFSUtil {
             var count = 0
             
             while((retObj == null) && (count < props.size)) {
-                retObj = bfsTool.find(props[count], wantType.starProjectedType)
+                retObj = bfsTool_private.find(props[count], wantType.createType(genericTypes))
                 count++
             }
             
-            return reconstruct(retObj!!, thisObj) as T
+            val reconstructed = reconstruct_private(retObj!!, thisObj)
+            
+            return if(reconstructed is T) reconstructed else null
         }
         catch(e: Exception) {
             return null
         }
     }
     
-    private fun reconstruct(keys : List<KProperty1<Any, Any>>, thisObj: Any) : Any {
+    fun reconstruct_private(keys : List<KProperty1<Any, Any>>, thisObj: Any) : Any {
         var curObj = thisObj
         
         for(i in 0 until keys.size) {
@@ -65,7 +67,7 @@ class BFSUtil {
     
     class PropertyBFS : BFS<KProperty1<Any, Any>, KType>() {
         override fun getKeysFromKey(key: KProperty1<Any, Any>): Iterable<KProperty1<Any, Any>> {
-            if(key.returnType.jvmErasure.qualifiedName?.contains("fivemin") != true) {
+            if(key.returnType.jvmErasure.qualifiedName?.contains("fivemin") != true && key.returnType.jvmErasure.qualifiedName?.contains("arrow") != true) {
                 return listOf()
             }
             
@@ -133,7 +135,7 @@ abstract class BFS<Key, Target> {
         while(que.size != 0) {
             val item = que.removeFirst()
             
-            if(convertToTarget(item) == dest) { // find the object or the route to the object.
+            if(equalsTarget(convertToTarget(item), dest)) { // find the object or the route to the object.
                 return route
             }
     
@@ -153,7 +155,7 @@ abstract class BFS<Key, Target> {
     }
     
     private fun backtrace(route: Map<Key, Key>, nextKey: Key, finalKey: Target, visited : MutableSet<Key>) : LinkedList<Key>? {
-        if(equalsTarget(finalKey, convertToTarget(nextKey))) { // A가 더 구체적인 타입일 경우 False, B가 더 구체적인 타입일 경우 True
+        if(equalsTarget(convertToTarget(nextKey), finalKey)) { // A가 더 구체적인 타입일 경우 False, B가 더 구체적인 타입일 경우 True //변경
             val ret = LinkedList<Key>()
             ret.addLast(nextKey)
             
