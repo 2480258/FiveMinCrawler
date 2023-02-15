@@ -22,10 +22,7 @@ package com.fivemin.core.logger
 
 import arrow.core.memoize
 import java.util.LinkedList
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
-import kotlin.reflect.KType
-import kotlin.reflect.KTypeProjection
+import kotlin.reflect.*
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.jvmErasure
 
@@ -85,16 +82,22 @@ class PropertyExtractor {
         // a is b 일 경우 => a가 b를 상속받음 => False
         // b is a 일 경우 => b가 a를 상속받음 => True (현재 추상타입밖에 없으므로 구체타입을 추가적으로 탐색해야 함)
         // 서로가 서로를 상속하지만 같지 않은 경우? 없음
-        override fun equalsTarget(a: KType, b: KType) : Boolean{
-            val nullableA = a.withNullability(true)
-            val nullableB = b.withNullability(true)
+        override fun equalsTarget(whatIHave: KType, whatIWant: KType) : Boolean{
+            val nullableWhatIHave = whatIHave.withNullability(true)
+            val nullableWhatIWant = whatIWant.withNullability(true)
             
-            if(nullableA == nullableB) {
+            if(nullableWhatIHave == nullableWhatIWant) {
                 return true
             }
             
-            if(nullableB.isSubtypeOf(nullableA)) {
+            if(nullableWhatIHave.isSubtypeOf(nullableWhatIWant)) { //변경
                 return true
+            }
+            
+            if(nullableWhatIHave.classifier is KTypeParameter) { // In case that I want a generic parameter which has upper bound
+                return (nullableWhatIHave.classifier as KTypeParameter).upperBounds.any {
+                    equalsTarget(it, nullableWhatIWant)
+                }
             }
             
             return false
@@ -114,7 +117,7 @@ abstract class BFS<Key, Target> {
     
     protected abstract fun convertToTarget(item: Key): Target
     
-    protected abstract fun equalsTarget(a: Target, b: Target): Boolean
+    protected abstract fun equalsTarget(whatIHave: Target, whatIWant: Target): Boolean
     
     
     val find = ::findInternal.memoize() // memoize can be applied.

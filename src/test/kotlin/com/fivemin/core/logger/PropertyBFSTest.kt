@@ -26,10 +26,9 @@ import org.testng.Assert.*
 import org.testng.annotations.Test
 import kotlin.reflect.KTypeProjection
 import kotlin.reflect.KVariance
-import kotlin.reflect.full.createType
-import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.starProjectedType
+import kotlin.reflect.full.withNullability
 
 class PropertyBFSTest {
     
@@ -46,6 +45,10 @@ class PropertyBFSTest {
     class AOPTestE(val e: Either<Throwable, String>)
     
     class AOPTestG(val e: Either<Throwable, AOPTestA>)
+    
+    class CovariantAOPTestA<out T>(val t :CovariantAOPTestB<T>)
+    
+    class CovariantAOPTestB<out T>(val t : T)
     
     @Test
     fun testSameProperty() {
@@ -157,12 +160,21 @@ class PropertyBFSTest {
         
         val a = AOPTestG(AOPTestA("a").right())
         
-        val ret = p.find(a, Either::class, listOf(KTypeProjection(KVariance.OUT, Throwable::class.starProjectedType), KTypeProjection(KVariance.OUT, AOPTestC::class.starProjectedType)))
+        val ret = p.find(a, Either::class, listOf(KTypeProjection(KVariance.OUT, Throwable::class.starProjectedType), KTypeProjection(KVariance.OUT, Any::class.starProjectedType)))
         
         ret!!.fold({fail()},  {
             assertEquals((it as AOPTestA).k, "a")
         })
-        
     }
     
+    @Test
+    fun testInheritedClassGenericsCovariant() {
+        val p = PropertyExtractor()
+        
+        val a = CovariantAOPTestA<String>(CovariantAOPTestB("a"))
+        
+        val ret = p.find(a, CovariantAOPTestB::class, listOf(KTypeProjection(KVariance.INVARIANT, Any::class.starProjectedType.withNullability(true))))
+        
+        assertEquals("a", ret!!.t)
+    }
 }

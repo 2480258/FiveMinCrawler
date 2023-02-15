@@ -22,6 +22,8 @@ package com.fivemin.core.engine
 
 import arrow.core.*
 import arrow.core.continuations.either
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 import kotlinx.coroutines.*
 
 class TaskError constructor(val Error: Either<TaskCanceledException, Exception>)
@@ -36,6 +38,7 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
         }
     }
     
+    @Log(LogLevel.INFO)
     private suspend fun proceed(
         trans: S1, it: SessionStartedState
     ): Either<Throwable, S2> {
@@ -58,6 +61,7 @@ constructor(
         }
     }
     
+    @Log(LogLevel.INFO)
     private suspend fun proceed(
         trans: S1, state: SessionStartedState
     ): Either<Throwable, S3> {
@@ -93,6 +97,7 @@ constructor(
         }
     }
     
+    @Log(LogLevel.INFO)
     private suspend fun proceed(
         trans: S1, state: SessionStartedState
     ): Either<Throwable, S4> {
@@ -131,6 +136,7 @@ constructor(
         }
     }
     
+    @Log(LogLevel.INFO)
     private suspend fun proceed(
         trans: S1, state: SessionStartedState
     ): Either<Throwable, S5> {

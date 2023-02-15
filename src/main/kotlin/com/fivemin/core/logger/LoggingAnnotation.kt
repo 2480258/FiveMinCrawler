@@ -46,7 +46,7 @@ class AnnotationLogger(private val logger : Logger = LoggerController.getLogger(
     }
     
     @Suppress("unused")
-    @Before("@annotation(Log) && execution(* *(..))")
+    @Before("@annotation(Log) && call(* *(..))")
     fun logBefore(
         joinPoint: JoinPoint,
         Log: Log
@@ -57,19 +57,19 @@ class AnnotationLogger(private val logger : Logger = LoggerController.getLogger(
     }
     
     @Suppress("unused")
-    @AfterReturning("@annotation(Log) && execution(* *(..))", returning = "retVal")
+    @AfterReturning("@annotation(Log) && call(* *(..))", returning = "retVal")
     fun logAfterReturning(
         joinPoint: JoinPoint,
         Log: Log,
         retVal: Any
-    ) {
+    ){
         val objInfo = generateLoggingMessageFromReturning(retVal)
         val callInfo = generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
         getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
     }
     
     @Suppress("unused")
-    @AfterThrowing("@annotation(Log) && execution(* *(..))", throwing = "retVal")
+    @AfterThrowing("@annotation(Log) && call(* *(..))", throwing = "retVal")
     fun logAfterThrowing(
         joinPoint: JoinPoint,
         Log: Log,
@@ -78,6 +78,8 @@ class AnnotationLogger(private val logger : Logger = LoggerController.getLogger(
         val objInfo = generateLoggingMessageFromReturning(retVal)
         val callInfo = generateCallLocationMessage(joinPoint, LogLocation.AFTER_THROWING)
         getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
+        
+        throw retVal
     }
     
     private fun generateCallLocationMessage(joinPoint: JoinPoint, logLocation: LogLocation): String {
@@ -135,7 +137,10 @@ class AnnotationLogger(private val logger : Logger = LoggerController.getLogger(
     private inline fun <reified T : Any> getObjectFromContext(joinPoint: JoinPoint, wantType: KClass<T>): T? {
         val objects = mutableListOf<Any>()
         objects.addAll(joinPoint.args)
-        objects.add(joinPoint.`this`)
+        
+        if(joinPoint.target != null) { // this can be null.... by test
+            objects.add(joinPoint.target)
+        }
         
         var count = 0
         var ret: T? = null
