@@ -20,11 +20,12 @@
 
 package com.fivemin.core.logger
 
-import arrow.core.Either
+import com.fivemin.core.Logger
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import org.aspectj.lang.JoinPoint
 import org.aspectj.lang.annotation.AfterReturning
+import org.aspectj.lang.annotation.AfterThrowing
 import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.annotation.Before
 import kotlin.reflect.KClass
@@ -40,10 +41,8 @@ annotation class Log(
 
 @Suppress("unused")
 @Aspect
-class AnnotationLogger {
+class AnnotationLogger(private val logger : Logger = LoggerController.getLogger("CrawlerTask")) {
     companion object {
-        private val logger = LoggerController.getLogger("CrawlerTask")
-        
         private val propertyExtractor = PropertyExtractor()
     }
     
@@ -53,8 +52,9 @@ class AnnotationLogger {
         joinPoint: JoinPoint,
         Log: Log
     ) {
-        val msg = generateStandardLoggingMessageFromContext(joinPoint)
-        getLoggerPerLogLevel(Log.logLevel)(msg)
+        val objInfo = generateStandardLoggingMessageFromContext(joinPoint)
+        val callInfo = generateCallLocationMessage(joinPoint, LogLocation.BEFORE)
+        getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
     }
     
     @Suppress("unused")
@@ -64,8 +64,21 @@ class AnnotationLogger {
         Log: Log,
         retVal: Any
     ) {
-        val msg = generateStandardLoggingMessageFromContext(joinPoint)
-        getLoggerPerLogLevel(Log.logLevel)(msg)
+        val objInfo = generateLoggingMessageFromReturning(retVal)
+        val callInfo = generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
+        getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
+    }
+    
+    @Suppress("unused")
+    @AfterThrowing("@annotation(Log) && execution(* *(..))", throwing = "retVal")
+    fun logAfterThrowing(
+        joinPoint: JoinPoint,
+        Log: Log,
+        retVal: Throwable
+    ) {
+        val objInfo = generateLoggingMessageFromReturning(retVal)
+        val callInfo = generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
+        getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
     }
     
     private fun generateCallLocationMessage(joinPoint: JoinPoint, logLocation: LogLocation): String {
@@ -76,16 +89,6 @@ class AnnotationLogger {
     }
     
     private fun generateLoggingMessageFromReturning(retVal: Any): String {
-        if (retVal as? Either<Throwable, Any> != null) {
-            val msg = retVal.fold({
-                it.stackTraceToString()
-            }, {
-                generateLoggingMessageFromReturning(it)
-            })
-            
-            return msg
-        }
-        
         val types = listOf<KClass<Any>>(
             Request::class as KClass<Any>,
             SessionToken::class as KClass<Any>,

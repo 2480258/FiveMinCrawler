@@ -20,10 +20,18 @@
 
 package com.fivemin.core.logger
 
+import com.fivemin.core.DocumentMockFactory
+import com.fivemin.core.LoggerController
+import com.fivemin.core.engine.Request
+import com.fivemin.core.engine.RequestType
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
+import io.mockk.verify
 import org.aspectj.lang.JoinPoint
 import org.testng.Assert.*
 import org.testng.annotations.Test
+import java.net.URI
 import kotlin.reflect.KClass
 import kotlin.reflect.KClassifier
 import kotlin.reflect.KProperty1
@@ -31,5 +39,51 @@ import kotlin.reflect.full.createType
 import kotlin.reflect.full.memberProperties
 
 class AnnotationLoggerTest {
+    class AOPTestA(val req: Request)
+    
+    
+    @Test
+    fun testLogBeforeWithThis() {
+        val hooked = AOPTestA(DocumentMockFactory.getRequest(URI("URI"), RequestType.LINK))
+        
+        val spyLogger = spyk(LoggerController.getLogger("CrawlerTask"))
+        val logger = AnnotationLogger(spyLogger)
+        val joinPoint: JoinPoint = mockk()
+        
+        every {
+            joinPoint.`this`
+        } returns (hooked)
+        
+        every {
+            joinPoint.args
+        } returns (arrayOf())
+        
+        every {
+            joinPoint.signature.name
+        } returns ("SIG")
+        
+        every {
+            joinPoint.signature.declaringTypeName
+        } returns ("DTN")
+        
+        val annotation = Log(LogLevel.ERROR, LogWhen.BEFORE, "MSG")
+        
+        
+        logger.logBefore(joinPoint, annotation)
+        
+        verify {
+            spyLogger.error(withArg<String> {
+                it.contains("DTN") and it.contains("SIG") and it.contains("BEFORE") and it.contains("URI") and it.contains("MSG")
+            })
+        }
+    }
+    
+    @Test
+    fun testLogAfterReturning() {
+    }
+    
+    @Test
+    fun testLogAfterThrowing() {
+    }
     
 }
