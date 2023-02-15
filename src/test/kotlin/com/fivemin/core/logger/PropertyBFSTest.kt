@@ -64,6 +64,17 @@ class PropertyBFSTest {
     }
     
     @Test
+    fun testSelf() {
+        val p = PropertyExtractor()
+        
+        val a = AOPTestA("a")
+        
+        val ret = p.find(a, AOPTestA::class)
+        
+        assertEquals(ret!!.k, "a")
+    }
+    
+    @Test
     fun testRecursiveTypeWithAnswer() {
         val p = PropertyExtractor()
         

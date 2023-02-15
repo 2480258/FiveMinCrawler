@@ -34,6 +34,9 @@ class PropertyExtractor {
     
     inline fun <reified T : Any> find(thisObj: Any, wantType: KClass<T>, genericTypes: List<KTypeProjection> = listOf()) : T? {
         try {
+            if(thisObj is T)
+                return thisObj
+            
             val props = thisObj::class.memberProperties.map {
                 it as KProperty1<Any, Any>
             }.toList()

@@ -41,6 +41,8 @@ import kotlin.reflect.full.memberProperties
 class AnnotationLoggerTest {
     class AOPTestA(val req: Request)
     
+    class AOPTestB()
+    
     
     @Test
     fun testLogBeforeWithThis() {
@@ -68,22 +70,118 @@ class AnnotationLoggerTest {
         
         val annotation = Log(LogLevel.ERROR, LogWhen.BEFORE, "MSG")
         
-        
         logger.logBefore(joinPoint, annotation)
         
         verify {
             spyLogger.error(withArg<String> {
-                it.contains("DTN") and it.contains("SIG") and it.contains("BEFORE") and it.contains("URI") and it.contains("MSG")
+                assert(it.contains("DTN") and it.contains("SIG") and it.contains("BEFORE") and it.contains("URI") and it.contains("MSG"))
             })
         }
     }
     
     @Test
-    fun testLogAfterReturning() {
+    fun testLogBeforeWithArgs() {
+        val hooked = AOPTestB()
+        
+        val spyLogger = spyk(LoggerController.getLogger("CrawlerTask"))
+        val logger = AnnotationLogger(spyLogger)
+        val joinPoint: JoinPoint = mockk()
+        
+        every {
+            joinPoint.`this`
+        } returns (hooked)
+        
+        every {
+            joinPoint.args
+        } returns (arrayOf(DocumentMockFactory.getRequest(URI("URI"), RequestType.LINK)))
+        
+        every {
+            joinPoint.signature.name
+        } returns ("SIG")
+        
+        every {
+            joinPoint.signature.declaringTypeName
+        } returns ("DTN")
+        
+        val annotation = Log(LogLevel.ERROR, LogWhen.BEFORE, "MSG")
+        
+        logger.logBefore(joinPoint, annotation)
+        
+        verify {
+            spyLogger.error(withArg<String> {
+                assert(it.contains("DTN") and it.contains("SIG") and it.contains("BEFORE") and it.contains("URI") and it.contains("MSG"))
+            })
+        }
+    }
+    
+    @Test
+    fun testLogAfterReturningValue() {
+        val hooked = AOPTestB()
+    
+        val spyLogger = spyk(LoggerController.getLogger("CrawlerTask"))
+        val logger = AnnotationLogger(spyLogger)
+        val joinPoint: JoinPoint = mockk()
+    
+        every {
+            joinPoint.`this`
+        } returns (hooked)
+    
+        every {
+            joinPoint.args
+        } returns (arrayOf())
+    
+        every {
+            joinPoint.signature.name
+        } returns ("SIG")
+    
+        every {
+            joinPoint.signature.declaringTypeName
+        } returns ("DTN")
+    
+        val annotation = Log(LogLevel.ERROR, LogWhen.AFTER_RETURNING, "MSG")
+    
+        logger.logAfterReturning(joinPoint, annotation, DocumentMockFactory.getRequest(URI("URI"), RequestType.LINK))
+    
+        verify {
+            spyLogger.error(withArg<String> {
+                assert(it.contains("DTN") and it.contains("SIG") and it.contains("AFTER_RETURNING") and it.contains("URI") and it.contains("MSG"))
+            })
+        }
     }
     
     @Test
     fun testLogAfterThrowing() {
+        val hooked = AOPTestB()
+    
+        val spyLogger = spyk(LoggerController.getLogger("CrawlerTask"))
+        val logger = AnnotationLogger(spyLogger)
+        val joinPoint: JoinPoint = mockk()
+    
+        every {
+            joinPoint.`this`
+        } returns (hooked)
+    
+        every {
+            joinPoint.args
+        } returns (arrayOf())
+    
+        every {
+            joinPoint.signature.name
+        } returns ("SIG")
+    
+        every {
+            joinPoint.signature.declaringTypeName
+        } returns ("DTN")
+    
+        val annotation = Log(LogLevel.ERROR, LogWhen.AFTER_THROWING, "MSG")
+    
+        logger.logAfterThrowing(joinPoint, annotation, NullPointerException())
+    
+        verify {
+            spyLogger.error(withArg<String> {
+                assert(it.contains("DTN") and it.contains("SIG") and it.contains("AFTER_THROWING") and it.contains("NullPointerException") and it.contains("MSG"))
+            })
+        }
     }
     
 }

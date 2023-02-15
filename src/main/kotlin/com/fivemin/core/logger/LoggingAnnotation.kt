@@ -77,7 +77,7 @@ class AnnotationLogger(private val logger : Logger = LoggerController.getLogger(
         retVal: Throwable
     ) {
         val objInfo = generateLoggingMessageFromReturning(retVal)
-        val callInfo = generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
+        val callInfo = generateCallLocationMessage(joinPoint, LogLocation.AFTER_THROWING)
         getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
     }
     
@@ -107,17 +107,17 @@ class AnnotationLogger(private val logger : Logger = LoggerController.getLogger(
         }
         
         val ret = when(obj) {
-            (obj is Request) -> (obj as Request).gdi()
-            (obj is SessionToken) -> (obj as SessionToken).gdi()
-            (obj is UniqueKey) -> (obj as UniqueKey).gdi()
-            (obj is UniqueKeyToken) -> (obj as UniqueKeyToken).gdi()
-            (obj is FileIOToken) -> (obj as FileIOToken).gdi()
-            (obj is ExportHandle) -> (obj as ExportHandle).gdi()
-            (obj is Throwable) -> (obj as Throwable).stackTraceToString()
+            is Request -> obj.gdi()!!
+            is SessionToken -> obj.gdi()!!
+            is UniqueKey -> obj.gdi()!!
+            is UniqueKeyToken -> obj.gdi()!!
+            is FileIOToken -> obj.gdi()!!
+            is ExportHandle -> obj.gdi()!!
+            is Throwable -> obj.stackTraceToString()
             else -> ""
         }
         
-        return ret.orEmpty()
+        return ret
     }
     
     private fun generateStandardLoggingMessageFromContext(joinPoint: JoinPoint): String {
