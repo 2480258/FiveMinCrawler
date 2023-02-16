@@ -20,6 +20,7 @@
 
 package com.fivemin.core.logger
 
+import arrow.core.right
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.Request
@@ -53,7 +54,7 @@ class AnnotationLoggerTest {
         val joinPoint: JoinPoint = mockk()
         
         every {
-            joinPoint.`this`
+            joinPoint.target
         } returns (hooked)
         
         every {
@@ -92,7 +93,7 @@ class AnnotationLoggerTest {
         val joinPoint: JoinPoint = mockk()
         
         every {
-            joinPoint.`this`
+            joinPoint.target
         } returns (hooked)
         
         every {
@@ -125,6 +126,45 @@ class AnnotationLoggerTest {
     @Test
     fun testLogAfterReturningValue() {
         val hooked = AOPTestB()
+        
+        val spyLogger = spyk(LoggerController.getLogger("CrawlerTask"))
+        val logger = AnnotationLogger(spyLogger)
+        val joinPoint: JoinPoint = mockk()
+        
+        every {
+            joinPoint.`this`
+        } returns (hooked)
+        
+        every {
+            joinPoint.args
+        } returns (arrayOf())
+        
+        every {
+            joinPoint.signature.name
+        } returns ("SIG")
+        
+        every {
+            joinPoint.signature.declaringTypeName
+        } returns ("DTN")
+        
+        val annotation = Log(LogLevel.ERROR, "MSG")
+        
+        logger.logAfterReturning(joinPoint, annotation, DocumentMockFactory.getRequest(URI("URI"), RequestType.LINK))
+        
+        verify {
+            spyLogger.error(withArg<String> {
+                assert(
+                    it.contains("DTN") and it.contains("SIG") and it.contains("AFTER_RETURNING") and it.contains("URI") and it.contains(
+                        "MSG"
+                    )
+                )
+            })
+        }
+    }
+    
+    @Test
+    fun testLogAfterReturningEither() {
+        val hooked = AOPTestB().right()
         
         val spyLogger = spyk(LoggerController.getLogger("CrawlerTask"))
         val logger = AnnotationLogger(spyLogger)

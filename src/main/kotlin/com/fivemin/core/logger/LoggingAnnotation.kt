@@ -20,6 +20,8 @@
 
 package com.fivemin.core.logger
 
+import arrow.core.Either
+import arrow.core.Option
 import com.fivemin.core.Logger
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
@@ -29,6 +31,9 @@ import org.aspectj.lang.annotation.AfterThrowing
 import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.annotation.Before
 import kotlin.reflect.KClass
+import kotlin.reflect.KType
+import kotlin.reflect.KTypeProjection
+import kotlin.reflect.KVariance
 import kotlin.reflect.full.*
 
 @Retention(AnnotationRetention.RUNTIME)
@@ -40,7 +45,7 @@ annotation class Log(
 
 @Suppress("unused")
 @Aspect
-class AnnotationLogger(private val logger : Logger = LoggerController.getLogger("CrawlerTask")) {
+class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("CrawlerTask")) {
     companion object {
         private val propertyExtractor = PropertyExtractor()
     }
@@ -51,7 +56,7 @@ class AnnotationLogger(private val logger : Logger = LoggerController.getLogger(
         joinPoint: JoinPoint,
         Log: Log
     ) {
-        val objInfo = generateStandardLoggingMessageFromContext(joinPoint)
+        val objInfo = generateStandardLoggingMessageFromContext(getObjectsFromJoinPoint(joinPoint))
         val callInfo = generateCallLocationMessage(joinPoint, LogLocation.BEFORE)
         getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
     }
@@ -62,8 +67,8 @@ class AnnotationLogger(private val logger : Logger = LoggerController.getLogger(
         joinPoint: JoinPoint,
         Log: Log,
         retVal: Any
-    ){
-        val objInfo = generateLoggingMessageFromReturning(retVal)
+    ) {
+        val objInfo = generateStandardLoggingMessageFromContext(listOf(retVal))
         val callInfo = generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
         getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
     }
@@ -75,7 +80,7 @@ class AnnotationLogger(private val logger : Logger = LoggerController.getLogger(
         Log: Log,
         retVal: Throwable
     ) {
-        val objInfo = generateLoggingMessageFromReturning(retVal)
+        val objInfo = generateStandardLoggingMessageFromContext(listOf(retVal))
         val callInfo = generateCallLocationMessage(joinPoint, LogLocation.AFTER_THROWING)
         getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
         
@@ -89,72 +94,84 @@ class AnnotationLogger(private val logger : Logger = LoggerController.getLogger(
         return "$callLoc || $logLocation"
     }
     
-    private fun generateLoggingMessageFromReturning(retVal: Any): String {
-        val types = listOf<KClass<Any>>(
-            Request::class as KClass<Any>,
-            SessionToken::class as KClass<Any>,
-            UniqueKey::class as KClass<Any>,
-            UniqueKeyToken::class as KClass<Any>,
-            FileIOToken::class as KClass<Any>,
-            ExportHandle::class as KClass<Any>
-        )
+    private fun generateStandardLoggingMessageFromContext(joinPoint: List<Any>): String {
+        val firstEither =
+            findAndGetFirstOrNull<Either<Throwable, Any?>>( // no support for multiple either due to performance reasons
+                joinPoint,
+                Either::class.createType(
+                    listOf(
+                        KTypeProjection(KVariance.OUT, Throwable::class.starProjectedType),
+                        KTypeProjection(KVariance.OUT, Any::class.starProjectedType.withNullability(true))
+                    )
+                )
+            ) // types which has no upper bound actually has Any? as upper bound.
         
-        var obj: Any? = null
-        var count = 0
+        val firstOption =
+            findAndGetFirstOrNull<Option<Any?>>( // no support for multiple options due to performance reasons
+                joinPoint,
+                Option::class.createType(
+                    listOf(
+                        KTypeProjection(KVariance.OUT, Any::class.starProjectedType.withNullability(true))
+                    )
+                )
+            ) // types which has no upper bound actually has Any? as upper bound.
         
-        while ((obj == null) && (count < types.size)) {
-            obj = getObjectFromReturning(retVal, types[count])
-            count++
-        }
+        val mappedEither = firstEither?.fold({ "" }, {
+            it?.let {
+                generateStandardLoggingMessageFromContext(listOf(it))
+            }
+        })
         
-        val ret = when(obj) {
-            is Request -> obj.gdi()!!
-            is SessionToken -> obj.gdi()!!
-            is UniqueKey -> obj.gdi()!!
-            is UniqueKeyToken -> obj.gdi()!!
-            is FileIOToken -> obj.gdi()!!
-            is ExportHandle -> obj.gdi()!!
-            is Throwable -> obj.stackTraceToString()
-            else -> ""
-        }
+        val mappedOption = firstOption?.fold({ "" }, {
+            it?.let {
+                generateStandardLoggingMessageFromContext(listOf(it))
+            }
+        })
         
-        return ret
-    }
-    
-    private fun generateStandardLoggingMessageFromContext(joinPoint: JoinPoint): String {
         val objList = listOf(
-            getObjectFromContext(joinPoint, Request::class).gdi(),
-            getObjectFromContext(joinPoint, SessionToken::class).gdi(),
-            getObjectFromContext(joinPoint, UniqueKey::class).gdi(),
-            getObjectFromContext(joinPoint, UniqueKeyToken::class).gdi(),
-            getObjectFromContext(joinPoint, FileIOToken::class).gdi(),
-            getObjectFromContext(joinPoint, ExportHandle::class).gdi()
+            findAndGetFirstOrNull(joinPoint, Request::class).gdi(),
+            findAndGetFirstOrNull(joinPoint, SessionToken::class).gdi(),
+            findAndGetFirstOrNull(joinPoint, UniqueKey::class).gdi(),
+            findAndGetFirstOrNull(joinPoint, UniqueKeyToken::class).gdi(),
+            findAndGetFirstOrNull(joinPoint, FileIOToken::class).gdi(),
+            findAndGetFirstOrNull(joinPoint, ExportHandle::class).gdi(),
+            findAndGetFirstOrNull(joinPoint, Throwable::class)?.stackTraceToString(),
+            mappedEither,
+            mappedOption
         )
+        
         
         return objList.filterNotNull().joinToString(" ")
     }
     
-    private inline fun <reified T : Any> getObjectFromContext(joinPoint: JoinPoint, wantType: KClass<T>): T? {
+    private fun getObjectsFromJoinPoint(joinPoint: JoinPoint): List<Any> {
         val objects = mutableListOf<Any>()
         objects.addAll(joinPoint.args)
         
-        if(joinPoint.target != null) { // this can be null.... by test
+        
+        if (joinPoint.target != null) { // this can be null.... by test
             objects.add(joinPoint.target)
         }
         
-        var count = 0
-        var ret: T? = null
+        return objects
+    }
+    
+    private inline fun <reified T : Any> findAndGetFirstOrNull(
+        objs: List<Any>,
+        wantType: KClass<T>,
+        genericTypes: List<KTypeProjection> = listOf()
+    ): T? {
+        return findAndGetFirstOrNull(objs, wantType.createType(genericTypes))
+    }
+    
+    private inline fun <reified T : Any> findAndGetFirstOrNull(objs: List<Any>, wantType: KType): T? {
         
-        while ((ret == null) && (count < objects.size)) {
-            ret = propertyExtractor.find(objects[count], wantType)
-            count++
+        
+        val ret = objs.firstNotNullOfOrNull {
+            propertyExtractor.find<T>(it, wantType)
         }
         
         return ret
-    }
-    
-    private inline fun <reified T : Any> getObjectFromReturning(retVal: Any, wantType: KClass<T>): T? {
-        return propertyExtractor.find(retVal, wantType)
     }
     
     private fun getLoggerPerLogLevel(level: LogLevel): (String) -> Unit {

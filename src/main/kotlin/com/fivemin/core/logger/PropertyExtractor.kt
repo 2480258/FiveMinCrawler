@@ -29,28 +29,30 @@ import kotlin.reflect.jvm.jvmErasure
 class PropertyExtractor {
     val bfsTool_private = PropertyBFS()
     
-    inline fun <reified T : Any> find(thisObj: Any, wantType: KClass<T>, genericTypes: List<KTypeProjection> = listOf()) : T? {
+    inline fun <reified T : Any> find(
+        thisObj: Any,
+        wantType: KType,
+    ): T? {
         try {
-            if(thisObj is T)
+            if (thisObj is T)
                 return thisObj
-            
+        
             val props = thisObj::class.memberProperties.map {
                 it as KProperty1<Any, Any>
             }.toList()
-    
+        
             var retObj: List<KProperty1<Any, Any>>? = null
             var count = 0
-            
-            while((retObj == null) && (count < props.size)) {
-                retObj = bfsTool_private.find(props[count], wantType.createType(genericTypes))
+        
+            while ((retObj == null) && (count < props.size)) {
+                retObj = bfsTool_private.find(props[count], wantType)
                 count++
             }
-            
+        
             val reconstructed = reconstruct_private(retObj!!, thisObj)
-            
-            return if(reconstructed is T) reconstructed else null
-        }
-        catch(e: Exception) {
+        
+            return if (reconstructed is T) reconstructed else null
+        } catch (e: Exception) {
             return null
         }
     }

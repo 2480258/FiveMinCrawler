@@ -26,6 +26,7 @@ import org.testng.Assert.*
 import org.testng.annotations.Test
 import kotlin.reflect.KTypeProjection
 import kotlin.reflect.KVariance
+import kotlin.reflect.full.createType
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.starProjectedType
 import kotlin.reflect.full.withNullability
@@ -72,7 +73,7 @@ class PropertyBFSTest {
         
         val a = AOPTestA("a")
         
-        val ret = p.find(a, AOPTestA::class)
+        val ret = p.find<AOPTestA>(a, AOPTestA::class.starProjectedType)
         
         assertEquals(ret!!.k, "a")
     }
@@ -83,7 +84,7 @@ class PropertyBFSTest {
         
         val a = AOPTestD(AOPTestA("a"), AOPTestF(AOPTestD(AOPTestA("b"), null)))
         
-        val ret = p.find(a, String::class)
+        val ret = p.find<String>(a, String::class.starProjectedType)
         
         assertEquals(ret, "a")
     }
@@ -94,7 +95,7 @@ class PropertyBFSTest {
         
         val a = AOPTestD(AOPTestA("a"), AOPTestF(AOPTestD(AOPTestA("b"), null)))
         
-        val ret = p.find(a, Int::class)
+        val ret = p.find<Int>(a, Int::class.starProjectedType)
         
         assertEquals(ret, null)
     }
@@ -105,8 +106,8 @@ class PropertyBFSTest {
         
         val a = AOPTestD(AOPTestA("a"), AOPTestF(AOPTestD(AOPTestA("b"), null)))
         
-        val ret1 = p.find(a, String::class)
-        val ret2 = p.find(a, String::class)
+        val ret1 = p.find<String>(a, String::class.starProjectedType)
+        val ret2 = p.find<String>(a, String::class.starProjectedType)
         assertEquals(ret2, "a")
     }
     
@@ -116,7 +117,7 @@ class PropertyBFSTest {
         
         val a = AOPTestB(listOf("a"))
         
-        val ret = p.find(a, String::class)
+        val ret = p.find<String>(a, String::class.starProjectedType)
         assertEquals(ret, null)
     }
     
@@ -126,7 +127,7 @@ class PropertyBFSTest {
         
         val a = AOPTestD(AOPTestC("a"), null)
         
-        val ret = p.find(a, AOPTestA::class)?.k
+        val ret = p.find<AOPTestA>(a, AOPTestA::class.starProjectedType)?.k
         assertEquals(ret, "a")
     }
     
@@ -136,7 +137,7 @@ class PropertyBFSTest {
         
         val a = AOPTestD(AOPTestA("a"), null)
         
-        val ret = p.find(a, AOPTestC::class)?.k
+        val ret = p.find<AOPTestC>(a, AOPTestC::class.starProjectedType)?.k
         assertEquals(ret, null)
     }
     
@@ -145,7 +146,7 @@ class PropertyBFSTest {
         val p = PropertyExtractor()
         
         val a = AOPTestE("a".right())
-        val ret = p.find(a, Either::class, listOf(KTypeProjection(KVariance.INVARIANT, Throwable::class.starProjectedType), KTypeProjection(KVariance.INVARIANT, String::class.starProjectedType)))
+        val ret = p.find<Either<Throwable, String>>(a, Either::class.createType(listOf(KTypeProjection(KVariance.INVARIANT, Throwable::class.starProjectedType), KTypeProjection(KVariance.INVARIANT, String::class.starProjectedType))))
         
         ret!!.fold({fail()},  {
             assertEquals(it, "a")
@@ -160,7 +161,7 @@ class PropertyBFSTest {
         
         val a = AOPTestG(AOPTestA("a").right())
         
-        val ret = p.find(a, Either::class, listOf(KTypeProjection(KVariance.OUT, Throwable::class.starProjectedType), KTypeProjection(KVariance.OUT, Any::class.starProjectedType)))
+        val ret = p.find<Either<Throwable, Any>>(a, Either::class.createType(listOf(KTypeProjection(KVariance.OUT, Throwable::class.starProjectedType), KTypeProjection(KVariance.OUT, Any::class.starProjectedType))))
         
         ret!!.fold({fail()},  {
             assertEquals((it as AOPTestA).k, "a")
@@ -173,7 +174,7 @@ class PropertyBFSTest {
         
         val a = CovariantAOPTestA<String>(CovariantAOPTestB("a"))
         
-        val ret = p.find(a, CovariantAOPTestB::class, listOf(KTypeProjection(KVariance.INVARIANT, Any::class.starProjectedType.withNullability(true))))
+        val ret = p.find<CovariantAOPTestB<Any>>(a, CovariantAOPTestB::class.createType(listOf(KTypeProjection(KVariance.INVARIANT, Any::class.starProjectedType.withNullability(true)))))
         
         assertEquals("a", ret!!.t)
     }
