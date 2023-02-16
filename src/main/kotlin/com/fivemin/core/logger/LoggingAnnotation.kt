@@ -39,8 +39,12 @@ import kotlin.reflect.full.*
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FUNCTION)
 annotation class Log(
-    val logLevel: LogLevel,
-    val message: String = ""
+    val beforeLogLevel: LogLevel,
+    val afterReturningLogLevel: LogLevel,
+    val afterThrowingLogLevel: LogLevel,
+    val beforeMessage: String = "",
+    val afterReturningMessage: String = "",
+    val afterThrowingMessage: String = ""
 )
 
 @Suppress("unused")
@@ -56,9 +60,16 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         joinPoint: JoinPoint,
         Log: Log
     ) {
-        val objInfo = generateStandardLoggingMessageFromContext(getObjectsFromJoinPoint(joinPoint))
-        val callInfo = generateCallLocationMessage(joinPoint, LogLocation.BEFORE)
-        getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
+        val target = getObjectsFromJoinPoint(joinPoint)
+        
+        val objInfo = generateStandardLoggingMessageFromContext(target)
+        val errInfo = generateErrorLoggingMessageFromContext(target)
+        
+        val msg = Log.beforeMessage.ifBlank {
+            generateCallLocationMessage(joinPoint, LogLocation.BEFORE)
+        }
+        
+        getLoggerPerLogLevel(Log.beforeLogLevel)("$msg $objInfo $errInfo")
     }
     
     @Suppress("unused")
@@ -69,8 +80,19 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         retVal: Any
     ) {
         val objInfo = generateStandardLoggingMessageFromContext(listOf(retVal))
-        val callInfo = generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
-        getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
+        val errInfo = generateErrorLoggingMessageFromContext(listOf(retVal))
+        
+        val msg = Log.afterReturningMessage.ifBlank {
+            generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
+        }
+        
+        val logger = if(errInfo.isNotBlank()) {
+            getLoggerPerLogLevel(Log.afterThrowingLogLevel)
+        } else {
+            getLoggerPerLogLevel(Log.afterReturningLogLevel)
+        }
+        
+        logger("$msg $objInfo $errInfo")
     }
     
     @Suppress("unused")
@@ -81,8 +103,13 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         retVal: Throwable
     ) {
         val objInfo = generateStandardLoggingMessageFromContext(listOf(retVal))
-        val callInfo = generateCallLocationMessage(joinPoint, LogLocation.AFTER_THROWING)
-        getLoggerPerLogLevel(Log.logLevel)("$callInfo | $objInfo ${Log.message}")
+        val errInfo = generateErrorLoggingMessageFromContext(listOf(retVal))
+        
+        val msg = Log.afterThrowingMessage.ifBlank {
+            generateCallLocationMessage(joinPoint, LogLocation.AFTER_THROWING)
+        }
+        
+        getLoggerPerLogLevel(Log.afterThrowingLogLevel)("$msg | $objInfo $errInfo")
         
         throw retVal
     }
@@ -92,6 +119,33 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         val callLoc = "${joinPoint.signature.declaringTypeName}.${joinPoint.signature.name}"
         
         return "$callLoc || $logLocation"
+    }
+    
+    private fun generateErrorLoggingMessageFromContext(joinPoint: List<Any>): String {
+        val firstEither =
+            findAndGetFirstOrNull<Either<Throwable, Any?>>( // no support for multiple either due to performance reasons
+                joinPoint,
+                Either::class.createType(
+                    listOf(
+                        KTypeProjection(KVariance.OUT, Throwable::class.starProjectedType),
+                        KTypeProjection(KVariance.OUT, Any::class.starProjectedType.withNullability(true))
+                    )
+                )
+            ) // types which has no upper bound actually has Any? as upper bound.
+        
+        val mappedEither = firstEither?.fold({ it.stackTraceToString() }, {
+            it?.let {
+                generateErrorLoggingMessageFromContext(listOf(it))
+            }
+        })
+        
+        val objList = listOf(
+            findAndGetFirstOrNull(joinPoint, Throwable::class)?.stackTraceToString(),
+            mappedEither
+        )
+        
+        
+        return objList.filterNotNull().joinToString(" ")
     }
     
     private fun generateStandardLoggingMessageFromContext(joinPoint: List<Any>): String {
@@ -135,7 +189,6 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
             findAndGetFirstOrNull(joinPoint, UniqueKeyToken::class).gdi(),
             findAndGetFirstOrNull(joinPoint, FileIOToken::class).gdi(),
             findAndGetFirstOrNull(joinPoint, ExportHandle::class).gdi(),
-            findAndGetFirstOrNull(joinPoint, Throwable::class)?.stackTraceToString(),
             mappedEither,
             mappedOption
         )

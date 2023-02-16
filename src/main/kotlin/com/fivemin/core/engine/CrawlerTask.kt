@@ -38,7 +38,7 @@ constructor(private val policy: TransactionPolicy<S1, S2, D1, D2>) {
         }
     }
     
-    @Log(LogLevel.INFO)
+    @Log(LogLevel.INFO, LogLevel.INFO, LogLevel.ERROR)
     private suspend fun proceed(
         trans: S1, it: SessionStartedState
     ): Either<Throwable, S2> {
@@ -61,7 +61,7 @@ constructor(
         }
     }
     
-    @Log(LogLevel.INFO)
+    @Log(LogLevel.INFO, LogLevel.INFO, LogLevel.ERROR)
     private suspend fun proceed(
         trans: S1, state: SessionStartedState
     ): Either<Throwable, S3> {
@@ -97,7 +97,7 @@ constructor(
         }
     }
     
-    @Log(LogLevel.INFO)
+    @Log(LogLevel.INFO, LogLevel.INFO, LogLevel.ERROR)
     private suspend fun proceed(
         trans: S1, state: SessionStartedState
     ): Either<Throwable, S4> {
@@ -136,7 +136,7 @@ constructor(
         }
     }
     
-    @Log(LogLevel.INFO)
+    @Log(LogLevel.INFO, LogLevel.INFO, LogLevel.ERROR)
     private suspend fun proceed(
         trans: S1, state: SessionStartedState
     ): Either<Throwable, S5> {

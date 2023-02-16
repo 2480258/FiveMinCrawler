@@ -20,6 +20,8 @@
 
 package com.fivemin.core.logger
 
+import arrow.core.Either
+import arrow.core.left
 import arrow.core.right
 import com.fivemin.core.DocumentMockFactory
 import com.fivemin.core.LoggerController
@@ -44,6 +46,7 @@ class AnnotationLoggerTest {
     
     class AOPTestB()
     
+    class AOPTestC(val e: Either<Throwable, String>)
     
     @Test
     fun testLogBeforeWithThis() {
@@ -69,16 +72,14 @@ class AnnotationLoggerTest {
             joinPoint.signature.declaringTypeName
         } returns ("DTN")
         
-        val annotation = Log(LogLevel.ERROR, "MSG")
+        val annotation = Log(LogLevel.ERROR, LogLevel.ERROR, LogLevel.ERROR)
         
         logger.logBefore(joinPoint, annotation)
         
         verify {
             spyLogger.error(withArg<String> {
                 assert(
-                    it.contains("DTN") and it.contains("SIG") and it.contains("BEFORE") and it.contains("URI") and it.contains(
-                        "MSG"
-                    )
+                    it.contains("DTN") and it.contains("SIG") and it.contains("BEFORE") and it.contains("URI")
                 )
             })
         }
@@ -108,16 +109,14 @@ class AnnotationLoggerTest {
             joinPoint.signature.declaringTypeName
         } returns ("DTN")
         
-        val annotation = Log(LogLevel.ERROR, "MSG")
+        val annotation = Log(LogLevel.ERROR, LogLevel.ERROR, LogLevel.ERROR)
         
         logger.logBefore(joinPoint, annotation)
         
         verify {
             spyLogger.error(withArg<String> {
                 assert(
-                    it.contains("DTN") and it.contains("SIG") and it.contains("BEFORE") and it.contains("URI") and it.contains(
-                        "MSG"
-                    )
+                    it.contains("DTN") and it.contains("SIG") and it.contains("BEFORE") and it.contains("URI")
                 )
             })
         }
@@ -147,16 +146,14 @@ class AnnotationLoggerTest {
             joinPoint.signature.declaringTypeName
         } returns ("DTN")
         
-        val annotation = Log(LogLevel.ERROR, "MSG")
+        val annotation = Log(LogLevel.ERROR, LogLevel.ERROR, LogLevel.ERROR)
         
         logger.logAfterReturning(joinPoint, annotation, DocumentMockFactory.getRequest(URI("URI"), RequestType.LINK))
         
         verify {
             spyLogger.error(withArg<String> {
                 assert(
-                    it.contains("DTN") and it.contains("SIG") and it.contains("AFTER_RETURNING") and it.contains("URI") and it.contains(
-                        "MSG"
-                    )
+                    it.contains("DTN") and it.contains("SIG") and it.contains("AFTER_RETURNING") and it.contains("URI")
                 )
             })
         }
@@ -186,16 +183,87 @@ class AnnotationLoggerTest {
             joinPoint.signature.declaringTypeName
         } returns ("DTN")
         
-        val annotation = Log(LogLevel.ERROR, "MSG")
+        val annotation = Log(LogLevel.ERROR, LogLevel.ERROR, LogLevel.ERROR)
         
         logger.logAfterReturning(joinPoint, annotation, DocumentMockFactory.getRequest(URI("URI"), RequestType.LINK))
         
         verify {
             spyLogger.error(withArg<String> {
                 assert(
-                    it.contains("DTN") and it.contains("SIG") and it.contains("AFTER_RETURNING") and it.contains("URI") and it.contains(
-                        "MSG"
-                    )
+                    it.contains("DTN") and it.contains("SIG") and it.contains("AFTER_RETURNING") and it.contains("URI")
+                )
+            })
+        }
+    }
+    
+    @Test
+    fun testLogAfterReturningEitherWithThrowableDirect() {
+        val hooked = NullPointerException().left()
+        
+        val spyLogger = spyk(LoggerController.getLogger("CrawlerTask"))
+        val logger = AnnotationLogger(spyLogger)
+        val joinPoint: JoinPoint = mockk()
+        
+        every {
+            joinPoint.`this`
+        } returns (hooked)
+        
+        every {
+            joinPoint.args
+        } returns (arrayOf())
+        
+        every {
+            joinPoint.signature.name
+        } returns ("SIG")
+        
+        every {
+            joinPoint.signature.declaringTypeName
+        } returns ("DTN")
+        
+        val annotation = Log(LogLevel.ERROR, LogLevel.INFO, LogLevel.ERROR)
+        
+        logger.logAfterReturning(joinPoint, annotation, hooked)
+        
+        verify {
+            spyLogger.error(withArg<String> {
+                assert(
+                    it.contains("DTN") and it.contains("SIG") and it.contains("AFTER_RETURNING") and it.contains("NullPointerException")
+                )
+            })
+        }
+    }
+    @Test
+    fun testLogAfterReturningEitherWithThrowable() {
+        val hooked = AOPTestC(NullPointerException().left())
+        
+        val spyLogger = spyk(LoggerController.getLogger("CrawlerTask"))
+        val logger = AnnotationLogger(spyLogger)
+        val joinPoint: JoinPoint = mockk()
+        
+        every {
+            joinPoint.`this`
+        } returns (hooked)
+        
+        every {
+            joinPoint.args
+        } returns (arrayOf())
+        
+        every {
+            joinPoint.signature.name
+        } returns ("SIG")
+        
+        every {
+            joinPoint.signature.declaringTypeName
+        } returns ("DTN")
+        
+        val annotation = Log(LogLevel.ERROR, LogLevel.INFO, LogLevel.ERROR)
+        
+        logger.logAfterReturning(joinPoint, annotation, hooked)
+        
+        verify {
+            spyLogger.error(withArg<String> {
+                assert(
+                    it.contains("DTN") and it.contains("SIG") and it.contains("AFTER_RETURNING") and it.contains("NullPointerException")
                 )
             })
         }
@@ -225,7 +293,7 @@ class AnnotationLoggerTest {
             joinPoint.signature.declaringTypeName
         } returns ("DTN")
         
-        val annotation = Log(LogLevel.ERROR, "MSG")
+        val annotation = Log( LogLevel.ERROR, LogLevel.ERROR, LogLevel.ERROR)
         
         assertThrows {
             logger.logAfterThrowing(joinPoint, annotation, NullPointerException())
@@ -234,9 +302,7 @@ class AnnotationLoggerTest {
         verify {
             spyLogger.error(withArg<String> {
                 assert(
-                    it.contains("DTN") and it.contains("SIG") and it.contains("AFTER_THROWING") and it.contains("NullPointerException") and it.contains(
-                        "MSG"
-                    )
+                    it.contains("DTN") and it.contains("SIG") and it.contains("AFTER_THROWING") and it.contains("NullPointerException")
                 )
             })
         }
