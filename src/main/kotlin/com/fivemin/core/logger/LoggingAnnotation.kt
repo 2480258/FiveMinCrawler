@@ -49,7 +49,7 @@ annotation class Log(
 
 @Suppress("unused")
 @Aspect
-class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("CrawlerTask")) {
+class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("")) {
     companion object {
         private val propertyExtractor = PropertyExtractor()
     }
@@ -300,13 +300,13 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
     
     private fun FileIOToken?.gdi(): String? {
         return this?.let {
-            "$[F${it.fileName.name}] <<"
+            "$[F${it.fileName.name.name}] <<"
         }
     }
     
     private fun ExportHandle?.gdi(): String? {
         return this?.let {
-            "${it.request.token.fileName.name} <<"
+            "${it.request.token.fileName.name.name} <<"
         }
     }
 }

@@ -283,7 +283,7 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
      */
     @Log(
         beforeLogLevel = LogLevel.TRACE,
-        afterReturningLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.TRACE,
         afterThrowingLogLevel = LogLevel.ERROR,
         afterReturningMessage = "Finished writing file",
         afterThrowingMessage = "Failed to open file stream"
@@ -304,7 +304,7 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
      */
     @Log(
         beforeLogLevel = LogLevel.TRACE,
-        afterReturningLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.TRACE,
         afterThrowingLogLevel = LogLevel.ERROR,
         afterReturningMessage = "Finished reading file",
         afterThrowingMessage = "Failed to open file stream"

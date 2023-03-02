@@ -231,7 +231,7 @@ interface SessionStartable : SessionAddableAlias {
     }
     
     @Log(
-        beforeLogLevel = LogLevel.INFO,
+        beforeLogLevel = LogLevel.DEBUG,
         afterReturningLogLevel = LogLevel.DEBUG,
         afterThrowingLogLevel = LogLevel.ERROR,
         beforeMessage = "STARTING session",
@@ -286,7 +286,7 @@ interface SessionDetachableInitState : SessionDetachable, SessionInitState
 
 interface SessionStartedState : SessionRetryable, SessionChildGeneratable, SessionAddableAlias, SessionMarkDetachable {
     @Log(
-        beforeLogLevel = LogLevel.INFO,
+        beforeLogLevel = LogLevel.DEBUG,
         afterReturningLogLevel = LogLevel.DEBUG,
         afterThrowingLogLevel = LogLevel.ERROR,
         beforeMessage = "REQUEST downloading links",
@@ -346,7 +346,7 @@ interface SessionStartedState : SessionRetryable, SessionChildGeneratable, Sessi
         return result
     }
     @Log(
-        beforeLogLevel = LogLevel.INFO,
+        beforeLogLevel = LogLevel.DEBUG,
         afterReturningLogLevel = LogLevel.DEBUG,
         afterThrowingLogLevel = LogLevel.ERROR,
         beforeMessage = "REQUEST downloading attributes",
