@@ -139,7 +139,7 @@ class DummyDownloadPolicy : TransactionSubPolicy<InitialTransaction<Request>, Pr
         state: SessionStartedState,
         next: suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
-        val downloaded = state.quick_DownloadAttributes(
+        val downloaded = state.downloadAttributesWithCrawlerRequestVerbose(
             URI("http://localhost:3000/headerReflect"),
             dest.request.token,
             dest.request.target

@@ -22,6 +22,8 @@ package com.fivemin.core.engine
 
 import arrow.core.*
 import com.fivemin.core.LoggerController
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 import java.io.*
 import java.nio.charset.Charset
 
@@ -56,6 +58,11 @@ class DiskWriterImpl constructor(private val token: RequestToken, private val te
         writer.write(b, off, len)
     }
     
+    @Log(
+        beforeLogLevel = LogLevel.TRACE,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR
+    )
     override fun flushAndExportAndDispose(): MemoryData {
         if (isCompleted) {
             throw IllegalStateException()
@@ -118,15 +125,14 @@ class MemoryWriterImpl : MemoryWriter {
 }
 
 class ArrayMemoryData constructor(private val data: ByteArray) : MemoryData {
-    companion object {
-        private val logger = LoggerController.getLogger("ArrayMemoryData")
-    }
     
-    
+    @Log(
+        beforeLogLevel = LogLevel.TRACE,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR
+    )
     override fun <T> openStreamAsByteAndDispose(func: (InputStream) -> T): Either<Throwable, T> {
         val ret = Either.catch { func(ByteArrayInputStream(data)) }
-        
-        logger.debug(ret, "failed to openStreamAsByteAndDispose")
         
         return ret
     }

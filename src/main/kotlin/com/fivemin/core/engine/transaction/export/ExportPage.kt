@@ -24,6 +24,8 @@ import arrow.core.*
 import arrow.core.filterOption
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 
 interface ExportPage {
     val pageName: String
@@ -49,7 +51,7 @@ class ExportPageImpl(override val pageName: String, private val targetAttributeN
     override fun <Document : Request> isAcceptable(trans: SerializeTransaction<Document>): Boolean {
         return trans.serializeOption.parseOption.name.name == pageName
     }
-
+    
     override fun <Document : Request> export(trans: SerializeTransaction<Document>): Iterable<ExportHandle> {
         return adapter.parseAndExport(trans.request, parseInfo(trans)).map {
             it.swap().map {

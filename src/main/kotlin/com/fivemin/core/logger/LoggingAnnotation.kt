@@ -39,9 +39,9 @@ import kotlin.reflect.full.*
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FUNCTION)
 annotation class Log(
-    val beforeLogLevel: LogLevel,
-    val afterReturningLogLevel: LogLevel,
-    val afterThrowingLogLevel: LogLevel,
+    val beforeLogLevel: LogLevel = LogLevel.INFO,
+    val afterReturningLogLevel: LogLevel = LogLevel.INFO,
+    val afterThrowingLogLevel: LogLevel = LogLevel.WARN,
     val beforeMessage: String = "",
     val afterReturningMessage: String = "",
     val afterThrowingMessage: String = ""
@@ -60,6 +60,8 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         joinPoint: JoinPoint,
         Log: Log
     ) {
+        if (checksCoroutineBefore(joinPoint)) return
+    
         val target = getObjectsFromJoinPoint(joinPoint)
         
         val objInfo = generateStandardLoggingMessageFromContext(target)
@@ -72,27 +74,60 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         getLoggerPerLogLevel(Log.beforeLogLevel)("$msg $objInfo $errInfo")
     }
     
+    private fun checksCoroutineBefore(joinPoint: JoinPoint): Boolean {
+        val cc = joinPoint.args.firstOrNull {
+            it != null
+        }
+    
+        if ((cc != null) && cc::class.qualifiedName == null) {
+            return true
+        }
+        return false
+    }
+    
     @Suppress("unused")
     @AfterReturning("@annotation(Log) && call(* *(..))", returning = "retVal")
     fun logAfterReturning(
         joinPoint: JoinPoint,
         Log: Log,
-        retVal: Any
+        retVal: Any?
     ) {
+        if (checksCoroutineAfterReturning(retVal)) return
+    
+        if(retVal == null) {
+            val msg = Log.afterReturningMessage.ifBlank {
+                generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
+            }
+    
+            getLoggerPerLogLevel(Log.afterReturningLogLevel)(msg)
+            
+            return
+        }
+        
+        
         val objInfo = generateStandardLoggingMessageFromContext(listOf(retVal))
         val errInfo = generateErrorLoggingMessageFromContext(listOf(retVal))
         
-        val msg = Log.afterReturningMessage.ifBlank {
-            generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
-        }
-        
-        val logger = if(errInfo.isNotBlank()) {
-            getLoggerPerLogLevel(Log.afterThrowingLogLevel)
+        if (errInfo.isNotBlank()) {
+            val msg = Log.afterThrowingMessage.ifBlank {
+                generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
+            } + " (handled)"
+            
+            getLoggerPerLogLevel(Log.afterThrowingLogLevel)("$msg $objInfo $errInfo")
         } else {
-            getLoggerPerLogLevel(Log.afterReturningLogLevel)
+            val msg = Log.afterReturningMessage.ifBlank {
+                generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
+            }
+            
+            getLoggerPerLogLevel(Log.afterReturningLogLevel)("$msg $objInfo $errInfo")
         }
-        
-        logger("$msg $objInfo $errInfo")
+    }
+    
+    private fun checksCoroutineAfterReturning(retVal: Any?): Boolean {
+        if ((retVal != null) && retVal::class.qualifiedName?.lowercase()?.contains("coroutine") == true) {
+            return true
+        }
+        return false
     }
     
     @Suppress("unused")
@@ -193,9 +228,11 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
             mappedOption
         )
         
+        val tstr = "(toString() of return value (may repeat 2 or more times): ${joinPoint.map { it?.toString() ?: "null" }.joinToString (" ")})" // it can be null
         
         return objList.filterNotNull().joinToString(" ")
     }
+    
     
     private fun getObjectsFromJoinPoint(joinPoint: JoinPoint): List<Any> {
         val objects = mutableListOf<Any>()

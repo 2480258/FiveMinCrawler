@@ -25,6 +25,8 @@ import com.fivemin.core.engine.ExportHandle
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.ifFile
 import com.fivemin.core.engine.match
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 
 /**
  * Export adapter for binary files
@@ -40,6 +42,14 @@ class BinaryExportAdapter(private val fileName: TagExpression, private val facto
      *
      * @param info lists of file for saving.
      */
+
+    @Log(
+        beforeLogLevel = LogLevel.DEBUG,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "exporting binary files",
+        afterThrowingMessage = "failed to binary files"
+    )
     override fun parseAndExport(
         request: Request,
         info: Iterable<ExportAttributeInfo>

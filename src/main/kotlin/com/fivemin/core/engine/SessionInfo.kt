@@ -124,7 +124,7 @@ constructor(
         finish.onFinish(token)
         
         if(isDetachable == DetachableState.NOTMODIFIED) {
-            logger.error("${token} < is not marked as nether detachable nor not detachable. this session information will not be saved in resume file")
+            logger.warn("${token} < is not marked as nether detachable nor not detachable. this session information will not be saved in resume file")
         }
     }
     

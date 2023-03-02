@@ -45,7 +45,7 @@ class DownloadHandler_nonBlockingTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
         val request = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.LINK)
         
-        val ret = state.quick_DownloadLinks(InitialOption(), request)
+        val ret = state.downloadLinksWithCrawlerRequest(InitialOption(), request)
         
         ret.invokeOnCompletion {
             Thread.sleep(1000000)
@@ -59,7 +59,7 @@ class DownloadHandler_nonBlockingTest {
         val state = TaskMockFactory.createSessionStarted<Request>()
         val request = DocumentMockFactory.getHttpRequest(URI("http://localhost:3000/timeOut"), RequestType.ATTRIBUTE)
         
-        val ret = state.quick_DownloadAttributes(InitialOption(), request)
+        val ret = state.downloadAttributeWithCrawlerRequest(InitialOption(), request)
         
         ret.invokeOnCompletion {
             Thread.sleep(1000000)

@@ -99,7 +99,7 @@ class PostParserContentPageImpl<Document : Request>(
         
         val result = attr.linkInfo.map { requestLinkInfo ->
             val downloaded = requestLinkInfo.requests.map { httpRequest ->
-                state.quick_DownloadAttributes(requestLinkInfo.option, httpRequest)
+                state.downloadAttributeWithCrawlerRequest(requestLinkInfo.option, httpRequest)
             }
             
             val list = if (downloaded.any()) {
@@ -145,7 +145,7 @@ class PostParserContentPageImpl<Document : Request>(
         val links = linkInfoFactory.get(request)
         return links.linkInfo.map { requestLinkInfo ->
             val ret = requestLinkInfo.requests.map { request ->
-                state.quick_DownloadLinks(requestLinkInfo.option, request)
+                state.downloadLinksWithCrawlerRequest(requestLinkInfo.option, request)
             }
             
             if (ret.any()) {

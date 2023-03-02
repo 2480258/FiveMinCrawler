@@ -23,6 +23,8 @@ package com.fivemin.core.engine
 import arrow.core.Either
 import arrow.core.Valid
 import com.fivemin.core.LoggerController
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 import kotlinx.serialization.Serializable
 import java.io.File
 import java.io.FileInputStream
@@ -205,7 +207,7 @@ data class FileName constructor(private val filename: String) {
                 return name + ErrorChar
             }
 
-            return name.splitToSequence('"', '<', '>', '|', ':', '*', '?', '\\', '/').reduce({ x, y -> x + ErrorChar + y })
+            return name.splitToSequence('"', '<', '>', '|', ':', '*', '?', '\\', '/').reduce { x, y -> x + ErrorChar + y }
         }
     }
 }
@@ -217,11 +219,6 @@ data class FileName constructor(private val filename: String) {
  * @param name File name
  */
 data class FileIOToken constructor(private val InitPath: DirectoryIOToken, private val name: FileName) {
-    
-    companion object {
-        private val logger = LoggerController.getLogger("FileIOToken")
-    }
-    
     private val directoryPart: DirectoryIOToken
     val fileName: FileName
 
@@ -264,6 +261,13 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
     /**
      * Opens file stream which users should manually close them.
      */
+    @Log(
+        beforeLogLevel = LogLevel.TRACE,
+        afterReturningLogLevel = LogLevel.INFO,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        afterReturningMessage = "acquired file writing stream",
+        afterThrowingMessage = "failed to acquire file stream"
+    )
     fun unsafeOpenFileStream(): Either<Throwable, FileOutputStream> {
         ensureDirectory()
 
@@ -271,14 +275,19 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
             return Either.Right(FileOutputStream(result))
         }
         
-        logger.debug(ret, "failed to unsafeOpenFileStream")
-        
         return ret
     }
     
     /**
      * Opens file write stream. closes itself if lambda finished.
      */
+    @Log(
+        beforeLogLevel = LogLevel.TRACE,
+        afterReturningLogLevel = LogLevel.INFO,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        afterReturningMessage = "Finished writing file",
+        afterThrowingMessage = "Failed to open file stream"
+    )
     fun openFileWriteStream(func: (FileOutputStream) -> Unit) {
         ensureDirectory()
         var os: FileOutputStream? = null
@@ -293,6 +302,13 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
     /**
      * Opens file read stream. closes itself if lambda finished.
      */
+    @Log(
+        beforeLogLevel = LogLevel.TRACE,
+        afterReturningLogLevel = LogLevel.INFO,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        afterReturningMessage = "Finished reading file",
+        afterThrowingMessage = "Failed to open file stream"
+    )
     fun <T> openFileReadStream(func: (FileInputStream) -> T): Either<Throwable, T> {
         ensureDirectory()
         val ret = Either.catch { ->
@@ -306,8 +322,6 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
             }
         }
         
-        logger.debug(ret, "openFileReadStream")
-        
         return ret
     }
 
@@ -320,6 +334,13 @@ data class FileIOToken constructor(private val InitPath: DirectoryIOToken, priva
      *
      * @param source Files which want to move.
      */
+    @Log(
+        beforeLogLevel = LogLevel.TRACE,
+        afterReturningLogLevel = LogLevel.INFO,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        afterReturningMessage = "File moved (source or destination file name will be shown)",
+        afterThrowingMessage = "Failed to move file"
+    )
     fun moveFileToPath(source: FileIOToken) {
         ensureDirectory()
 

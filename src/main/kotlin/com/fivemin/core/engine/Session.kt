@@ -23,6 +23,8 @@ package com.fivemin.core.engine
 import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.TaskDetachedException
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 import kotlinx.coroutines.*
 import java.net.URI
 
@@ -98,6 +100,7 @@ interface SessionAddableAlias : SessionMarkDetachable {
      * Add alias of request.
      * Can throw if key is duplicated more than max retry.
      */
+    
     suspend fun <T> addAlias(
         key: UniqueKey, func: suspend () -> Either<Throwable, T>
     ): Either<Throwable, T> {
@@ -117,6 +120,14 @@ interface SessionAddableAlias : SessionMarkDetachable {
         return ret
     }
     
+    @Log(
+        beforeLogLevel = LogLevel.DEBUG,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "Adding alias",
+        afterReturningMessage = "alias job finished",
+        afterThrowingMessage = "failed to add alias"
+    )
     private fun addAliasInternal(key: UniqueKey): UniqueKeyToken {
         return when (isDetachable) {
             DetachableState.WANT -> data.KeyRepo.addUniqueKeyWithDetachableThrows(key)
@@ -142,19 +153,25 @@ interface SessionMarkDetachable : SessionState {
 }
 
 interface SessionRetryable : SessionState {
-    companion object {
-        private val logger = LoggerController.getLogger("SessionRetryable")
-    }
+    
     
     suspend fun <T> retryAsync(func: suspend (SessionInitState) -> Deferred<Either<Throwable, T>>): Deferred<Either<Throwable, T>> {
-        logger.info(this.info.token.tokenNumber.toString() + " < retrying")
         val session = this as? SessionDetachable
-        
-        val state = session.rightIfNotNull { }.fold({ SessionDetachableInitStateImpl(info, data, context, taskInfo) },
-            { SessionInitStateImpl(info, data, context, taskInfo) })
+        val state = getState(session)
         
         return func(state)
     }
+    @Log(
+        beforeLogLevel = LogLevel.WARN,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "RETRYING",
+        afterReturningMessage = "retry job finished",
+        afterThrowingMessage = "failed to retry"
+    )
+    private fun getState(session: SessionDetachable?) =
+        session.rightIfNotNull { }.fold({ SessionDetachableInitStateImpl(info, data, context, taskInfo) },
+            { SessionInitStateImpl(info, data, context, taskInfo) })
 }
 
 interface SessionDetachable : SessionState {
@@ -174,9 +191,9 @@ interface SessionDetachable : SessionState {
         val detached = data.SessionRepo.create(info.token.toOption())
         
         GlobalScope.launch {
-            logger.info(info.token.tokenNumber.toString() + " < detached")
+            logger.info(info.token.tokenNumber.toString() + " < detached: " + detached.token.tokenNumber)
             func(SessionInitStateImpl(detached, data, context, taskInfo))
-            logger.debug(info.token.tokenNumber.toString() + " < detach job finished")
+            logger.debug(info.token.tokenNumber.toString() + " < detach job finished" + detached.token.tokenNumber)
         }
         
         return coroutineScope {
@@ -197,6 +214,7 @@ interface SessionStartable : SessionAddableAlias {
      * Start session.
      * Note that session allowed starting only once except retry.
      */
+    
     suspend fun <T> start(
         key: UniqueKey, func: suspend (SessionStartedState) -> Either<Throwable, T>
     ): Deferred<Either<Throwable, T>> {
@@ -204,18 +222,29 @@ interface SessionStartable : SessionAddableAlias {
         return info.doRegisteredTask {
             Either.catch {
                 addAlias(key) {
-                    logger.debug(key.toString() + " < creating SessionStartable")
-                    
-                    val state = if (this@SessionStartable as? SessionDetachable != null) {
-                        SessionDetachableStartedStateImpl(info, data, context, taskInfo)
-                    } else {
-                        SessionStartedStateImpl(info, data, context, taskInfo)
-                    }
-                    
+                    val state = getState()
+    
                     func(state)
                 }
             }.flatten()
         }
+    }
+    
+    @Log(
+        beforeLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "STARTING session",
+        afterReturningMessage = "session finished",
+        afterThrowingMessage = "failed to finish session"
+    )
+    private fun getState(): SessionStartedState {
+        val state = if (this@SessionStartable as? SessionDetachable != null) {
+            SessionDetachableStartedStateImpl(info, data, context, taskInfo)
+        } else {
+            SessionStartedStateImpl(info, data, context, taskInfo)
+        }
+        return state
     }
     
     suspend fun <T> createUniqueKeyAndStart(
@@ -236,17 +265,19 @@ interface SessionChildGeneratable : SessionState {
     /**
      * Creates child session
      */
+    
     suspend fun <T> getChildSession(func: suspend (SessionInitState) -> Deferred<Either<Throwable, T>>): Deferred<Either<Throwable, T>> {
         
         val detached = data.SessionRepo.create(context.parent)
-        logger.debug(info.token.tokenNumber.toString() + " < creating child session")
         
         return func(
-            SessionDetachableInitStateImpl(
-                detached, data, SessionContext(LocalUniqueKeyTokenRepo(), info.token.toOption()), taskInfo
-            )
+            getState(detached)
         )
     }
+    
+    private fun getState(detached: SessionInfo) = SessionDetachableInitStateImpl(
+        detached, data, SessionContext(LocalUniqueKeyTokenRepo(), info.token.toOption()), taskInfo
+    )
 }
 
 interface SessionInitState : SessionStartable
@@ -254,8 +285,15 @@ interface SessionInitState : SessionStartable
 interface SessionDetachableInitState : SessionDetachable, SessionInitState
 
 interface SessionStartedState : SessionRetryable, SessionChildGeneratable, SessionAddableAlias, SessionMarkDetachable {
-    
-    fun quick_DownloadLinks(
+    @Log(
+        beforeLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "REQUEST downloading links",
+        afterReturningMessage = "download finished",
+        afterThrowingMessage = "failed to finish download"
+    )
+    fun downloadLinksWithCrawlerRequestVerbose(
         targetUri: URI,
         token: RequestToken,
         parentUri: URI,
@@ -263,7 +301,7 @@ interface SessionStartedState : SessionRetryable, SessionChildGeneratable, Sessi
         customRequestHeaderProfile: PerRequestHeaderProfile? = null,
         customOption: InitialOption = InitialOption()
     ): Deferred<Either<Throwable, ExportTransaction<HttpRequest>>> {
-        return quick_DownloadLinks(
+        return downloadLinksWithCrawlerRequest(
             customOption,
             HttpRequestImpl(
                 Some(token),
@@ -275,7 +313,8 @@ interface SessionStartedState : SessionRetryable, SessionChildGeneratable, Sessi
         )
     }
     
-    fun quick_DownloadLinks(
+
+    fun downloadLinksWithCrawlerRequest(
         option: InitialOption,
         request: HttpRequest
     ): Deferred<Either<Throwable, ExportTransaction<HttpRequest>>> {
@@ -306,8 +345,15 @@ interface SessionStartedState : SessionRetryable, SessionChildGeneratable, Sessi
         
         return result
     }
-    
-    fun quick_DownloadAttributes(
+    @Log(
+        beforeLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "REQUEST downloading attributes",
+        afterReturningMessage = "download finished",
+        afterThrowingMessage = "failed to finish download"
+    )
+    fun downloadAttributesWithCrawlerRequestVerbose(
         targetUri: URI,
         token: RequestToken,
         parentUri: URI,
@@ -315,7 +361,7 @@ interface SessionStartedState : SessionRetryable, SessionChildGeneratable, Sessi
         customRequestHeaderProfile: PerRequestHeaderProfile? = null,
         customOption: InitialOption = InitialOption()
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>> {
-        return quick_DownloadAttributes(
+        return downloadAttributeWithCrawlerRequest(
             customOption,
             HttpRequestImpl(
                 Some(token),
@@ -327,7 +373,8 @@ interface SessionStartedState : SessionRetryable, SessionChildGeneratable, Sessi
         )
     }
     
-    fun quick_DownloadAttributes(
+
+    fun downloadAttributeWithCrawlerRequest(
         option: InitialOption,
         request: HttpRequest
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<HttpRequest>>> {
