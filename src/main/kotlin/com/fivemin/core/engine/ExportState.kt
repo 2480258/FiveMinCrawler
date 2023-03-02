@@ -41,7 +41,13 @@ class PreprocessedExportInfo constructor(val token: FileIOToken)
 
 class PreprocessedExport constructor(val info: PreprocessedExportInfo, val data: ExportData) {
     
-
+    @Log(
+        beforeLogLevel = LogLevel.TRACE,
+        afterReturningLogLevel = LogLevel.INFO,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        afterReturningMessage = "Saved file",
+        afterThrowingMessage = "Failed to export and save files"
+    )
     fun save(): Either<Throwable, ExportResultToken> {
         val ret = Either.catch {
             if (data.isSaved) {

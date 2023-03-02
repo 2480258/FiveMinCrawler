@@ -26,6 +26,8 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.ExportData
 import com.fivemin.core.engine.ExportResultToken
 import com.fivemin.core.engine.FileIOToken
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 import java.io.InputStream
 
 class StreamExportData(private val data: InputStream) : ExportData {
@@ -35,7 +37,14 @@ class StreamExportData(private val data: InputStream) : ExportData {
     
     
     override var isSaved: Boolean = false
-
+    
+    @Log(
+        beforeLogLevel = LogLevel.DEBUG,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "coping memory to filesystem (streamexportdata)",
+        afterThrowingMessage = "failed to copy memory to filesystem (streamexportdata)"
+    )
     override fun save(token: FileIOToken): Either<Throwable, ExportResultToken> {
         val ret = Either.catch {
             data.use { data ->
@@ -51,8 +60,6 @@ class StreamExportData(private val data: InputStream) : ExportData {
 
             ExportResultToken(token)
         }
-        
-        logger.debug(ret, "failed to save")
         
         return ret
     }

@@ -224,6 +224,7 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
             findAndGetFirstOrNull(joinPoint, UniqueKeyToken::class).gdi(),
             findAndGetFirstOrNull(joinPoint, FileIOToken::class).gdi(),
             findAndGetFirstOrNull(joinPoint, ExportHandle::class).gdi(),
+            findAndGetFirstOrNull(joinPoint, DocumentAttributeInfo::class).gdi(),
             mappedEither,
             mappedOption
         )
@@ -282,7 +283,7 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
     
     private fun SessionToken?.gdi(): String? {
         return this?.let {
-            "[S${it.tokenNumber}] <<"
+            "S[${it.tokenNumber}] <<"
         }
     }
     
@@ -294,19 +295,25 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
     
     private fun UniqueKeyToken?.gdi(): String? {
         return this?.let {
-            "[U${it.tokenNumber}] <<"
+            "U[${it.tokenNumber}] <<"
         }
     }
     
     private fun FileIOToken?.gdi(): String? {
         return this?.let {
-            "$[F${it.fileName.name.name}] <<"
+            "F[${it.fileName.name.name}] <<"
         }
     }
     
     private fun ExportHandle?.gdi(): String? {
         return this?.let {
             "${it.request.token.fileName.name.name} <<"
+        }
+    }
+    
+    private fun DocumentAttributeInfo?.gdi(): String? {
+        return this?.let {
+            "${it.name} <<"
         }
     }
 }

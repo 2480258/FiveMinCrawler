@@ -39,7 +39,6 @@ class PrepareRequestTransactionMovement<Document : Request> (private val prePars
         next: suspend (Either<Throwable, PrepareTransaction<Document>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
         
-        logger.debug(source.request.getDebugInfo() + " < Creating prepare transaction")
         val result = preParser.generateInfo(source).toEither { PageNotFoundException() }
         
         return next(result)

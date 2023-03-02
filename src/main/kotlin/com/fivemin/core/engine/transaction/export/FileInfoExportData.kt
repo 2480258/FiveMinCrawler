@@ -44,6 +44,7 @@ class FileInfoExportData(val token: FileIOToken) : ExportData {
      *
      * Throws error if encounters filesystem error.
      */
+    
     override fun save(fullpath: FileIOToken): Either<Throwable, ExportResultToken> {
         if (isSaved) {
             throw IllegalArgumentException()
@@ -55,8 +56,6 @@ class FileInfoExportData(val token: FileIOToken) : ExportData {
 
             ExportResultToken(fullpath)
         }
-        
-        logger.debug(ret, "failed to save")
         
         return ret
     }

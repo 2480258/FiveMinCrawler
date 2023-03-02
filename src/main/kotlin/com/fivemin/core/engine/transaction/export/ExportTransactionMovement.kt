@@ -53,13 +53,6 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
     private fun saveFile(it: PreprocessedExport): Either<Throwable, ExportResultToken> {
         val ret = it.save()
     
-        ret.mapLeft { x ->
-            logger.warn(it.info.token.fileName.name.name + " < not exported due to: " + x.message)
-        }
-    
-        ret.map { x ->
-            logger.info(it.info.token.fileName.name.name + " < exported")
-        }
         return ret
     }
     
@@ -69,14 +62,12 @@ class ExportTransactionMovement<Document : Request>(private val parser: ExportPa
         state: SessionStartedState,
         next: suspend (Either<Throwable, ExportTransaction<Document>>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
-        logger.debug(source.request, "exporting transaction")
+        
         val ret = parser.parse(source)
     
         val either = Either.catch {
             ExportTransactionImpl(source.request, source.tags, saveResult(ret))
         }
-        
-        logger.debug(either, "failed to move")
         
         return next(either)
     }

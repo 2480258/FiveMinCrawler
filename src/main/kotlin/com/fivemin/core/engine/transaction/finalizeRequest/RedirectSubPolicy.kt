@@ -28,6 +28,8 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.InitialTransactionImpl
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
@@ -72,15 +74,7 @@ class RedirectSubPolicy<Document : Request> :
                     withContext(Dispatchers.Default) {
                         state.getChildSession {
                             async {
-                                logger.info(doc.getDebugInfo() + " < redirect destination")
-                                state.taskInfo.createTask<Document>()
-                                    .get2<InitialTransaction<Document>, PrepareTransaction<Document>, FinalizeRequestTransaction<Document>>(
-                                        doc.documentType
-                                    ).start(
-                                        InitialTransactionImpl<Document>(
-                                            InitialOption(), TagRepositoryImpl(), doc
-                                        ), it
-                                    ).await()
+                                requestRedirect(state, doc, it)
                             }
                         }
                     }.await()
@@ -92,4 +86,24 @@ class RedirectSubPolicy<Document : Request> :
             }.flatten()
         )
     }
+    
+    @Log(
+        beforeLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "Redirecting request",
+        afterThrowingMessage = "failed to redirect"
+    )
+    private suspend fun requestRedirect(
+        state: SessionStartedState,
+        doc: Document,
+        it: SessionInitState
+    ) = state.taskInfo.createTask<Document>()
+        .get2<InitialTransaction<Document>, PrepareTransaction<Document>, FinalizeRequestTransaction<Document>>(
+            doc.documentType
+        ).start(
+            InitialTransactionImpl<Document>(
+                InitialOption(), TagRepositoryImpl(), doc
+            ), it
+        ).await()
 }

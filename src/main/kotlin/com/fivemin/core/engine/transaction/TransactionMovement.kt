@@ -49,3 +49,7 @@ class PageNotFoundException : Exception {
     constructor(message: String, cause: Throwable) : super(message, cause)
     constructor(cause: Throwable) : super(cause)
 }
+
+class PageDuplicatedException(pages: Iterable<String>) : Exception("page are duplicated: ${pages.joinToString(separator = ", ")}") {
+
+}

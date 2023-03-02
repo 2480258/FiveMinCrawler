@@ -44,7 +44,7 @@ class ExportParserImpl(private val pages: Iterable<ExportPage>) : ExportParser {
         }
 
         if (!pg.any()) {
-            logger.warn(trans.request, "no matched export pages. ignoring....")
+            throw NoMatchedExportPageException(trans.request)
         }
 
         return pg.flatMap {
@@ -52,3 +52,5 @@ class ExportParserImpl(private val pages: Iterable<ExportPage>) : ExportParser {
         }
     }
 }
+
+class NoMatchedExportPageException(request: Request): Exception("can't find matched export page with request")

@@ -54,10 +54,6 @@ class ExportPageImpl(override val pageName: String, private val targetAttributeN
     
     override fun <Document : Request> export(trans: SerializeTransaction<Document>): Iterable<ExportHandle> {
         return adapter.parseAndExport(trans.request, parseInfo(trans)).map {
-            it.swap().map {
-                logger.warn(trans.request, "is not exported due to: ", it.toOption())
-            }
-
             it.orNull().toOption()
         }.filterOption()
     }

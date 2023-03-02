@@ -24,6 +24,8 @@ import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.PageCondition
+import com.fivemin.core.engine.transaction.PageDuplicatedException
+import com.fivemin.core.engine.transaction.PageNotFoundException
 import com.fivemin.core.engine.transaction.PrepareRequestTransactionImpl
 import com.fivemin.core.engine.transaction.prepareRequest.PreParser
 
@@ -32,21 +34,21 @@ class PreParserImpl(
     private val pages: List<PreParserPage>,
     private val attributeRequestOption: RequestOption
 ) : PreParser {
-
+    
     companion object {
         private val logger = LoggerController.getLogger("PreParserImpl")
     }
-
+    
     override fun <Document : Request> generateInfo(init: InitialTransaction<Document>): Option<PrepareTransaction<Document>> {
         val globalConditionMet = globalCondition.check(init).isMet
-
+        
         return if (globalConditionMet && init.request.requestType == RequestType.LINK) {
             val parsedResult = pages.map {
                 Pair(it, it.makeTransaction(init))
             }
-
-            logPages(parsedResult, init)
-
+            
+            checkPagesIntegrity(parsedResult, init)
+            
             parsedResult.map {
                 it.second
             }.filterOption().singleOrNone()
@@ -56,27 +58,21 @@ class PreParserImpl(
             none()
         }
     }
-
-    private fun <Document : Request> logPages(
+    
+    private fun <Document : Request> checkPagesIntegrity(
         ret: List<Pair<PreParserPage, Option<PrepareTransaction<Document>>>>,
         init: InitialTransaction<Document>
     ) {
         val pages = ret.filter {
             it.second.isNotEmpty()
         }
-
+        
         if (pages.count() > 1) {
-            pages.map {
-                logger.warn(
-                    init.request, "has conflicting pages: " + ret.map {
-                        it.first
-                    }.fold("") { x, y -> x + ", " + y.name.name }
-                )
-            }
+            throw PageDuplicatedException(ret.map { it.first.name.name })
         }
-
+        
         if (!pages.any()) {
-            logger.warn(init.request, "has no matching pages")
+            throw PageNotFoundException("can't find requested page: ${init.request.getDebugInfo()}")
         }
     }
 }
