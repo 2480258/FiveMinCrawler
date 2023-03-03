@@ -58,10 +58,6 @@ class NoAttributeContentException : Exception()
 
 class DocumentAttributeFactoryImpl : DocumentAttributeFactory {
     
-    companion object {
-        private val logger = LoggerController.getLogger("DocumentAttributeFactoryImpl")
-    }
-    
     private suspend fun create(data: String): DocumentAttributeInternalElement {
         return DocumentAttributeInternalElementImpl(data)
     }

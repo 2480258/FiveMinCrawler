@@ -43,10 +43,6 @@ interface ExportPage {
 
 class ExportPageImpl(override val pageName: String, private val targetAttributeName: Iterable<String>, private val adapter: ExportAdapter) : ExportPage {
 
-    companion object {
-        private val logger = LoggerController.getLogger("ExportPageImpl")
-    }
-
     private val specialAttributeTagFactory: SpecialAttributeTagFactory = SpecialAttributeTagFactory()
     override fun <Document : Request> isAcceptable(trans: SerializeTransaction<Document>): Boolean {
         return trans.serializeOption.parseOption.name.name == pageName

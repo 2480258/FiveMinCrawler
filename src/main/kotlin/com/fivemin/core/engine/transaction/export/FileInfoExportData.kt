@@ -29,9 +29,6 @@ import com.fivemin.core.engine.FileIOToken
 class FileInfoExportData(val token: FileIOToken) : ExportData {
     override var isSaved: Boolean = false
     
-    companion object {
-        private val logger = LoggerController.getLogger("FileInfoExportData")
-    }
     init {
         if (!token.fileExists()) {
             throw IllegalArgumentException()

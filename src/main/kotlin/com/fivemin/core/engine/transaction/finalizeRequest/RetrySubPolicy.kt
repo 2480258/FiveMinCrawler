@@ -35,10 +35,6 @@ class RetrySubPolicy<Document : Request> :
     
     private val RETRY_DELAY = 3000L
     
-    companion object {
-        private val logger = LoggerController.getLogger("RetrySubPolicy")
-    }
-    
     @Log(
         beforeLogLevel = LogLevel.DEBUG,
         afterReturningLogLevel = LogLevel.DEBUG,

@@ -35,10 +35,6 @@ class PreParserImpl(
     private val attributeRequestOption: RequestOption
 ) : PreParser {
     
-    companion object {
-        private val logger = LoggerController.getLogger("PreParserImpl")
-    }
-    
     override fun <Document : Request> generateInfo(init: InitialTransaction<Document>): Option<PrepareTransaction<Document>> {
         val globalConditionMet = globalCondition.check(init).isMet
         

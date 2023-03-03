@@ -31,10 +31,6 @@ import com.fivemin.core.logger.LogLevel
 class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTransaction<SrcTrans, Document>, Document : Request> :
     TransactionSubPolicy<SrcTrans, DstTrans, Document> {
     
-    companion object {
-        private val logger = LoggerController.getLogger("AddTagAliasSubPolicy")
-    }
-    
     @Log(
         beforeLogLevel = LogLevel.DEBUG,
         afterReturningLogLevel = LogLevel.DEBUG,

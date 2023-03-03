@@ -39,10 +39,6 @@ data class ReferrerInfo(val referrerPolicy: Option<String>, val rel: Option<Stri
 
 class LinkExtractImpl(private val linkParser: LinkParser) : LinkExtractor {
 
-    companion object {
-        private val logger = LoggerController.getLogger("LinkExtractImpl")
-    }
-
     override suspend fun extract(
         resp: ResponseData,
         sel: Option<LinkSelector>

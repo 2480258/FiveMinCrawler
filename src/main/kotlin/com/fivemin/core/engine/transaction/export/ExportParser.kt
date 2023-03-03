@@ -34,10 +34,6 @@ interface ExportParser {
 
 class ExportParserImpl(private val pages: Iterable<ExportPage>) : ExportParser {
 
-    companion object {
-        private val logger = LoggerController.getLogger("ExportParserImpl")
-    }
-
     override fun <Document : Request> parse(trans: SerializeTransaction<Document>): Iterable<ExportHandle> {
         var pg = pages.filter {
             it.isAcceptable(trans)

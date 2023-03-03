@@ -34,9 +34,6 @@ abstract class AbstractPolicy<SrcTrans : Transaction<Document>, DstTrans : Stric
     private val option: AbstractPolicyOption<SrcTrans, DstTrans, Document>,
     private val movementFactory: TransactionMovementFactory<SrcTrans, DstTrans, Document>
 ) : TransactionPolicy<SrcTrans, DstTrans, Document, Document> {
-    companion object {
-        private val logger = LoggerController.getLogger("AbstractPolicy")
-    }
     
     override suspend fun <Ret> progressAsync(
         trans: SrcTrans,

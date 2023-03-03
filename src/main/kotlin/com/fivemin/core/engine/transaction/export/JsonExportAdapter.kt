@@ -33,9 +33,6 @@ import java.util.*
 
 class JsonExportAdapter(private val fileNameExp: TagExpression, private val exportHandleFactory: ExportHandleFactory) :
     ExportAdapter {
-    companion object {
-        private val logger = LoggerController.getLogger("JsonExportAdapter")
-    }
     
     override fun parseAndExport(
         request: Request,

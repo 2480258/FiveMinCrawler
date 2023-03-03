@@ -41,10 +41,6 @@ import java.net.URI
 class RedirectSubPolicy<Document : Request> :
     TransactionSubPolicy<PrepareTransaction<Document>, FinalizeRequestTransaction<Document>, Document> {
     
-    companion object {
-        private val logger = LoggerController.getLogger("RedirectSubPolicy")
-    }
-    
     private fun createsRedirectURL(
         responseBody: RedirectResponseBody, responseData: ResponseData
     ): URI {

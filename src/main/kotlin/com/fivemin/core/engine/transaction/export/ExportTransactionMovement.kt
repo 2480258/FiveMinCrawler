@@ -30,10 +30,6 @@ import com.fivemin.core.logger.LogLevel
 class ExportTransactionMovement<Document : Request>(private val parser: ExportParser, private val state: ExportState) :
     ExecuteExportMovement<Document> {
     
-    companion object {
-        private val logger = LoggerController.getLogger("ExportTransactionMovement")
-    }
-    
     private fun saveResult(handles: Iterable<ExportHandle>): Iterable<Either<Throwable, ExportResultToken>> {
         return handles.map { x ->
             state.create(x)

@@ -31,10 +31,6 @@ import com.fivemin.core.logger.LogLevel
 
 class MemoryExportData(private val data: ByteArray) : ExportData {
     
-    companion object {
-        private val logger = LoggerController.getLogger("MemoryExportData")
-    }
-    
     override var isSaved: Boolean = false
     
     @Log(

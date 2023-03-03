@@ -92,9 +92,6 @@ interface SessionState {
 
 interface SessionAddableAlias : SessionMarkDetachable {
     
-    companion object {
-        private val logger = LoggerController.getLogger("SessionDetachable")
-    }
     
     /**
      * Add alias of request.
@@ -206,10 +203,6 @@ interface SessionDetachable : SessionState {
 
 interface SessionStartable : SessionAddableAlias {
     
-    companion object {
-        private val logger = LoggerController.getLogger("SessionStartable")
-    }
-    
     /**
      * Start session.
      * Note that session allowed starting only once except retry.
@@ -258,9 +251,6 @@ interface SessionStartable : SessionAddableAlias {
 interface SessionDetachRetryable : SessionState
 
 interface SessionChildGeneratable : SessionState {
-    companion object {
-        private val logger = LoggerController.getLogger("SessionChildGeneratable")
-    }
     
     /**
      * Creates child session

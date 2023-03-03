@@ -56,10 +56,6 @@ class CompositeUniqueKeyRepository(
 ) :
     UniqueKeyRepository, DetachObserver {
     
-    companion object {
-        private val logger = LoggerController.getLogger("CompositeUniqueKeyRepository")
-    }
-    
     @Log(
         beforeLogLevel = LogLevel.INFO,
         afterReturningLogLevel = LogLevel.DEBUG,

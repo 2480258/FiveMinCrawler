@@ -30,10 +30,6 @@ import com.fivemin.core.logger.LogLevel
 class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: RequestWaiter) :
     ExecuteRequestMovement<Document> {
     
-    companion object {
-        private val logger = LoggerController.getLogger("FinalizeRequestTransactionMovement")
-    }
-    
     override suspend fun <Ret> move(
         source: PrepareTransaction<Document>,
         

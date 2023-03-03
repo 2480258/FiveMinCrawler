@@ -31,9 +31,6 @@ import com.fivemin.core.logger.LogLevel
 import java.io.InputStream
 
 class StreamExportData(private val data: InputStream) : ExportData {
-    companion object {
-        private val logger = LoggerController.getLogger("StreamExportData")
-    }
     
     
     override var isSaved: Boolean = false

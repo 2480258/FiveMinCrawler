@@ -30,10 +30,6 @@ class ExportTransactionImpl<Document : Request>(
     override val exportHandles: Iterable<Either<Throwable, ExportResultToken>>,
 ) : ExportTransaction<Document> {
 
-    companion object {
-        private val logger = LoggerController.getLogger("ExportTransactionImpl")
-    }
-
     fun modifyTags(tags: TagRepository): Taggable {
         return ExportTransactionImpl(request, tags, exportHandles)
     }
