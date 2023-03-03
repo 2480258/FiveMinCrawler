@@ -22,9 +22,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
-    kotlin("jvm") version "1.6.10"
-    kotlin("plugin.serialization") version "1.6.10"
+    kotlin("jvm") version "1.7.21"
+    kotlin("plugin.serialization") version "1.7.21"
     id("org.panteleyev.jpackageplugin") version "1.3.1"
+    id("io.freefair.aspectj.post-compile-weaving") version "6.6.1"
     jacoco
     application
 }
@@ -85,6 +86,7 @@ dependencies {
     implementation("org.jsoup:jsoup:1.15.3")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
     implementation("io.github.microutils:kotlin-logging:3.0.4")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.0")
     implementation("org.slf4j:slf4j-simple:2.0.5")
     
     implementation("org.brotli:dec:0.1.2")
@@ -94,6 +96,7 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.40.0.0")
     
     implementation("org.pf4j:pf4j:3.8.0")
+    implementation("org.aspectj:aspectjrt:1.9.19")
     
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.2")
@@ -111,8 +114,7 @@ tasks.jar {
 }
 
 tasks.test {
-    println("CI: " + System.getenv("CI"))
-    if (System.getenv("CI").equals("true")) {
+    if (System.getenv("CI")?.equals("true") == true) {
         println("Test excluded: " + project.properties["excludeTests"].toString())
         exclude(project.properties["excludeTests"].toString())
         exclude("**/*nonBlocking*")

@@ -26,15 +26,20 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.ExportData
 import com.fivemin.core.engine.ExportResultToken
 import com.fivemin.core.engine.FileIOToken
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 
 class MemoryExportData(private val data: ByteArray) : ExportData {
     
-    companion object {
-        private val logger = LoggerController.getLogger("MemoryExportData")
-    }
-    
     override var isSaved: Boolean = false
     
+    @Log(
+        beforeLogLevel = LogLevel.DEBUG,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "coping memory to filesystem (memoryexportdata)",
+        afterThrowingMessage = "failed to copy memory to filesystem (memoryexportdata)"
+    )
     override fun save(token: FileIOToken): Either<Throwable, ExportResultToken> {
         
         val ret = Either.catch {
@@ -49,8 +54,6 @@ class MemoryExportData(private val data: ByteArray) : ExportData {
             
             ExportResultToken(token)
         }
-        
-        logger.debug(ret, "failed to save")
         
         return ret
     }

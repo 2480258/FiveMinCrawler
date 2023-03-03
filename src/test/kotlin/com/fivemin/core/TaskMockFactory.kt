@@ -31,6 +31,7 @@ import com.fivemin.core.engine.crawlingTask.DocumentPolicyStorageFactoryCollecto
 import com.fivemin.core.engine.session.*
 import com.fivemin.core.engine.session.bFilter.BloomFilterImpl
 import com.fivemin.core.engine.session.database.DatabaseAdapterFactoryImpl
+import com.fivemin.core.engine.transaction.AbstractPolicy
 import com.fivemin.core.engine.transaction.StringUniqueKeyProvider
 import com.fivemin.core.engine.transaction.UriUniqueKeyProvider
 import com.fivemin.core.engine.transaction.export.ExportTransactionPolicy
@@ -44,33 +45,66 @@ import io.mockk.mockk
 import io.mockk.spyk
 
 class TaskMockFactory {
+    class SuccessPolicy<InTrans : Transaction<Request>, OutTrans: StrictTransaction<InTrans, Request>>
+        : AbstractPolicy<InTrans, OutTrans, Request>(mockk(), mockk()) {
+        override suspend fun <Ret> progressAsync(
+            trans: InTrans,
+            state: SessionStartedState,
+            next: suspend (Either<Throwable, OutTrans>) -> Either<Throwable, Ret>
+        ): Either<Throwable, Ret> {
+            val ret = when (trans) {
+                is InitialTransaction<Request> -> {
+                    trans.upgradeAsDocument("a")
+                }
+    
+                is PrepareTransaction<Request> -> {
+                    trans.upgrade()
+                }
+    
+                is FinalizeRequestTransaction<Request> -> {
+                    trans.upgrade()
+                }
+    
+                is SerializeTransaction<Request> -> {
+                    trans.upgrade()
+                }
+    
+                else -> {
+                    throw IllegalArgumentException()
+                }
+            }
+            
+            return next((ret as OutTrans).right())
+        }
+    }
+    class ThrowingPolicy<InTrans : Transaction<Request>, OutTrans: Transaction<Request>> : TransactionPolicy<InTrans, OutTrans, Request, Request> {
+        override suspend fun <Ret> progressAsync(
+            trans: InTrans,
+            state: SessionStartedState,
+            next: suspend (Either<Throwable, OutTrans>) -> Either<Throwable, Ret>
+        ): Either<Throwable, Ret> {
+            throw NullPointerException()
+        }
+    }
+    
+    class FailingPolicy<InTrans : Transaction<Request>, OutTrans: Transaction<Request>> : TransactionPolicy<InTrans, OutTrans, Request, Request> {
+        override suspend fun <Ret> progressAsync(
+            trans: InTrans,
+            state: SessionStartedState,
+            next: suspend (Either<Throwable, OutTrans>) -> Either<Throwable, Ret>
+        ): Either<Throwable, Ret> {
+            return NullPointerException().left()
+        }
+    }
+    
     companion object {
         
         inline fun <reified InTrans : Transaction<Request>, OutTrans : Transaction<Request>> createThrowingPolicy(): TransactionPolicy<InTrans, OutTrans, Request, Request> {
-            val policyMock1 = mockk<TransactionPolicy<InTrans, OutTrans, Request, Request>>()
-            
-            coEvery {
-                policyMock1.progressAsync<Any>(any(), any(), any())
-            } answers {
-                throw NullPointerException()
-            }
-            
-            return policyMock1
+            return ThrowingPolicy()
         }
         
         inline fun <reified InTrans : Transaction<Request>, OutTrans : Transaction<Request>> createFallingPolicy(): TransactionPolicy<InTrans, OutTrans, Request, Request> {
-            val policyMock1 = mockk<TransactionPolicy<InTrans, OutTrans, Request, Request>>()
-            
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") policyMock1.progressAsync<Any>(
-                    any(), any(), any<suspend (Either<Throwable, OutTrans>) -> Either<Throwable, Any>>()
-                )
-            } coAnswers {
-                NullPointerException().left()
-            }
-            
-            return policyMock1
+            return FailingPolicy()
         }
         
         fun createSessionInitState(info: TaskInfo? = null): SessionInitState {
@@ -157,177 +191,16 @@ class TaskMockFactory {
             return sess
         }
     
-        fun createPolicySet4() : DocumentPolicyStorageFactoryCollector<Request>{
-            var prepMock: PrepareRequestTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") prepMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, PrepareTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().upgrade().upgrade().right()
-            }
-            var reqMock: FinalizeRequestTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") reqMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, FinalizeRequestTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().upgrade().upgrade().right()
-        
-            }
+        fun createPolicySet() : DocumentPolicyStorageFactoryCollector<Request>{
+            val prepMock: AbstractPolicy<InitialTransaction<Request>, PrepareTransaction<Request>, Request> = SuccessPolicy()
+
+            val reqMock: AbstractPolicy<PrepareTransaction<Request>, FinalizeRequestTransaction<Request>, Request> = SuccessPolicy()
     
-            var selMock: SerializeTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") selMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, SerializeTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().upgrade().upgrade().right()
-            }
+            val selMock: AbstractPolicy<FinalizeRequestTransaction<Request>, SerializeTransaction<Request>, Request> = SuccessPolicy()
     
-            var expMock: ExportTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") expMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, ExportTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().upgrade().upgrade().right()
-            }
-    
-            return DocumentPolicyStorageFactoryCollector<Request>(
-                mapOf<DocumentTransaction, Any>(
-                    DocumentTransaction.Prepare to (prepMock),
-                    DocumentTransaction.Request to (reqMock),
-                    DocumentTransaction.Serialize to (selMock),
-                    DocumentTransaction.Export to (expMock)
-                )
-            )
-        }
-    
-    
-        fun createPolicySet3() : DocumentPolicyStorageFactoryCollector<Request>{
-            var prepMock: PrepareRequestTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") prepMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, PrepareTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().upgrade().right()
-            }
-    
-            var reqMock: FinalizeRequestTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") reqMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, FinalizeRequestTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().upgrade().right()
-        
-            }
-    
-            var selMock: SerializeTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") selMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, SerializeTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().upgrade().right()
-            }
-    
-            var expMock: ExportTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") expMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, ExportTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().upgrade().right()
-            }
-    
-            return DocumentPolicyStorageFactoryCollector<Request>(
-                mapOf<DocumentTransaction, Any>(
-                    DocumentTransaction.Prepare to (prepMock),
-                    DocumentTransaction.Request to (reqMock),
-                    DocumentTransaction.Serialize to (selMock),
-                    DocumentTransaction.Export to (expMock)
-                )
-            )
-        }
-    
-        fun createPolicySet2() : DocumentPolicyStorageFactoryCollector<Request>{
-            var prepMock: PrepareRequestTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") prepMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, PrepareTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().right()
-            }
-    
-            var reqMock: FinalizeRequestTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") reqMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, FinalizeRequestTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().right()
-        
-            }
-    
-            var selMock: SerializeTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") selMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, SerializeTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().right()
-            }
-    
-            var expMock: ExportTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") expMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, ExportTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").upgrade().right()
-            }
-    
-            return DocumentPolicyStorageFactoryCollector<Request>(
+            val expMock: AbstractPolicy<SerializeTransaction<Request>, ExportTransaction<Request>, Request> = SuccessPolicy()
+            
+            return DocumentPolicyStorageFactoryCollector(
                 mapOf<DocumentTransaction, Any>(
                     DocumentTransaction.Prepare to (prepMock),
                     DocumentTransaction.Request to (reqMock),
@@ -337,147 +210,14 @@ class TaskMockFactory {
             )
         }
         
-        fun createPolicySet1() : DocumentPolicyStorageFactoryCollector<Request>{
-            var prepMock: PrepareRequestTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") prepMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, PrepareTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").right()
-            }
-    
-            var reqMock: FinalizeRequestTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") reqMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, FinalizeRequestTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").right()
         
-            }
-    
-            var selMock: SerializeTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") selMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, SerializeTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").right()
-            }
-    
-            var expMock: ExportTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") expMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, ExportTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").right()
-            }
-            
-            return DocumentPolicyStorageFactoryCollector<Request>(
-                mapOf<DocumentTransaction, Any>(
-                    DocumentTransaction.Prepare to (prepMock),
-                    DocumentTransaction.Request to (reqMock),
-                    DocumentTransaction.Serialize to (selMock),
-                    DocumentTransaction.Export to (expMock)
-                )
-            )
-        }
-        
-        fun createPolicySet(
-            prepare: PrepareRequestTransactionPolicy<Request>? = null,
-            request: FinalizeRequestTransactionPolicy<Request>? = null,
-            serialize: SerializeTransactionPolicy<Request>? = null,
-            export: ExportTransactionPolicy<Request>? = null
-        ): DocumentPolicyStorageFactoryCollector<Request> {
-            var prepMock: PrepareRequestTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") prepMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, PrepareTransaction<Request>>) -> Either<Throwable, PrepareTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<InitialTransaction<Request>>().upgradeAsDocument("a").right()
-            }
-            
-            var reqMock: FinalizeRequestTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") reqMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, FinalizeRequestTransaction<Request>>) -> Either<Throwable, FinalizeRequestTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<PrepareTransaction<Request>>().upgrade().right()
-                
-            }
-            
-            var selMock: SerializeTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") selMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, SerializeTransaction<Request>>) -> Either<Throwable, SerializeTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<FinalizeRequestTransaction<Request>>().upgrade().right()
-                
-            }
-            
-            var expMock: ExportTransactionPolicy<Request> = mockk()
-            coEvery {
-                // DO NOT REMOVE GENERIC ARGUMENTS
-                @Suppress("RemoveExplicitTypeArguments") expMock.progressAsync<Any>(
-                    any(),
-                    any(),
-                    any<suspend (Either<Throwable, ExportTransaction<Request>>) -> Either<Throwable, ExportTransaction<Request>>>()
-                )
-            } coAnswers {
-                firstArg<SerializeTransaction<Request>>().upgrade().right()
-            }
-            
-            return DocumentPolicyStorageFactoryCollector<Request>(
-                mapOf<DocumentTransaction, Any>(
-                    DocumentTransaction.Prepare to (prepare ?: prepMock),
-                    DocumentTransaction.Request to (request ?: reqMock),
-                    DocumentTransaction.Serialize to (serialize ?: selMock),
-                    DocumentTransaction.Export to (export ?: expMock)
-                )
-            
-            )
-        }
-        
-        
-        fun createTaskInfo(
-            prepare: PrepareRequestTransactionPolicy<Request>? = null,
-            request: FinalizeRequestTransactionPolicy<Request>? = null,
-            serialize: SerializeTransactionPolicy<Request>? = null,
-            export: ExportTransactionPolicy<Request>? = null,
-            policySet: DocumentPolicyStorageFactoryCollector<Request>? = null
-        ): TaskInfo {
+        fun createTaskInfo(): TaskInfo {
             val info: TaskInfo = mockk()
             val taskFac: CrawlerTaskFactory<Request> = mockk()
             
             every {
                 taskFac.policySet
-            } returns (policySet ?: createPolicySet(prepare, request, serialize, export))
+            } returns (createPolicySet())
             
             every {
                 info.createTask<Request>()

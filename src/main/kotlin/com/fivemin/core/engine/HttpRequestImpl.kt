@@ -42,4 +42,8 @@ class HttpRequestImpl(
             newTags.fold({ tags }, { it })
         )
     }
+    
+    override fun getDebugInfo(): String {
+        return "[R" + this.token.tokenNumber + "]: " + this.target.toString()
+    }
 }

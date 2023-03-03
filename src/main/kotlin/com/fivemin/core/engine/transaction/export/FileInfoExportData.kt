@@ -29,9 +29,6 @@ import com.fivemin.core.engine.FileIOToken
 class FileInfoExportData(val token: FileIOToken) : ExportData {
     override var isSaved: Boolean = false
     
-    companion object {
-        private val logger = LoggerController.getLogger("FileInfoExportData")
-    }
     init {
         if (!token.fileExists()) {
             throw IllegalArgumentException()
@@ -44,6 +41,7 @@ class FileInfoExportData(val token: FileIOToken) : ExportData {
      *
      * Throws error if encounters filesystem error.
      */
+    
     override fun save(fullpath: FileIOToken): Either<Throwable, ExportResultToken> {
         if (isSaved) {
             throw IllegalArgumentException()
@@ -55,8 +53,6 @@ class FileInfoExportData(val token: FileIOToken) : ExportData {
 
             ExportResultToken(fullpath)
         }
-        
-        logger.debug(ret, "failed to save")
         
         return ret
     }

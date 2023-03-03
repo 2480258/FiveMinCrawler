@@ -34,17 +34,13 @@ interface ExportParser {
 
 class ExportParserImpl(private val pages: Iterable<ExportPage>) : ExportParser {
 
-    companion object {
-        private val logger = LoggerController.getLogger("ExportParserImpl")
-    }
-
     override fun <Document : Request> parse(trans: SerializeTransaction<Document>): Iterable<ExportHandle> {
         var pg = pages.filter {
             it.isAcceptable(trans)
         }
 
         if (!pg.any()) {
-            logger.warn(trans.request, "no matched export pages. ignoring....")
+            throw NoMatchedExportPageException(trans.request)
         }
 
         return pg.flatMap {
@@ -52,3 +48,5 @@ class ExportParserImpl(private val pages: Iterable<ExportPage>) : ExportParser {
         }
     }
 }
+
+class NoMatchedExportPageException(request: Request): Exception("can't find matched export page with request")

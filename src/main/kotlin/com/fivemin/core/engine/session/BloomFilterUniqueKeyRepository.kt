@@ -25,6 +25,8 @@ import arrow.core.toOption
 import com.fivemin.core.DuplicateKeyException
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
@@ -54,10 +56,13 @@ class CompositeUniqueKeyRepository(
 ) :
     UniqueKeyRepository, DetachObserver {
     
-    companion object {
-        private val logger = LoggerController.getLogger("CompositeUniqueKeyRepository")
-    }
-    
+    @Log(
+        beforeLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "adding uniquekey",
+        afterThrowingMessage = "failed to add uniquekey (detachable)"
+    )
     override fun addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken {
         if (!cache.put(key)) { // insertion failed -> already has the key
             // This process is atomic so no same key can go below
@@ -75,11 +80,17 @@ class CompositeUniqueKeyRepository(
         
         //now OK
         val token = uniqueKeyTokenFactory.create(key)
-        logger.debug("$key < $token < added uniquekey with detachable")
         
         return token
     }
     
+    @Log(
+        beforeLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "adding uniquekey",
+        afterThrowingMessage = "failed to add uniquekey (not detachable)"
+    )
     override fun addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken {
         if (!cache.put(key)) { // insertion failed -> already has the key
             // This process is atomic so no same key can go below
@@ -94,11 +105,17 @@ class CompositeUniqueKeyRepository(
         
         //now OK
         val token = uniqueKeyTokenFactory.create(key)
-        logger.debug("$key < $token < added uniquekey with not detachable")
         
         return token
     }
     
+    @Log(
+        beforeLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "adding uniquekey",
+        afterThrowingMessage = "failed to add uniquekey (unknown)"
+    )
     override fun addUniqueKey(key: UniqueKey): UniqueKeyToken {
         if (!cache.put(key)) { // insertion failed -> already has the key
             // This process is atomic so no same key can go below
@@ -113,23 +130,42 @@ class CompositeUniqueKeyRepository(
         
         //now OK
         val token = uniqueKeyTokenFactory.create(key)
-        logger.debug("$key < $token < added uniquekey with temparatory")
         temporaryUniqueKeyRepository.addUniqueKey(key) //thread-safe, idempotent
         
         return token
     }
     
+    @Log(
+        beforeLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "finalize uniquekey",
+        afterThrowingMessage = "failed to convey uniquekey (unknown)"
+    )
     override fun finalizeUniqueKey(key: UniqueKey) {
-        logger.debug("$key < finalized uniqueKey")
         persister.finalizeKey(key)
     }
     
+    @Log(
+        beforeLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "marked detachable",
+        afterThrowingMessage = "failed to mark detachable"
+    )
     override fun notifyMarkedDetachable(tokens: Iterable<UniqueKeyToken>) {
         tokens.forEach {
             conveyToDetachable(it)
         }
     }
     
+    @Log(
+        beforeLogLevel = LogLevel.INFO,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "marked not detachable",
+        afterThrowingMessage = "failed to mark not detachable"
+    )
     override fun notifyMarkedNotDetachable(tokens: Iterable<UniqueKeyToken>) {
         tokens.forEach {
             conveyToNotDetachable(it)
@@ -143,14 +179,11 @@ class CompositeUniqueKeyRepository(
                 throw DuplicateKeyException()
             }
         }
-        
-        logger.debug("$token < converys to detachable")
     }
     
     
     private fun conveyToNotDetachable(token: UniqueKeyToken) {
         temporaryUniqueKeyRepository.deleteUniqueKey(token) //thread-safe
-        logger.debug("$token < converys to not detachable")
     }
     
     /**

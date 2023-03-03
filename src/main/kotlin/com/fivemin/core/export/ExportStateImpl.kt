@@ -22,6 +22,8 @@ package com.fivemin.core.export
 
 import arrow.core.Option
 import com.fivemin.core.engine.*
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 
 /**
  * Manages current export file duplication state.
@@ -41,7 +43,14 @@ class ExportStateImpl(private val directIO: DirectIO, private val continueExport
     override fun export(): ContinueExportStateInfo {
         return ContinueExportStateInfo(set.toList())
     }
-
+    
+    @Log(
+        beforeLogLevel = LogLevel.TRACE,
+        afterReturningLogLevel = LogLevel.TRACE,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        afterReturningMessage = "creating export handle",
+        afterThrowingMessage = "Failed to create export handle"
+    )
     override fun create(token: ExportHandle): PreprocessedExport {
         return createInternal(token)
     }

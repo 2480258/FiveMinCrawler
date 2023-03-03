@@ -25,6 +25,8 @@ import com.fivemin.core.engine.ExportHandle
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.ifFile
 import com.fivemin.core.engine.match
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 
 /**
  * Export adapter for binary files
@@ -40,23 +42,36 @@ class BinaryExportAdapter(private val fileName: TagExpression, private val facto
      *
      * @param info lists of file for saving.
      */
+    
+    
     override fun parseAndExport(
-        request: Request,
-        info: Iterable<ExportAttributeInfo>
+        request: Request, info: Iterable<ExportAttributeInfo>
     ): Iterable<Either<Throwable, ExportHandle>> {
         val results = info.map { x ->
-            x.element.match({ Either.Left(IllegalArgumentException()) }, { y -> //filters internal attributes. no binary export for those.
+            save(x)
+        }
+        
+        return results
+    }
+    
+    @Log(
+        beforeLogLevel = LogLevel.DEBUG,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "exporting binary files",
+        afterThrowingMessage = "failed to export binary files"
+    )
+    private fun save(x: ExportAttributeInfo) : Either<Throwable, ExportHandle> {
+        return x.element.match({ Either.Left(IllegalArgumentException("tried to export text file with binary adapter: ${x.locator.info.name}")) },
+            { y -> //filters internal attributes. no binary export for those.
                 y.successInfo.body.ifFile({ z -> //if attribute is file, just move them.
                     Either.Right(factory.create(fileName.build(x.tagRepo), z.file))
                 }, { z ->
-
+                    
                     z.openStreamAsByteAndDispose { //if attribute is in memory, write to file.
                         factory.create(fileName.build(x.tagRepo), it)
                     }
                 })
             })
-        }
-
-        return results
     }
 }

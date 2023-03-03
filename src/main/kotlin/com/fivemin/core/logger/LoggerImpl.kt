@@ -110,4 +110,10 @@ class LoggerImpl(private val name: String) : Logger {
             logger.error(it) { logStr }
         }
     }
+    
+    override fun trace(str: String) {
+        logger.trace {
+            str
+        }
+    }
 }

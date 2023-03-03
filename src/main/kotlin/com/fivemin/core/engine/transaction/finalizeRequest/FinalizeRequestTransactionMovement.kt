@@ -24,13 +24,11 @@ import arrow.core.*
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.ExecuteRequestMovement
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 
 class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: RequestWaiter) :
     ExecuteRequestMovement<Document> {
-    
-    companion object {
-        private val logger = LoggerController.getLogger("FinalizeRequestTransactionMovement")
-    }
     
     override suspend fun <Ret> move(
         source: PrepareTransaction<Document>,
@@ -49,9 +47,6 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
             
             return result
             
-        } catch (e: Exception) {
-            logger.debug(source.request, "", Some(e))
-            throw e
         } finally {
             dest?.map {
                 releaseRequester(it)
@@ -59,9 +54,15 @@ class FinalizeRequestTransactionMovement<Document : Request>(val requestWaiter: 
         }
     }
     
+    @Log(
+        beforeLogLevel = LogLevel.DEBUG,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "releasing requester",
+        afterThrowingMessage = "failed to release requester"
+    )
     private fun releaseRequester(dest: FinalizeRequestTransaction<Document>) {
         dest.result.map {
-            logger.debug(dest.request.getDebugInfo() + " < releasing requester")
             it.releaseRequester()
         }
     }

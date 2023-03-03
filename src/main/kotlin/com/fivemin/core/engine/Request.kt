@@ -40,10 +40,7 @@ interface Request : Taggable {
      * Note that type of copy is same with source.
      */
     fun copyWith(newTarget: Option<URI> = none(), tags: Option<TagRepository> = none()): Request
-
-    fun getDebugInfo(): String {
-        return "[" + token.tokenNumber + "]: " + target.toString()
-    }
+    fun getDebugInfo(): String
 }
 
 class DefaultRequest(
@@ -63,6 +60,9 @@ class DefaultRequest(
             newTarget.fold({ target }, { it }),
             requestType
         )
+    }
+    override fun getDebugInfo(): String {
+        return "[R" + this.token.tokenNumber + "]: " + this.target.toString()
     }
 }
 

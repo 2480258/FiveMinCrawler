@@ -25,14 +25,17 @@ import arrow.core.right
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 
 class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTransaction<SrcTrans, Document>, Document : Request> :
     TransactionSubPolicy<SrcTrans, DstTrans, Document> {
     
-    companion object {
-        private val logger = LoggerController.getLogger("AddTagAliasSubPolicy")
-    }
-    
+    @Log(
+        beforeLogLevel = LogLevel.DEBUG,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR
+    )
     override suspend fun <Ret> process(
         source: SrcTrans,
         dest: DstTrans,
@@ -40,7 +43,6 @@ class AddTagAliasSubPolicy<SrcTrans : Transaction<Document>, DstTrans : StrictTr
         state: SessionStartedState,
         next: suspend (Either<Throwable, DstTrans>) -> Either<Throwable, Ret>
     ): Either<Throwable, Ret> {
-        logger.debug(source.request, "adding tags")
         val ret = state.taskInfo.uniqueKeyProvider.tagKey.create(dest.tags)
         
         return tailCall(source, dest, state, next, ret)

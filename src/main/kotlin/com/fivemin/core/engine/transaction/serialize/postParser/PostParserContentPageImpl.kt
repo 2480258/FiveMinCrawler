@@ -46,34 +46,29 @@ class PostParserContentPageImpl<Document : Request>(
         req: FinalizeRequestTransaction<Document>, state: SessionStartedState
     ): Deferred<Option<List<DocumentAttribute>>> {
         return GlobalScope.async {
-            try {
-                req.previous.ifDocumentAsync({
-                    if (it.parseOption.name == pageCondition) {
-                        val internals = processIntAttribute(req)
-                        val externals = processExtAttr(req, state)
-                        val links = processLinks(req, state)
-                        
-                        externals.plus(links).awaitAll() // early exits if at least one links returns an exception.
-                        
-                        val finished = externals.map { y ->
-                            y.await() // awaits already awaited values. orders are not important
-                        }
-                        
-                        val ret = internals.fold({ finished }) { x ->
-                            finished.plus(x)
-                        }
-                        
-                        ret.toOption()
-                    } else {
-                        none()
+            req.previous.ifDocumentAsync({
+                if (it.parseOption.name == pageCondition) {
+                    val internals = processIntAttribute(req)
+                    val externals = processExtAttr(req, state)
+                    val links = processLinks(req, state)
+                    
+                    externals.plus(links).awaitAll() // early exits if at least one links returns an exception.
+                    
+                    val finished = externals.map { y ->
+                        y.await() // awaits already awaited values. orders are not important
                     }
-                }, {
+                    
+                    val ret = internals.fold({ finished }) { x ->
+                        finished.plus(x)
+                    }
+                    
+                    ret.toOption()
+                } else {
                     none()
-                })
-            } catch (e: Exception) {
-                logger.debug(e, "failed to extract")
-                throw e
-            }
+                }
+            }, {
+                none()
+            })
         }
     }
     
@@ -99,7 +94,7 @@ class PostParserContentPageImpl<Document : Request>(
         
         val result = attr.linkInfo.map { requestLinkInfo ->
             val downloaded = requestLinkInfo.requests.map { httpRequest ->
-                state.quick_DownloadAttributes(requestLinkInfo.option, httpRequest)
+                state.downloadAttributeWithCrawlerRequest(requestLinkInfo.option, httpRequest)
             }
             
             val list = if (downloaded.any()) {
@@ -145,7 +140,7 @@ class PostParserContentPageImpl<Document : Request>(
         val links = linkInfoFactory.get(request)
         return links.linkInfo.map { requestLinkInfo ->
             val ret = requestLinkInfo.requests.map { request ->
-                state.quick_DownloadLinks(requestLinkInfo.option, request)
+                state.downloadLinksWithCrawlerRequest(requestLinkInfo.option, request)
             }
             
             if (ret.any()) {

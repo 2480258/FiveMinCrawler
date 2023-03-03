@@ -24,6 +24,8 @@ import arrow.core.Either
 import arrow.core.toOption
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -31,9 +33,6 @@ import java.util.*
 
 class JsonExportAdapter(private val fileNameExp: TagExpression, private val exportHandleFactory: ExportHandleFactory) :
     ExportAdapter {
-    companion object {
-        private val logger = LoggerController.getLogger("JsonExportAdapter")
-    }
     
     override fun parseAndExport(
         request: Request,
@@ -59,23 +58,31 @@ class JsonExportAdapter(private val fileNameExp: TagExpression, private val expo
         }
 
         return addedTagrepo.map {
-            val ret = Either.catch {
-                exportHandleFactory.create( //creates json contents.
-                    it.key,
-                    convertToJson(
-                        it.value.map {
-                            Pair(it.second, it.third)
-                        }
-                    )
-                )
-            }
-            
-            logger.debug(ret, "failed to parseAndExport")
+            val ret = save(it)
             
             ret
         }
     }
-
+    
+    @Log(
+        beforeLogLevel = LogLevel.DEBUG,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "exporting text files",
+        afterThrowingMessage = "failed to export text files"
+    )
+    private fun save(it: Map.Entry<String, List<Triple<String, ExportAttributeLocator, String>>>) =
+        Either.catch {
+            exportHandleFactory.create( //creates json contents.
+                it.key,
+                convertToJson(
+                    it.value.map {
+                        Pair(it.second, it.third)
+                    }
+                )
+            )
+        }
+    
     private fun convertToJson(data: Iterable<Pair<ExportAttributeLocator, String>>): String {
         val json = Json {}
 

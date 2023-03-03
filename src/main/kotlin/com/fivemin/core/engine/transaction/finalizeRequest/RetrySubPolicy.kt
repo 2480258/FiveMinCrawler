@@ -25,6 +25,8 @@ import arrow.core.right
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.engine.transaction.TransactionSubPolicy
+import com.fivemin.core.logger.Log
+import com.fivemin.core.logger.LogLevel
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.delay
 
@@ -33,14 +35,16 @@ class RetrySubPolicy<Document : Request> :
     
     private val RETRY_DELAY = 3000L
     
-    companion object {
-        private val logger = LoggerController.getLogger("RetrySubPolicy")
-    }
-    
+    @Log(
+        beforeLogLevel = LogLevel.DEBUG,
+        afterReturningLogLevel = LogLevel.DEBUG,
+        afterThrowingLogLevel = LogLevel.ERROR,
+        beforeMessage = "trying to retry",
+        afterThrowingMessage = "failed to retry"
+    )
     private suspend fun request(
         source: PrepareTransaction<Document>, state: SessionStartedState
     ): Deferred<Either<Throwable, FinalizeRequestTransaction<Document>>> {
-        logger.debug(source.request, "trying to retry")
         
         return state.retryAsync {
             delay(RETRY_DELAY)

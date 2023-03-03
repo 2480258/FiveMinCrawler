@@ -29,6 +29,6 @@ import kotlinx.coroutines.CancellationException
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-class RetryCountMaxedException : CancellationException()
+class RetryCountMaxedException(msg: String) : CancellationException(msg)
 
 class UniqueKeyDuplicateException(msg: String) : Exception(msg)
