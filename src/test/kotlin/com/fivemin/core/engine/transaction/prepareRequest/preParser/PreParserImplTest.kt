@@ -149,7 +149,7 @@ class PreParserImplTest {
         val doc = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK)
             .upgrade()
         
-        assertEquals(preparser.generateInfo(doc), none<PrepareTransaction<Request>>())
+        assertThrows {preparser.generateInfo(doc) }
     }
     
     @Test
@@ -161,7 +161,7 @@ class PreParserImplTest {
         val doc = DocumentMockFactory.getRequest(URI("https://aaa.com"), RequestType.LINK)
             .upgrade()
         
-        assertEquals(preparser.generateInfo(doc), none<PrepareTransaction<Request>>())
+        assertThrows {preparser.generateInfo(doc) }
     }
     
     
@@ -225,12 +225,8 @@ class PreParserImplTest {
 
         preParserImpl = generate(trueCondition, listOf(truePage, truePage))
 
-        val prep = preParserImpl.generateInfo(req.upgrade())
-
-        prep.fold({
-            return
-        }) {
-            fail()
+        assertThrows {
+            preParserImpl.generateInfo(req.upgrade())
         }
     }
 
@@ -241,13 +237,10 @@ class PreParserImplTest {
 
         preParserImpl = generate(trueCondition, listOf(falsePage, falsePage))
 
-        val prep = preParserImpl.generateInfo(req.upgrade())
-
-        prep.fold({
-            return
-        }) {
-            fail()
+        assertThrows {
+            preParserImpl.generateInfo(req.upgrade())
         }
+
     }
 
     @Test
