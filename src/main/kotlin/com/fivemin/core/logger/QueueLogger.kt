@@ -45,7 +45,15 @@ interface WebSocketLogger {
 @Aspect
 class QueueLogger {
     companion object {
-        var webSocketLogger: WebSocketLogger? = null
+        private var webSocketLogger: WebSocketLogger? = null
+        
+        fun setWebSocketLoggerEndpoint(endPoint: WebSocketLogger) {
+            webSocketLogger = endPoint
+        }
+        
+        fun resetWebSocketLoggerEndpoint() {
+            webSocketLogger = null
+        }
     }
     @Suppress("unused")
     @Before("@annotation(NetworkReport) && call(* enqueueWithScore*(*, *, *, *))")

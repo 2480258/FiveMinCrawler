@@ -36,11 +36,11 @@ jacoco {
 
 tasks.jacocoTestReport {
     reports {
-        html.isEnabled = false
-        xml.isEnabled = true
-        csv.isEnabled = false
+        html.required.set(false)
+        xml.required.set(true)
+        csv.required.set(false)
 
-        xml.destination = file("./jacocoTestReport.xml")
+        xml.outputLocation.set(file("./jacocoTestReport.xml"))
     }
     
     finalizedBy("jacocoTestCoverageVerification")

@@ -13,6 +13,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/FiveMinDummyPlugin" />
+            <option value="$PROJECT_DIR$/FiveMinNotifyServer" />
             <option value="$PROJECT_DIR$/FiveMinTest" />
           </set>
         </option>

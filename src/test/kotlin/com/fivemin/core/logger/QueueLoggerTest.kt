@@ -54,7 +54,7 @@ class QueueLoggerTest {
                 wsLogger.logViaNetworkEnqueue(any(), any())
             } returns (Unit)
     
-            QueueLogger.webSocketLogger = wsLogger
+            QueueLogger.setWebSocketLoggerEndpoint(wsLogger)
     
             val timing = SRTFTimingRepositoryImpl()
             val optimizationPolicy = SRTFOptimizationPolicyImpl(timing)
@@ -76,16 +76,15 @@ class QueueLoggerTest {
                 wsLogger.logViaNetworkEnqueue(any(), any())
             }
         } finally {
-            QueueLogger.webSocketLogger = null
+            QueueLogger.resetWebSocketLoggerEndpoint()
         }
-
     }
     
     @Test
     fun testDequeueLogToWebSocket() {
         try {
             val wsLogger : WebSocketLogger = mockk()
-            QueueLogger.webSocketLogger = wsLogger
+            QueueLogger.setWebSocketLoggerEndpoint(wsLogger)
     
             every {
                 wsLogger.logViaNetworkEnqueue(any(), any())
@@ -118,7 +117,7 @@ class QueueLoggerTest {
     
             return
         } finally {
-            QueueLogger.webSocketLogger = null
+            QueueLogger.resetWebSocketLoggerEndpoint()
         }
     }
 }
