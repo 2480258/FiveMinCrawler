@@ -25,6 +25,7 @@ import com.fivemin.core.DocumentMockFactory.Companion.upgrade
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsDocument
 import com.fivemin.core.DocumentMockFactory.Companion.upgradeAsRequestDoc
 import com.fivemin.core.engine.RequestType
+import com.fivemin.core.logger.QueueLogger
 import com.fivemin.core.request.EnqueueRequestInfo
 import com.fivemin.core.request.TaskWaitHandle
 import kotlinx.coroutines.runBlocking

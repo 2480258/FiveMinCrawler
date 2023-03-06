@@ -28,6 +28,7 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.RequestToken
 import com.fivemin.core.engine.transaction.finalizeRequest.DocumentRequest
+import com.fivemin.core.logger.NetworkReport
 import com.fivemin.core.request.*
 import com.fivemin.core.request.queue.EnqueuedRequest
 import com.fivemin.core.request.queue.RequestDeniedException
@@ -77,7 +78,17 @@ class WSQueue constructor(
             {
                 it.toDouble(DurationUnit.MILLISECONDS)
             })
-        
+    
+        enqueueWithScore(wsKey, doc, info, score)
+    }
+    
+    @NetworkReport
+    private fun enqueueWithScore(
+        wsKey: RequestToken,
+        doc: PreprocessedRequest<Request>,
+        info: EnqueueRequestInfo,
+        score: Double
+    ) {
         rotatingQueue.enqueue(
             wsKey, EnqueuedRequest(doc, info),
             score //ignored if same wsKey is already inserted
@@ -105,27 +116,31 @@ class WSQueue constructor(
     }
     
     private suspend fun dequeue() {
+        try {
+            val item: Option<EnqueuedRequest<Request>> = removeFirstFromQueue()
+    
+            item.map {
+                optimizationPolicy.removeDescriptor(
+                    it.request.request.request.request.token,
+                    srtfPageFactory.convertTo(it.request.request.request)
+                )
         
-        val item: Option<EnqueuedRequest<Request>> = removeFirstFromQueue()
-        
-        item.map {
-            optimizationPolicy.removeDescriptor(
-                it.request.request.request.request.token,
-                srtfPageFactory.convertTo(it.request.request.request)
-            )
-            
-            when (it.request.info.dequeue.get()) {
-                DequeueDecision.ALLOW -> {
-                    logger.debug(it.request.request.request.request, "dequeued")
-                    it.info.callBack(DequeuedRequest(it.request, DequeuedRequestInfo()).right())
-                }
-                DequeueDecision.DENY -> {
-                    it.info.callBack(RequestDeniedException("Request denied by DequeueDecision ").left())
+                when (it.request.info.dequeue.get()) {
+                    DequeueDecision.ALLOW -> {
+                        logger.debug(it.request.request.request.request, "dequeued")
+                        it.info.callBack(DequeuedRequest(it.request, DequeuedRequestInfo()).right())
+                    }
+                    DequeueDecision.DENY -> {
+                        it.info.callBack(RequestDeniedException("Request denied by DequeueDecision ").left())
+                    }
                 }
             }
+        } catch (e: Throwable) {
+            logger.warn(e, "error occur when deque")
         }
     }
     
+    @NetworkReport
     private fun removeFirstFromQueue(): Option<EnqueuedRequest<Request>> {
         val ret = Either.catch {
             rotatingQueue.dequeue()
