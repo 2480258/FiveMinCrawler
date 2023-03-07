@@ -28,20 +28,28 @@ import com.fivemin.core.engine.transaction.TransactionSubPolicy
 import com.fivemin.core.initialize.PluginObject
 import com.fivemin.core.initialize.SubPolicyCollection
 import com.fivemin.core.initialize.mef.MEFPlugin
+import com.fivemin.core.logger.QueueLogger
 import org.pf4j.Extension
 import org.pf4j.ExtensionPoint
 import org.pf4j.Plugin
 import org.pf4j.PluginWrapper
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.runApplication
 import java.io.File
 import java.net.URI
 import java.util.concurrent.atomic.AtomicInteger
+
+@SpringBootApplication
+class ServerApplication {
+    fun run() {
+        runApplication<ServerApplication>()
+    }
+}
 
 @Extension
 class NotifyServerExtensions : ExtensionPoint, MEFPlugin {
     companion object {
         private val logger = LoggerController.getLogger("NotifyServer")
-        
-        
     }
     
     override val pluginName: String

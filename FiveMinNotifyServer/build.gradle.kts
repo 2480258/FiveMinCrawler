@@ -29,6 +29,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.testng:testng:7.1.0")
     
     compileOnly(rootProject)
     compileOnly(kotlin("stdlib"))
@@ -47,7 +48,7 @@ tasks.withType<KotlinCompile> {
 }
 
 tasks.withType<Test> {
-    useJUnitPlatform()
+    useTestNG()
 }
 
 

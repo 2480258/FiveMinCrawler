@@ -103,21 +103,14 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.6.4")
 }
 
-tasks.register<Jar>("uberJar") {
-    //dependsOn(tasks.named("compileKotlin"))
-    archiveClassifier.set("uber")
-    
-    from(sourceSets.main.get().output)
-    
-    //dependsOn(configurations.runtimeClasspath)
-    from({
-        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
-    })
+tasks.jar {
     manifest {
         attributes["Main-Class"] = "MainKt"
     }
-    
-    archiveBaseName.set("${project.name}-plugin-demo")
+    configurations["compileClasspath"].forEach { file: File ->
+        from(zipTree(file.absoluteFile))
+    }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 tasks.test {
