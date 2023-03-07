@@ -59,6 +59,9 @@ class NotifyServerExtensions : ExtensionPoint, MEFPlugin {
     
     override fun get(): PluginObject {
         logger.info("NotifyServer loaded")
+        
+        ServerApplication().run()
+        
         return PluginObject(SubPolicyCollection(listOf(), listOf(), listOf(), listOf()))
     }
 }

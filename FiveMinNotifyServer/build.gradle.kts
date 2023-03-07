@@ -26,17 +26,23 @@ tasks.jar {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-websocket")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.testng:testng:7.1.0")
-    
+    // shared libraries with root project
     compileOnly(rootProject)
     compileOnly(kotlin("stdlib"))
-    
     compileOnly("io.arrow-kt:arrow-core:1.1.2")
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     compileOnly("org.pf4j:pf4j:3.8.0")
+    
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.6.4")
+    
+    testImplementation(rootProject)
+    testImplementation("io.mockk:mockk:1.13.2")
+    
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.testng:testng:7.1.0")
+    
     kapt("org.pf4j:pf4j:3.8.0")
 }
 

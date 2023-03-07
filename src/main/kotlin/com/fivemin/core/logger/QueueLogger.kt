@@ -36,9 +36,16 @@ annotation class NetworkReport {
 }
 
 interface WebSocketLogger {
-    fun logViaNetworkEnqueue(request: Request, score: Double)
+    interface LogItem {
+        val request: Request
+    }
     
-    fun logViaNetworkDequeue(request: Request)
+    data class EnqueueLogItem (val score: Double, override val request: Request) : LogItem
+    data class DequeueLogItem (override val request: Request) : LogItem
+    
+    fun logViaNetworkEnqueue(item: EnqueueLogItem)
+    
+    fun logViaNetworkDequeue(item: DequeueLogItem)
 }
 
 @Suppress("unused")
@@ -62,14 +69,14 @@ class QueueLogger {
         val req = joinPoint.args[1] as PreprocessedRequest<Request>
         val score = joinPoint.args[3] as Double
         
-        webSocketLogger?.logViaNetworkEnqueue(req.request.request.request, score)
+        webSocketLogger?.logViaNetworkEnqueue(WebSocketLogger.EnqueueLogItem(score, req.request.request.request))
     }
     @Suppress("unused")
     @AfterReturning("@annotation(NetworkReport) && call(* removeFirstFromQueue*())", returning = "retVal")
     fun dequeueLogToWebSocket(retVal: Any) {
         val ret = retVal as Option<EnqueuedRequest<Request>>
         ret.map {
-            webSocketLogger?.logViaNetworkDequeue(it.request.request.request.request)
+            webSocketLogger?.logViaNetworkDequeue(WebSocketLogger.DequeueLogItem(it.request.request.request.request))
         }
     }
 }
