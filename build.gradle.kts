@@ -22,7 +22,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
-    kotlin("jvm") version "1.7.21"
+    kotlin("jvm")
     kotlin("plugin.serialization") version "1.7.21"
     id("org.panteleyev.jpackageplugin") version "1.3.1"
     id("io.freefair.aspectj.post-compile-weaving") version "6.6.1"
@@ -103,14 +103,21 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.6.4")
 }
 
-tasks.jar {
+tasks.register<Jar>("uberJar") {
+    //dependsOn(tasks.named("compileKotlin"))
+    archiveClassifier.set("uber")
+    
+    from(sourceSets.main.get().output)
+    
+    //dependsOn(configurations.runtimeClasspath)
+    from({
+        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+    })
     manifest {
         attributes["Main-Class"] = "MainKt"
     }
-    configurations["compileClasspath"].forEach { file: File ->
-        from(zipTree(file.absoluteFile))
-    }
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    
+    archiveBaseName.set("${project.name}-plugin-demo")
 }
 
 tasks.test {

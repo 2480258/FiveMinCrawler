@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/FiveMinNotifyServer/FiveMinCrawler.FiveMinNotifyServer.main.iml" filepath="$PROJECT_DIR$/.idea/modules/FiveMinNotifyServer/FiveMinCrawler.FiveMinNotifyServer.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/FiveMinNotifyServer/FiveMinCrawler.FiveMinNotifyServer.test.iml" filepath="$PROJECT_DIR$/.idea/modules/FiveMinNotifyServer/FiveMinCrawler.FiveMinNotifyServer.test.iml" />
+    </modules>
+  </component>
+</project>

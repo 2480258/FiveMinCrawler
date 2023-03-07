@@ -23,3 +23,12 @@ rootProject.name = "FiveMinCrawler"
 include("FiveMinTest")
 include("FiveMinDummyPlugin")
 include("FiveMinNotifyServer")
+
+pluginManagement {
+    plugins {
+        kotlin("jvm") version "1.7.21"
+        kotlin("kapt") version "1.7.21"
+        kotlin("plugin.spring") version "1.7.21"
+
+    }
+}

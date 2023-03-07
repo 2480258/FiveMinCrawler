@@ -20,13 +20,13 @@
 
 package com.fiveminTester.com.fiveminTester.controller
 
+import jakarta.servlet.http.Cookie
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.io.File
-import javax.servlet.http.Cookie
-import javax.servlet.http.HttpServletResponse
-import javax.servlet.http.HttpServletRequest
 
 @RestController
 @RequestMapping("")
