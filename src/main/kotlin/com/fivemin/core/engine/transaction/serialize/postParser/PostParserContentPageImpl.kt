@@ -46,14 +46,21 @@ class PostParserContentPageImpl<Document : Request>(
         req: FinalizeRequestTransaction<Document>, state: SessionStartedState
     ): Deferred<Option<List<DocumentAttribute>>> {
         return GlobalScope.async {
-            req.previous.ifDocumentAsync({
+            req.previous.ifDocumentAsync({ it ->
                 if (it.parseOption.name == pageCondition) {
                     val internals = processIntAttribute(req)
                     val externals = processExtAttr(req, state)
                     val links = processLinks(req, state)
+                    val requests = externals.plus(links)
                     
-                    externals.plus(links).awaitAll() // early exits if at least one links returns an exception.
-                    
+                    try {
+                        requests.awaitAll() // early exits if at least one links returns an exception.
+                    } catch (e: CancellationException) {
+                        requests.forEach {
+                            it.cancel(e)
+                        }
+                        throw e
+                    }
                     val finished = externals.map { y ->
                         y.await() // awaits already awaited values. orders are not important
                     }
