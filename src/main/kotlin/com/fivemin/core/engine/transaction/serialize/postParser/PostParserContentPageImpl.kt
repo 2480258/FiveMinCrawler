@@ -55,9 +55,9 @@ class PostParserContentPageImpl<Document : Request>(
                     
                     try {
                         requests.awaitAll() // early exits if at least one links returns an exception.
-                    } catch (e: CancellationException) {
+                    } catch (e: Exception) {
                         requests.forEach {
-                            it.cancel(e)
+                            it.cancel(CancellationException("Canceled because previous exception: ${e.message} - ${e.stackTraceToString()}"))
                         }
                         throw e
                     }
