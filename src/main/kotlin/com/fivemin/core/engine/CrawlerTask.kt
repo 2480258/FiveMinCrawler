@@ -164,18 +164,3 @@ constructor(
         return ret
     }
 }
-
-
-typealias Cont<R, T> = (((T) -> R) -> suspend () -> R)
-
-fun <R, A, B> callCC(f: ((A) -> Cont<R, B>) -> Cont<R, A>): Cont<R, A> {
-    return { k: (A) -> R ->
-        f { a: A ->
-            val g: Cont<R, B> = {
-                suspend { k(a) }
-            }
-            
-            g
-        }(k)
-    }
-}
