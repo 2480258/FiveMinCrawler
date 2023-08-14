@@ -36,11 +36,11 @@ interface SerializableAMQ {
 }
 
 interface UniqueKeyRepository {
-    fun addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken
+    fun lock_free_addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken
     
-    fun addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken
+    fun lock_free_addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken
     
-    fun addUniqueKey(key: UniqueKey): UniqueKeyToken
+    fun lock_free_addUniqueKey(key: UniqueKey): UniqueKeyToken
     
-    fun finalizeUniqueKey(key: UniqueKey)
+    fun lock_free_finalizeUniqueKey(key: UniqueKey)
 }

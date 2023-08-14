@@ -23,14 +23,12 @@ package com.fivemin.core.engine.session
 import arrow.core.Option
 import arrow.core.toOption
 import com.fivemin.core.DuplicateKeyException
-import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import com.fivemin.core.logger.Log
 import com.fivemin.core.logger.LogLevel
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.locks.ReentrantReadWriteLock
 
 class BloomFilterCache(private val factory: BloomFilterFactory) {
     val bloomFilter = factory.createEmpty()
@@ -63,7 +61,7 @@ class CompositeUniqueKeyRepository(
         beforeMessage = "adding uniquekey",
         afterThrowingMessage = "failed to add uniquekey (detachable)"
     )
-    override fun addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken {
+    override fun lock_free_addUniqueKeyWithDetachableThrows(key: UniqueKey): UniqueKeyToken {
         if (!cache.put(key)) { // insertion failed -> already has the key
             // This process is atomic so no same key can go below
             throw DuplicateKeyException()
@@ -91,7 +89,7 @@ class CompositeUniqueKeyRepository(
         beforeMessage = "adding uniquekey",
         afterThrowingMessage = "failed to add uniquekey (not detachable)"
     )
-    override fun addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken {
+    override fun lock_free_addUniqueKeyWithNotDetachableThrows(key: UniqueKey): UniqueKeyToken {
         if (!cache.put(key)) { // insertion failed -> already has the key
             // This process is atomic so no same key can go below
             throw DuplicateKeyException()
@@ -116,7 +114,7 @@ class CompositeUniqueKeyRepository(
         beforeMessage = "adding uniquekey",
         afterThrowingMessage = "failed to add uniquekey (unknown)"
     )
-    override fun addUniqueKey(key: UniqueKey): UniqueKeyToken {
+    override fun lock_free_addUniqueKey(key: UniqueKey): UniqueKeyToken {
         if (!cache.put(key)) { // insertion failed -> already has the key
             // This process is atomic so no same key can go below
             throw DuplicateKeyException()
@@ -142,7 +140,7 @@ class CompositeUniqueKeyRepository(
         beforeMessage = "finalize uniquekey",
         afterThrowingMessage = "failed to convey uniquekey (unknown)"
     )
-    override fun finalizeUniqueKey(key: UniqueKey) {
+    override fun lock_free_finalizeUniqueKey(key: UniqueKey) {
         persister.finalizeKey(key)
     }
     
@@ -153,9 +151,9 @@ class CompositeUniqueKeyRepository(
         beforeMessage = "marked detachable",
         afterThrowingMessage = "failed to mark detachable"
     )
-    override fun notifyMarkedDetachable(tokens: Iterable<UniqueKeyToken>) {
+    override fun lock_free_notifyMarkedDetachable(tokens: Iterable<UniqueKeyToken>) {
         tokens.forEach {
-            conveyToDetachable(it)
+            lock_free_conveyToDetachable(it)
         }
     }
     
@@ -166,13 +164,13 @@ class CompositeUniqueKeyRepository(
         beforeMessage = "marked not detachable",
         afterThrowingMessage = "failed to mark not detachable"
     )
-    override fun notifyMarkedNotDetachable(tokens: Iterable<UniqueKeyToken>) {
+    override fun lock_free_notifyMarkedNotDetachable(tokens: Iterable<UniqueKeyToken>) {
         tokens.forEach {
             conveyToNotDetachable(it)
         }
     }
     
-    private fun conveyToDetachable(token: UniqueKeyToken) {
+    private fun lock_free_conveyToDetachable(token: UniqueKeyToken) {
         val key = temporaryUniqueKeyRepository.deleteUniqueKey(token) //thread-safe
         key.map { //no race condition with duplicated key; already filtered
             if (!persister.persistKey(it)) {

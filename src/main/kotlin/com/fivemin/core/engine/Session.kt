@@ -111,7 +111,7 @@ interface SessionAddableAlias : SessionMarkDetachable {
         val ret = func()
         
         ret.map {
-            data.KeyRepo.finalizeUniqueKey(key)
+            data.KeyRepo.lock_free_finalizeUniqueKey(key)
         }
         
         return ret
@@ -127,9 +127,9 @@ interface SessionAddableAlias : SessionMarkDetachable {
     )
     private fun addAliasInternal(key: UniqueKey): UniqueKeyToken {
         return when (isDetachable) {
-            DetachableState.WANT -> data.KeyRepo.addUniqueKeyWithDetachableThrows(key)
-            DetachableState.HATE -> data.KeyRepo.addUniqueKeyWithNotDetachableThrows(key)
-            DetachableState.NOTMODIFIED -> data.KeyRepo.addUniqueKey(key)
+            DetachableState.WANT -> data.KeyRepo.lock_free_addUniqueKeyWithDetachableThrows(key)
+            DetachableState.HATE -> data.KeyRepo.lock_free_addUniqueKeyWithNotDetachableThrows(key)
+            DetachableState.NOTMODIFIED -> data.KeyRepo.lock_free_addUniqueKey(key)
         }
     }
 }
