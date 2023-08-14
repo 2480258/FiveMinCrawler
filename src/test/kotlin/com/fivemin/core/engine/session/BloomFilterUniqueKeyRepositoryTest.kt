@@ -20,7 +20,6 @@
 
 package com.fivemin.core.engine.session
 
-import arrow.core.none
 import com.fivemin.core.ElemIterator
 import com.fivemin.core.engine.UniqueKey
 import com.fivemin.core.engine.session.bFilter.BloomFilterImpl
@@ -33,9 +32,6 @@ import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.thread
-import kotlin.concurrent.withLock
 
 class BloomFilterUniqueKeyRepositoryTest {
     
@@ -70,9 +66,9 @@ class BloomFilterUniqueKeyRepositoryTest {
     fun testAddUniqueKeyWithDetachableThrows_ThrowsWithDuplicatedKey() {
         val key = uniq.getNext()
         
-        val token = bf.addUniqueKeyWithDetachableThrows(key)
+        val token = bf.lock_free_addUniqueKeyWithDetachableThrows(key)
         assertThrows {
-            bf.addUniqueKeyWithDetachableThrows(key)
+            bf.lock_free_addUniqueKeyWithDetachableThrows(key)
         }
     }
     
@@ -80,9 +76,9 @@ class BloomFilterUniqueKeyRepositoryTest {
     fun testAddUniqueKeyWithNotDetachableThrows_ThrowsWithDuplicatedKey() {
         val key = uniq.getNext()
         
-        val token = bf.addUniqueKeyWithNotDetachableThrows(key)
+        val token = bf.lock_free_addUniqueKeyWithNotDetachableThrows(key)
         assertThrows {
-            bf.addUniqueKeyWithNotDetachableThrows(key)
+            bf.lock_free_addUniqueKeyWithNotDetachableThrows(key)
         }
     }
     
@@ -90,9 +86,9 @@ class BloomFilterUniqueKeyRepositoryTest {
     fun testAddUniqueKeyWithNotDetachableThrows_ThrowsWithCrossedDuplicatedToNonDuplicatedKey() {
         val key = uniq.getNext()
         
-        val token = bf.addUniqueKeyWithNotDetachableThrows(key)
+        val token = bf.lock_free_addUniqueKeyWithNotDetachableThrows(key)
         assertThrows {
-            bf.addUniqueKeyWithDetachableThrows(key)
+            bf.lock_free_addUniqueKeyWithDetachableThrows(key)
         }
     }
     
@@ -100,9 +96,9 @@ class BloomFilterUniqueKeyRepositoryTest {
     fun testAddUniqueKeyWithNotDetachableThrows_ThrowsWithCrossedNonDuplicatedToDuplicatedKey() {
         val key = uniq.getNext()
         
-        val token = bf.addUniqueKeyWithDetachableThrows(key)
+        val token = bf.lock_free_addUniqueKeyWithDetachableThrows(key)
         assertThrows {
-            bf.addUniqueKeyWithNotDetachableThrows(key)
+            bf.lock_free_addUniqueKeyWithNotDetachableThrows(key)
         }
     }
     
@@ -110,9 +106,9 @@ class BloomFilterUniqueKeyRepositoryTest {
     fun testAddUniqueKey_ThrowsWithDuplicatedKey() {
         val key = uniq.getNext()
         
-        val token = bf.addUniqueKey(key)
+        val token = bf.lock_free_addUniqueKey(key)
         assertThrows {
-            bf.addUniqueKey(key)
+            bf.lock_free_addUniqueKey(key)
         }
     }
     
@@ -139,7 +135,7 @@ class BloomFilterUniqueKeyRepositoryTest {
         persister.persistKey(key)
         
         assertThrows {
-            bff.addUniqueKey(key)
+            bff.lock_free_addUniqueKey(key)
         }
     }
     
@@ -166,7 +162,7 @@ class BloomFilterUniqueKeyRepositoryTest {
         persister.persistKey(key)
         
         assertThrows {
-            bff.addUniqueKeyWithNotDetachableThrows(key)
+            bff.lock_free_addUniqueKeyWithNotDetachableThrows(key)
         }
     }
     
@@ -242,27 +238,27 @@ class BloomFilterUniqueKeyRepositoryTest {
     
     fun addDetachable(bff: CompositeUniqueKeyRepository, key: UniqueKey) {
         //println(key.toString())
-        bff.addUniqueKeyWithDetachableThrows(key)
+        bff.lock_free_addUniqueKeyWithDetachableThrows(key)
         assert(bff.containsDetachable(key))
     }
     
     fun addNotDetachable(bff: CompositeUniqueKeyRepository, key: UniqueKey) {
         //println(key.toString())
-        bff.addUniqueKeyWithNotDetachableThrows(key)
+        bff.lock_free_addUniqueKeyWithNotDetachableThrows(key)
         assert(bff.containsNotDetachableAndAdd(key))
     }
     
     fun addKeyAndSetDetachable(bff: CompositeUniqueKeyRepository, key: UniqueKey) {
         //println(key.toString())
-        val token = bff.addUniqueKey(key)
-        bff.notifyMarkedDetachable(listOf(token))
+        val token = bff.lock_free_addUniqueKey(key)
+        bff.lock_free_notifyMarkedDetachable(listOf(token))
         assert(bff.containsDetachable(key))
     }
     
     fun addKeyAndSetNotDetachable(bff: CompositeUniqueKeyRepository, key: UniqueKey) {
         //println(key.toString())
-        val token = bff.addUniqueKey(key)
-        bff.notifyMarkedNotDetachable(listOf(token))
+        val token = bff.lock_free_addUniqueKey(key)
+        bff.lock_free_notifyMarkedNotDetachable(listOf(token))
         assert(bff.containsNotDetachableAndAdd(key))
     }
 }

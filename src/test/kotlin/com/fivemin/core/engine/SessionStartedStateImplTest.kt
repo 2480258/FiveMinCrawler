@@ -32,7 +32,6 @@ import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.testng.Assert.assertThrows
 import org.testng.annotations.Test
@@ -71,7 +70,7 @@ class SessionStartedStateImplTest {
         }
         
         verify(exactly = 0) {
-            keyRepo.finalizeUniqueKey(any())
+            keyRepo.lock_free_finalizeUniqueKey(any())
         }
     }
     
@@ -110,7 +109,7 @@ class SessionStartedStateImplTest {
         }
     
         verify(exactly = 0) {
-            keyRepo.finalizeUniqueKey(any())
+            keyRepo.lock_free_finalizeUniqueKey(any())
         }
     }
     
@@ -146,7 +145,7 @@ class SessionStartedStateImplTest {
         }
         
         verify(exactly = 1) {
-            keyRepo.finalizeUniqueKey(any())
+            keyRepo.lock_free_finalizeUniqueKey(any())
         }
     }
     
@@ -222,7 +221,7 @@ class SessionStartedStateImplTest {
         sess.setDetachable()
         
         verify(exactly = 1) {
-            keyRepo.notifyMarkedDetachable(any())
+            keyRepo.lock_free_notifyMarkedDetachable(any())
         }
     }
     
@@ -257,7 +256,7 @@ class SessionStartedStateImplTest {
         sess.setNonDetachable()
         
         verify(exactly = 1) {
-            keyRepo.notifyMarkedNotDetachable(any())
+            keyRepo.lock_free_notifyMarkedNotDetachable(any())
         }
     }
 }

@@ -20,13 +20,9 @@
 
 package com.fivemin.core.engine.session
 
-import arrow.core.none
-import arrow.core.toOption
 import com.fivemin.core.ElemIterator
 import com.fivemin.core.IteratorElemFactory
 import com.fivemin.core.StringIterator
-import com.fivemin.core.UriIterator
-import com.fivemin.core.engine.SessionToken
 import com.fivemin.core.engine.UniqueKey
 import com.fivemin.core.engine.session.bFilter.BloomFilterImpl
 import com.fivemin.core.engine.session.database.DatabaseAdapterFactoryImpl
@@ -69,67 +65,67 @@ class UniqueKeyRepositoryImplTest {
 
     @Test
     fun testAddAliasWithNetural() {
-        r.addUniqueKey(it.gen())
+        r.lock_free_addUniqueKey(it.gen())
         
         assertThrows {
-            r.addUniqueKey(it[0]!!)
+            r.lock_free_addUniqueKey(it[0]!!)
         }
     }
     
     @Test
     fun testAddAliasWithNeturalWithDetached() {
-        r.addUniqueKeyWithDetachableThrows(it.gen())
+        r.lock_free_addUniqueKeyWithDetachableThrows(it.gen())
         
         assertThrows {
-            r.addUniqueKey(it[0]!!)
+            r.lock_free_addUniqueKey(it[0]!!)
         }
     }
     
     @Test
     fun testAddAliasWithNeturalWithNotDetached() {
-        r.addUniqueKeyWithNotDetachableThrows(it.gen())
+        r.lock_free_addUniqueKeyWithNotDetachableThrows(it.gen())
         
         assertThrows {
-            r.addUniqueKey(it[0]!!)
+            r.lock_free_addUniqueKey(it[0]!!)
         }
     }
     
     @Test
     fun testAddAliasWithNotDetached() {
-        r.addUniqueKey(it.gen())
+        r.lock_free_addUniqueKey(it.gen())
         
         assertThrows {
-            r.addUniqueKeyWithNotDetachableThrows(it[0]!!)
+            r.lock_free_addUniqueKeyWithNotDetachableThrows(it[0]!!)
         }
     }
     
     @Test
     fun testAddAliasWithDetached() {
-        r.addUniqueKey(it.gen())
+        r.lock_free_addUniqueKey(it.gen())
         
         assertThrows {
-            r.addUniqueKeyWithDetachableThrows(it[0]!!)
+            r.lock_free_addUniqueKeyWithDetachableThrows(it[0]!!)
         }
     }
     
     @Test
     fun testConveyToDetached() {
-        val token = r.addUniqueKey(it.gen())
-        r.notifyMarkedDetachable(listOf(token))
+        val token = r.lock_free_addUniqueKey(it.gen())
+        r.lock_free_notifyMarkedDetachable(listOf(token))
         
         assertThrows {
-            r.addUniqueKey(it[0]!!)
+            r.lock_free_addUniqueKey(it[0]!!)
         }
     }
     
     
     @Test
     fun testConveyToNotDetached() {
-        val token = r.addUniqueKey(it.gen())
-        r.notifyMarkedNotDetachable(listOf(token))
+        val token = r.lock_free_addUniqueKey(it.gen())
+        r.lock_free_notifyMarkedNotDetachable(listOf(token))
         
         assertThrows {
-            r.addUniqueKey(it[0]!!)
+            r.lock_free_addUniqueKey(it[0]!!)
         }
     }
 }

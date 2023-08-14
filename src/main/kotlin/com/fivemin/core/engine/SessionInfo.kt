@@ -20,14 +20,11 @@
 
 package com.fivemin.core.engine
 
-import arrow.core.Option
 import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.session.RetryCountMaxedException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 const val MaxRetry = 3
 
@@ -66,9 +63,9 @@ data class UniqueKeyToken constructor(val tokenNumber: ULong) {
 }
 
 interface DetachObserver {
-    fun notifyMarkedDetachable(tokens: Iterable<UniqueKeyToken>)
+    fun lock_free_notifyMarkedDetachable(tokens: Iterable<UniqueKeyToken>)
     
-    fun notifyMarkedNotDetachable(tokens: Iterable<UniqueKeyToken>)
+    fun lock_free_notifyMarkedNotDetachable(tokens: Iterable<UniqueKeyToken>)
 }
 
 class SessionInfo
@@ -134,7 +131,7 @@ constructor(
         }
         
         detachable = DetachableState.WANT
-        detach.notifyMarkedDetachable(tokens)
+        detach.lock_free_notifyMarkedDetachable(tokens)
     }
     
     fun setNonDetachable(tokens: Iterable<UniqueKeyToken>) {
@@ -143,6 +140,6 @@ constructor(
         }
         
         detachable = DetachableState.HATE
-        detach.notifyMarkedNotDetachable(tokens)
+        detach.lock_free_notifyMarkedNotDetachable(tokens)
     }
 }
