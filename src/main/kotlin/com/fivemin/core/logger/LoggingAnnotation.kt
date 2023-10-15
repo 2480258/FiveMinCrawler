@@ -24,6 +24,7 @@ import arrow.core.Either
 import arrow.core.Option
 import com.fivemin.core.Logger
 import com.fivemin.core.LoggerController
+import com.fivemin.core.TaskDetachedException
 import com.fivemin.core.engine.*
 import org.aspectj.lang.JoinPoint
 import org.aspectj.lang.annotation.AfterReturning
@@ -61,7 +62,7 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         Log: Log
     ) {
         if (checksCoroutineBefore(joinPoint)) return
-    
+        
         val target = getObjectsFromJoinPoint(joinPoint)
         
         val objInfo = generateStandardLoggingMessageFromContext(target)
@@ -78,7 +79,7 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         val cc = joinPoint.args.firstOrNull {
             it != null
         }
-    
+        
         if ((cc != null) && cc::class.qualifiedName == null) {
             return true
         }
@@ -93,8 +94,8 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         retVal: Any?
     ) {
         if (checksCoroutineAfterReturning(retVal)) return
-    
-        if(retVal == null) {
+        
+        if (retVal == null) {
             val msg = Log.afterReturningMessage.ifBlank {
                 generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
             }
@@ -156,10 +157,15 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         return "$callLoc || $logLocation"
     }
     
-    private fun generateErrorLoggingMessageFromContext(joinPoint: List<Any>): String {
+    private fun generateErrorLoggingMessageFromContext(joinPoint: List<Any?>): String {
+        
+        val santilizedJoinPoint = joinPoint.filterNotNull().filter {
+            it !is TaskDetachedException
+        }
+        
         val firstEither =
             findAndGetFirstOrNull<Either<Throwable, Any?>>( // no support for multiple either due to performance reasons
-                joinPoint,
+                santilizedJoinPoint,
                 Either::class.createType(
                     listOf(
                         KTypeProjection(KVariance.OUT, Throwable::class.starProjectedType),
@@ -175,7 +181,7 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         })
         
         val objList = listOf(
-            findAndGetFirstOrNull(joinPoint, Throwable::class)?.stackTraceToString(),
+            findAndGetFirstOrNull(santilizedJoinPoint, Throwable::class)?.stackTraceToString(),
             mappedEither
         )
         
@@ -183,10 +189,14 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         return objList.filterNotNull().joinToString(" ")
     }
     
-    private fun generateStandardLoggingMessageFromContext(joinPoint: List<Any>): String {
+    private fun generateStandardLoggingMessageFromContext(joinPoint: List<Any?>): String {
+        
+        val santilizedJoinPoint = joinPoint.filterNotNull().filter {
+            it !is TaskDetachedException
+        }
         val firstEither =
             findAndGetFirstOrNull<Either<Throwable, Any?>>( // no support for multiple either due to performance reasons
-                joinPoint,
+                santilizedJoinPoint,
                 Either::class.createType(
                     listOf(
                         KTypeProjection(KVariance.OUT, Throwable::class.starProjectedType),
@@ -197,7 +207,7 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         
         val firstOption =
             findAndGetFirstOrNull<Option<Any?>>( // no support for multiple options due to performance reasons
-                joinPoint,
+                santilizedJoinPoint,
                 Option::class.createType(
                     listOf(
                         KTypeProjection(KVariance.OUT, Any::class.starProjectedType.withNullability(true))
@@ -218,18 +228,20 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         })
         
         val objList = listOf(
-            findAndGetFirstOrNull(joinPoint, Request::class).gdi(),
-            findAndGetFirstOrNull(joinPoint, SessionToken::class).gdi(),
-            findAndGetFirstOrNull(joinPoint, UniqueKey::class).gdi(),
-            findAndGetFirstOrNull(joinPoint, UniqueKeyToken::class).gdi(),
-            findAndGetFirstOrNull(joinPoint, FileIOToken::class).gdi(),
-            findAndGetFirstOrNull(joinPoint, ExportHandle::class).gdi(),
-            findAndGetFirstOrNull(joinPoint, DocumentAttributeInfo::class).gdi(),
+            findAndGetFirstOrNull(santilizedJoinPoint, Request::class).gdi(),
+            findAndGetFirstOrNull(santilizedJoinPoint, SessionToken::class).gdi(),
+            findAndGetFirstOrNull(santilizedJoinPoint, UniqueKey::class).gdi(),
+            findAndGetFirstOrNull(santilizedJoinPoint, UniqueKeyToken::class).gdi(),
+            findAndGetFirstOrNull(santilizedJoinPoint, FileIOToken::class).gdi(),
+            findAndGetFirstOrNull(santilizedJoinPoint, ExportHandle::class).gdi(),
+            findAndGetFirstOrNull(santilizedJoinPoint, DocumentAttributeInfo::class).gdi(),
             mappedEither,
             mappedOption
         )
         
-        val tstr = "(toString() of return value (may repeat 2 or more times): ${joinPoint.map { it?.toString() ?: "null" }.joinToString (" ")})" // it can be null
+        val tstr = "(toString() of return value (may repeat 2 or more times): ${
+            santilizedJoinPoint.map { it?.toString() ?: "null" }.joinToString(" ")
+        })" // it can be null
         
         return objList.filterNotNull().joinToString(" ")
     }
