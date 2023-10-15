@@ -71,7 +71,7 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
             generateCallLocationMessage(joinPoint, LogLocation.BEFORE)
         }
         
-        getLoggerPerLogLevel(Log.beforeLogLevel)("$msg $objInfo $errInfo")
+        logIfTextIsNotBlank(Log.beforeLogLevel, "$msg $objInfo $errInfo")
     }
     
     private fun checksCoroutineBefore(joinPoint: JoinPoint): Boolean {
@@ -98,8 +98,8 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
             val msg = Log.afterReturningMessage.ifBlank {
                 generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
             }
-    
-            getLoggerPerLogLevel(Log.afterReturningLogLevel)(msg)
+            
+            logIfTextIsNotBlank(Log.afterReturningLogLevel, msg)
             
             return
         }
@@ -113,13 +113,13 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
                 generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
             } + " (handled)"
             
-            getLoggerPerLogLevel(Log.afterThrowingLogLevel)("$msg $objInfo $errInfo")
+            logIfTextIsNotBlank(Log.afterThrowingLogLevel, "$msg $objInfo $errInfo")
         } else {
             val msg = Log.afterReturningMessage.ifBlank {
                 generateCallLocationMessage(joinPoint, LogLocation.AFTER_RETURNING)
             }
             
-            getLoggerPerLogLevel(Log.afterReturningLogLevel)("$msg $objInfo $errInfo")
+            logIfTextIsNotBlank(Log.afterReturningLogLevel, "$msg $objInfo $errInfo")
         }
     }
     
@@ -144,7 +144,7 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
             generateCallLocationMessage(joinPoint, LogLocation.AFTER_THROWING)
         }
         
-        getLoggerPerLogLevel(Log.afterThrowingLogLevel)("$msg | $objInfo $errInfo")
+        logIfTextIsNotBlank(Log.afterThrowingLogLevel, "$msg | $objInfo $errInfo")
         
         throw retVal
     }
@@ -265,13 +265,17 @@ class AnnotationLogger(private val logger: Logger = LoggerController.getLogger("
         return ret
     }
     
-    private fun getLoggerPerLogLevel(level: LogLevel): (String) -> Unit {
-        return when (level) {
+    private fun logIfTextIsNotBlank(level: LogLevel, text: String) {
+        val logger = when (level) {
             LogLevel.ERROR -> logger::error
             LogLevel.WARN -> logger::warn
             LogLevel.INFO -> logger::info
             LogLevel.DEBUG -> logger::debug
             LogLevel.TRACE -> logger::trace
+        }
+        
+        if(text.isNotBlank()) {
+            logger(text)
         }
     }
     
