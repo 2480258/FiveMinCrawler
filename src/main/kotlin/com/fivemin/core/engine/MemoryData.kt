@@ -59,17 +59,13 @@ interface HtmlMemoryData : StringMemoryData {
 }
 
 class HtmlMemoryDataImpl constructor(private val data: StringMemoryData, private val fac: HtmlDocumentFactory) : HtmlMemoryData {
-    val doc: Lazy<Either<Throwable, HtmlParsable>>
-
-    init {
-        doc = lazy {
-            data.openStreamAsStringAndDispose {
-                x ->
-                fac.create(x)
-            }
+    val doc: Lazy<Either<Throwable, HtmlParsable>> = lazy {
+        data.openStreamAsStringAndDispose {
+            x ->
+            fac.create(x)
         }
     }
-
+    
     override fun <T> parseAsHtmlDocument(func: (HtmlParsable) -> T): Either<Throwable, T> {
         return doc.value.map { x -> func(x) }
     }

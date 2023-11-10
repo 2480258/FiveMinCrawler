@@ -27,8 +27,6 @@ import com.fivemin.core.logger.LogLevel
 import java.io.*
 import java.nio.charset.Charset
 
-// WIP
-
 interface MemoryWriter : MemoryFilter
 
 /**
@@ -124,6 +122,9 @@ class MemoryWriterImpl : MemoryWriter {
     override var isCompleted: Boolean = false
 }
 
+/**
+ * Test purpose memory writer
+ */
 class ArrayMemoryData constructor(private val data: ByteArray) : MemoryData {
     
     @Log(
@@ -184,13 +185,13 @@ class StringFilterImpl constructor(private val filter: MemoryFilter, private var
         Charsets.UTF_16LE to byteArrayOf(0xFF.toByte(), 0xFE.toByte())
     )
     private val MAX_BOM_LENGTH = 10 //how much byte needed to be copied over for BOM recognitions?
-    override var isCompleted: Boolean = false
+    override val isCompleted: Boolean
         get() = filter.isCompleted
     
-    override var isDisposed: Boolean = false
+    override val isDisposed: Boolean
         get() = filter.isDisposed
     
-    override var length: Int = 0
+    override val length: Int
         get() = filter.length
     
     override fun write(b: ByteArray, off: Int, len: Int) {
@@ -235,13 +236,13 @@ class StringFilterImpl constructor(private val filter: MemoryFilter, private var
  */
 class HtmlFilterImpl constructor(private val filter: StringFilter, private val factory: HtmlDocumentFactory) :
     MemoryFilter {
-    override var isCompleted: Boolean = false
+    override val isCompleted: Boolean
         get() = filter.isCompleted
     
-    override var isDisposed: Boolean = false
+    override val isDisposed: Boolean
         get() = filter.isDisposed
     
-    override var length: Int = 0
+    override val length: Int
         get() = filter.length
     
     override fun write(b: ByteArray, off: Int, len: Int) {

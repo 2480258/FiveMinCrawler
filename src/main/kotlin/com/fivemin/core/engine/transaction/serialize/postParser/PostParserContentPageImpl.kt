@@ -25,10 +25,6 @@ import com.fivemin.core.LoggerController
 import com.fivemin.core.engine.*
 import kotlinx.coroutines.*
 
-class DownloadHandlerImpl {
-
-}
-
 class PostParserContentPageImpl<Document : Request>(
     private val pageCondition: PageName,
     private val linkInfoFactory: RequestContentInfoFactory<Document>,
@@ -39,7 +35,6 @@ class PostParserContentPageImpl<Document : Request>(
     
     companion object {
         private val logger = LoggerController.getLogger("PostParserContentPageImpl")
-        private val downloadHandler = DownloadHandlerImpl()
     }
     
     override suspend fun extract(
@@ -57,7 +52,11 @@ class PostParserContentPageImpl<Document : Request>(
                         requests.awaitAll() // early exits if at least one links returns an exception.
                     } catch (e: Exception) {
                         requests.forEach {
-                            it.cancel(CancellationException("Canceled because previous exception: ${e.message} - ${e.stackTraceToString()}"))
+                            try {
+                                it.cancel(CancellationException("Canceled because of previous exception: ${e.message} - ${e.stackTraceToString()}"))
+                            } catch (e: Exception) {
+                                logger.trace("Exception thrown during canceling request: ${e.message} \n It may appear few times more.")
+                            }
                         }
                         throw e
                     }

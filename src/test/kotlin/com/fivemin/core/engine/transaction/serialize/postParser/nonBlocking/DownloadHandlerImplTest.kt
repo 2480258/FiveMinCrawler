@@ -25,15 +25,12 @@ import com.fivemin.core.TaskMockFactory
 import com.fivemin.core.engine.InitialOption
 import com.fivemin.core.engine.Request
 import com.fivemin.core.engine.RequestType
-import com.fivemin.core.engine.transaction.serialize.postParser.DownloadHandlerImpl
 import org.testng.annotations.Test
 
 import org.testng.annotations.BeforeTest
 import java.net.URI
 
 class DownloadHandler_nonBlockingTest {
-    
-    lateinit var handler: DownloadHandlerImpl
     
     @BeforeTest
     fun before() {
